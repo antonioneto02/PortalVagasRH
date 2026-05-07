@@ -60,7 +60,7 @@ async function criarUsuario(req, res) {
     return res.status(400).json({ error: 'Campos obrigatórios: usuário, senha e nome.' });
   }
 
-  const admFlag = Number(adm) === 1 ? 1 : 0;
+  const admFlag = 0;
   let pool = null;
   try {
     const passwordHash = await bcrypt.hash(password, 10);

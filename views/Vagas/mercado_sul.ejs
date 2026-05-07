@@ -3,7 +3,8 @@
 <head>
   <title>Mercado Sul - Portal Vagas RH</title>
   <%- include('../System/headIncludes.ejs') %>
-  <style>#tblMercado td{vertical-align:middle;}.me-1{margin-right:.25rem!important;}.me-2{margin-right:.5rem!important;}</style>
+  <style>#tblMercado td{vertical-align:middle;}.me-1{margin-right:.25rem!important;}.me-2{margin-right:.5rem!important;}
+  .col-filter{font-size:.78rem;padding:2px 4px;height:auto;min-width:70px;} #tblMercado tfoot th{padding:4px 3px;}</style>
 </head>
 <body>
 <div class="layout-container">
@@ -69,6 +70,15 @@
                 </tr>
               <% }); %>
             </tbody>
+            <tfoot>
+              <tr>
+                <th><select class="form-control form-control-sm col-filter"><option value="">Função...</option></select></th>
+                <th><select class="form-control form-control-sm col-filter"><option value="">Cargo Mercado...</option></select></th>
+                <th><select class="form-control form-control-sm col-filter"><option value="">Nível...</option></select></th>
+                <th></th><th></th><th></th><th></th>
+                <% if (podeCadastrar) { %><th></th><% } %>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
@@ -125,7 +135,27 @@ $(document).ready(function () {
     language:{url:'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'},
     dom:'Bfrtip',
     buttons:[{extend:'excelHtml5',text:'<i class="fas fa-file-excel"></i> Excel',className:'btn btn-success btn-sm',title:'Mercado Sul'}],
-    pageLength:50, order:[[0,'asc']]
+    pageLength:50, order:[[0,'asc']],
+    initComplete: function() {
+      var api = this.api();
+      [0, 1, 2].forEach(function(i) {
+        var col = api.column(i);
+        var select = $(col.footer()).find('select');
+        if (!select.length) return;
+        var vals = [];
+        col.nodes().each(function() {
+          var t = $(this).text().trim();
+          if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
+        });
+        vals.sort().forEach(function(v) {
+          select.append('<option value="' + v + '">' + v + '</option>');
+        });
+        select.on('change', function() {
+          var v = $(this).val();
+          col.search(v ? '^' + $.fn.dataTable.util.escapeRegex(v) + '$' : '', true, false).draw();
+        });
+      });
+    }
   });
 
   <% if (podeCadastrar) { %>
