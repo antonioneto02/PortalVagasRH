@@ -250,9 +250,10 @@ async function slaByFuncao(req, res) {
   let pool = null;
   try {
     pool = await new sql.ConnectionPool(dbConfig).connect();
+    // Use case-insensitive partial match to find SLA even if funcao formatting differs
     const result = await pool.request()
-      .input('FUNCAO', sql.VarChar(200), funcao)
-      .query(`SELECT SLA_DIAS, CLASSIFICACAO FROM RH_SLA_CONFIG WHERE UPPER(RTRIM(FUNCAO)) = UPPER(RTRIM(@FUNCAO))`);
+      .input('Q', sql.VarChar(200), '%' + funcao.toUpperCase() + '%')
+      .query(`SELECT SLA_DIAS, CLASSIFICACAO FROM RH_SLA_CONFIG WHERE UPPER(FUNCAO) LIKE @Q`);
     if (result.recordset.length > 0) {
       res.json({ sla_dias: result.recordset[0].SLA_DIAS, classificacao: result.recordset[0].CLASSIFICACAO });
     } else {
