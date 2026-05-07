@@ -429,4 +429,5 @@ module.exports = {
   renderCadSla, listarSlaApi, slaByFuncao,
   salvarSla, atualizarSla, deletarSla,
   renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
+  getEmpresas, fecharVaga,
 };
