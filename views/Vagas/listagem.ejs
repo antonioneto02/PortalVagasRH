@@ -104,13 +104,21 @@
               <label>Empresa</label>
               <select id="empresaSelect" name="empresa" class="form-control"></select>
             </div>
-            <div class="col-md-6 mb-3">
+            <div class="col-md-5 mb-3">
               <label>Função <span class="text-danger">*</span></label>
               <select id="funcaoSelect" name="funcao" class="form-control" required></select>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-md-2 mb-3">
               <label>Data Abertura <span class="text-danger">*</span></label>
               <input type="date" class="form-control" name="data_abertura" required>
+            </div>
+            <div class="col-md-2 mb-3">
+              <label>Tipo de Vaga <span class="text-danger">*</span></label>
+              <select class="form-control" name="tipo_vaga" required>
+                <option value="">Selecione...</option>
+                <option value="INTERNA">INTERNA</option>
+                <option value="EXTERNA">EXTERNA</option>
+              </select>
             </div>
           </div>
           <div class="row">
@@ -182,7 +190,6 @@
     </div>
   </div>
 </div>
-<!-- Modal: Fechar Vaga -->
 <div class="modal fade" id="modalFecharVaga" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -235,15 +242,12 @@ $(document).ready(function () {
         dropdownParent: $('#modalNovaVaga'),
         ajax: { url:'/api/pessoas', dataType:'json', delay:250,
           data: p => ({ q: p.term||'' }),
-          // API now returns objects {id,text}
           processResults: d => ({ results: d }), cache:true }
       });
     }
   }
 
   $('#modalNovaVaga').on('shown.bs.modal', initSelect2);
-
-  // Init empresa select
   if (!$('#empresaSelect').hasClass('select2-hidden-accessible')) {
     $('#empresaSelect').select2({
       placeholder: 'Selecione ou digite...', allowClear: true,
@@ -253,7 +257,6 @@ $(document).ready(function () {
     });
   }
 
-  // Fechar vaga modal handling
   $(document).on('click', '.btn-fechar-vaga', function() {
     const id = $(this).data('id');
     $('#fecharVagaId').val(id);
@@ -271,7 +274,6 @@ $(document).ready(function () {
     });
   });
 
-  // Apply Select2 to the static 'Setor' select so it has the same searchable behavior
   if (!$('select[name="setor"]').hasClass('select2-hidden-accessible')) {
     $('select[name="setor"]').select2({
       placeholder: 'Selecione ou digite...', allowClear: true,
@@ -288,7 +290,6 @@ $(document).ready(function () {
       });
     }
   });
-  // also handle select2 selection event
   $('#funcaoSelect').on('select2:select', function(e) {
     const funcao = e.params.data.id || $(this).val();
     if (funcao) {
@@ -305,6 +306,7 @@ $(document).ready(function () {
     $('#funcaoSelect').val(null).trigger('change');
     $('#solicitanteSelect').val(null).trigger('change');
     $('[name="data_abertura"]').val(new Date().toISOString().split('T')[0]);
+    $('[name="tipo_vaga"]').val('EXTERNA');
     $('#modalNovaVaga').modal('show');
   });
 
