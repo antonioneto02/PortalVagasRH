@@ -40,13 +40,6 @@
           </div>
         </div>
         <div class="card-body">
-          <div id="filtrosUsuarios" class="dt-filtros mb-2 d-flex flex-wrap align-items-center" style="gap:.4rem;">
-            <select class="form-control form-control-sm" data-col="1" style="min-width:130px;"><option value="">Username...</option></select>
-            <select class="form-control form-control-sm" data-col="3" style="min-width:140px;"><option value="">Nome...</option></select>
-            <select class="form-control form-control-sm" data-col="6" style="min-width:130px;"><option value="">Dt Cadastro...</option></select>
-            <select class="form-control form-control-sm" data-col="8" style="min-width:90px;"><option value="">ADM...</option></select>
-            <select class="form-control form-control-sm" data-col="9" style="min-width:130px;"><option value="">ID Protheus...</option></select>
-          </div>
           <table id="tblUsuarios" class="display table table-striped table-hover" style="width:100%">
             <thead>
               <tr>
@@ -183,19 +176,24 @@ $(document).ready(function() {
     order: [[0, 'desc']],
     initComplete: function() {
       var api = this.api();
-      $('#filtrosUsuarios [data-col]').each(function() {
-        var col = api.column(parseInt($(this).data('col')));
-        var select = $(this);
+      var cols = [
+        {idx:1, label:'Username...', w:'150px'},
+        {idx:3, label:'Nome...', w:'160px'},
+        {idx:6, label:'Dt Cadastro...', w:'150px'},
+        {idx:8, label:'ADM...', w:'100px'},
+        {idx:9, label:'ID Protheus...', w:'150px'}
+      ];
+      var filterDiv = $('#tblUsuarios_filter').css({display:'flex', flexWrap:'wrap', alignItems:'center', gap:'.4rem'});
+      filterDiv.find('label').css({marginBottom:0, marginRight:'.25rem'});
+      cols.forEach(function(c) {
+        var col = api.column(c.idx);
+        var sel = $('<select style="min-width:'+c.w+';width:'+c.w+';"><option value="">'+c.label+'</option></select>');
         var vals = [];
-        col.nodes().each(function() {
-          var t = $(this).text().trim();
-          if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
-        });
-        vals.sort().forEach(function(v) { select.append('<option value="' + v + '">' + v + '</option>'); });
-        select.on('change', function() {
-          var v = $(this).val();
-          col.search(v ? '^' + $.fn.dataTable.util.escapeRegex(v) + '$' : '', true, false).draw();
-        });
+        col.nodes().each(function() { var t=$(this).text().trim(); if(t&&t!=='-'&&vals.indexOf(t)===-1) vals.push(t); });
+        vals.sort().forEach(function(v){sel.append('<option value="'+v+'">'+v+'</option>');});
+        filterDiv.append(sel);
+        sel.select2({allowClear:true, placeholder:c.label, width:c.w});
+        sel.on('change',function(){var v=$(this).val();col.search(v?'^'+$.fn.dataTable.util.escapeRegex(v)+'$':'',true,false).draw();});
       });
     }
   });
