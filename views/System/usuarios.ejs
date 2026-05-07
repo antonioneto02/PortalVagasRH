@@ -230,6 +230,8 @@ $(document).ready(function() {
   $('#protheusPessoa').select2({
     placeholder: 'Digite o nome...',
     allowClear: true,
+    width: '100%',
+    dropdownAutoWidth: false,
     dropdownParent: $('#modalProtheus'),
     ajax: {
       url: '/api/protheus/usuarios',
