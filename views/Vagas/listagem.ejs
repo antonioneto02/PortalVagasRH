@@ -55,25 +55,25 @@
               <tbody>
                 <% vagas.forEach(v => { %>
                   <tr>
-                    <td><%= v.FUNCAO %></td>
-                    <td><span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.TIPO_VAGA %></span></td>
-                    <td><span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.STATUS %></span></td>
-                    <td><%= v.SETOR||'-' %></td>
-                    <td><%= v.SOLICITANTE||'-' %></td>
-                    <td><% if(v.CLASSIFICACAO){ %><span class="badge" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.CLASSIFICACAO %></span><% }else{ %>-<% } %></td>
-                    <td><%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %></td>
-                    <td><%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></td>
-                    <td><%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %></td>
-                    <td><%= v.DATA_ABERTURA||'-' %></td>
-                    <td><%= v.PRAZO_CONTRATACAO||'-' %></td>
-                    <td><%= v.EMPRESA||'-' %></td>
+                    <td title="<%= v.FUNCAO %>" data-toggle="tooltip"><%= v.FUNCAO %></td>
+                    <td title="<%= v.TIPO_VAGA %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.TIPO_VAGA %></span></td>
+                    <td title="<%= v.STATUS %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.STATUS %></span></td>
+                    <td title="<%= v.SETOR||'-' %>" data-toggle="tooltip"><%= v.SETOR||'-' %></td>
+                    <td title="<%= v.SOLICITANTE||'-' %>" data-toggle="tooltip" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= v.SOLICITANTE||'-' %></td>
+                    <td><% if(v.CLASSIFICACAO){ %><span class="badge" title="<%= v.CLASSIFICACAO %>" data-toggle="tooltip" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.CLASSIFICACAO %></span><% }else{ %>-<% } %></td>
+                    <td title="<%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %>" data-toggle="tooltip"><%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %></td>
+                    <td title="<%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %>" data-toggle="tooltip"><%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></td>
+                    <td title="<%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %>" data-toggle="tooltip"><%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %></td>
+                    <td title="<%= v.DATA_ABERTURA||'-' %>" data-toggle="tooltip"><%= v.DATA_ABERTURA||'-' %></td>
+                    <td title="<%= v.PRAZO_CONTRATACAO||'-' %>" data-toggle="tooltip"><%= v.PRAZO_CONTRATACAO||'-' %></td>
+                    <td title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></td>
                     <td><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
                     <td><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
-                    <td style="max-width:280px;white-space:normal;font-size:.82rem;"><%= v.REQUISITOS_VAGA||'-' %></td>
+                    <td title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip" style="max-width:280px;white-space:normal;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;"><%= v.REQUISITOS_VAGA||'-' %></td>
                     <% if (podeCadastrar) { %>
                       <td>
-                        <% if (v.STATUS !== 'FECHADA') { %>
-                          <button class="btn btn-sm btn-outline-secondary btn-fechar-vaga" data-id="<%= v.ID %>"><i class="fas fa-times-circle me-1"></i>Fechar Vaga</button>
+                          <% if (v.STATUS !== 'FECHADA') { %>
+                          <button class="btn btn-sm btn-success btn-fechar-vaga" data-id="<%= v.ID %>"><i class="fas fa-times-circle me-1"></i>Fechar Vaga</button>
                         <% } else { %>
                           <span class="text-muted">-</span>
                         <% } %>
@@ -164,7 +164,7 @@
           </div>
           <div class="mb-3">
             <label>Requisitos da Vaga</label>
-            <textarea class="form-control" name="requisitos_vaga" rows="4"
+            <textarea class="form-control requisitos-textarea" name="requisitos_vaga" rows="3" style="max-height:120px;overflow:auto;resize:vertical;"
               placeholder="ANALISTA ADM - JR | 1 A 2 ANOS DE EXPERIENCIA - ENSINO SUPERIOR CURSANDO OU COMPLETO - EXCEL INTERMEDIARIO - ROTINAS ADMINISTRATIVAS - ORGANIZACAO E ATENCAO A DETALHES - TRABALHO EM EQUIPE - DISPONIBILIDADE IMEDIATA"></textarea>
           </div>
           <div class="row">
@@ -205,7 +205,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btnFecharVaga">Fechar Vaga</button>
+        <button type="button" class="btn btn-success" id="btnFecharVaga">Fechar Vaga</button>
       </div>
     </div>
   </div>
@@ -327,6 +327,9 @@ $(document).ready(function () {
     });
   });
   <% } %>
+
+  // initialize bootstrap tooltips for table cells
+  $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
 });
 </script>
 </body>
