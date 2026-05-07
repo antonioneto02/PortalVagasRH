@@ -4,7 +4,7 @@
   <title>CAD SLA - Portal Vagas RH</title>
   <%- include('../System/headIncludes.ejs') %>
   <style>#tblSla td{vertical-align:middle;}.badge-alta{background:#e74c3c;color:white;padding:3px 8px;border-radius:4px;font-size:.74rem;}.badge-media{background:#f39c12;color:white;padding:3px 8px;border-radius:4px;font-size:.74rem;}.badge-baixa{background:#27ae60;color:white;padding:3px 8px;border-radius:4px;font-size:.74rem;}.me-1{margin-right:.25rem!important;}.me-2{margin-right:.5rem!important;}
-  .col-filter{font-size:.78rem;padding:2px 4px;height:auto;min-width:70px;} #tblSla tfoot th{padding:4px 3px;}</style>
+  .dt-filtros select{font-size:.82rem;height:calc(1.5em + .5rem + 2px);display:inline-block;width:auto;min-width:110px;}</style>
 </head>
 <body>
 <div class="layout-container">
@@ -32,6 +32,11 @@
           <% } %>
         </div>
         <div class="card-body">
+          <div id="filtrosSla" class="dt-filtros mb-2 d-flex flex-wrap align-items-center" style="gap:.4rem;">
+            <select class="form-control form-control-sm" data-col="0" style="min-width:140px;"><option value="">Função...</option></select>
+            <select class="form-control form-control-sm" data-col="1" style="min-width:90px;"><option value="">SLA...</option></select>
+            <select class="form-control form-control-sm" data-col="2" style="min-width:120px;"><option value="">Classificação...</option></select>
+          </div>
           <table id="tblSla" class="display table table-striped table-hover" style="width:100%">
             <thead>
               <tr>
@@ -54,14 +59,6 @@
                 </tr>
               <% }); %>
             </tbody>
-            <tfoot>
-              <tr>
-                <th><select class="form-control form-control-sm col-filter"><option value="">Função...</option></select></th>
-                <th><select class="form-control form-control-sm col-filter"><option value="">SLA...</option></select></th>
-                <th><select class="form-control form-control-sm col-filter"><option value="">Classificação...</option></select></th>
-                <% if (podeCadastrar) { %><th></th><% } %>
-              </tr>
-            </tfoot>
           </table>
         </div>
       </div>
@@ -105,18 +102,15 @@ $(document).ready(function () {
     pageLength:50, order:[[0,'asc']],
     initComplete: function() {
       var api = this.api();
-      [0, 1, 2].forEach(function(i) {
-        var col = api.column(i);
-        var select = $(col.footer()).find('select');
-        if (!select.length) return;
+      $('#filtrosSla [data-col]').each(function() {
+        var col = api.column(parseInt($(this).data('col')));
+        var select = $(this);
         var vals = [];
         col.nodes().each(function() {
           var t = $(this).text().trim();
           if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
         });
-        vals.sort().forEach(function(v) {
-          select.append('<option value="' + v + '">' + v + '</option>');
-        });
+        vals.sort().forEach(function(v) { select.append('<option value="' + v + '">' + v + '</option>'); });
         select.on('change', function() {
           var v = $(this).val();
           col.search(v ? '^' + $.fn.dataTable.util.escapeRegex(v) + '$' : '', true, false).draw();

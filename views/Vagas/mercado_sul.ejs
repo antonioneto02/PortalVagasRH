@@ -4,7 +4,7 @@
   <title>Mercado Sul - Portal Vagas RH</title>
   <%- include('../System/headIncludes.ejs') %>
   <style>#tblMercado td{vertical-align:middle;}.me-1{margin-right:.25rem!important;}.me-2{margin-right:.5rem!important;}
-  .col-filter{font-size:.78rem;padding:2px 4px;height:auto;min-width:70px;} #tblMercado tfoot th{padding:4px 3px;}</style>
+  .dt-filtros select{font-size:.82rem;height:calc(1.5em + .5rem + 2px);display:inline-block;width:auto;min-width:110px;}</style>
 </head>
 <body>
 <div class="layout-container">
@@ -33,6 +33,11 @@
           <% } %>
         </div>
         <div class="card-body">
+          <div id="filtrosMercado" class="dt-filtros mb-2 d-flex flex-wrap align-items-center" style="gap:.4rem;">
+            <select class="form-control form-control-sm" data-col="0" style="min-width:140px;"><option value="">Função...</option></select>
+            <select class="form-control form-control-sm" data-col="1" style="min-width:150px;"><option value="">Cargo Mercado...</option></select>
+            <select class="form-control form-control-sm" data-col="2" style="min-width:120px;"><option value="">Nível...</option></select>
+          </div>
           <table id="tblMercado" class="display table table-striped table-hover" style="width:100%">
             <thead>
               <tr>
@@ -70,15 +75,6 @@
                 </tr>
               <% }); %>
             </tbody>
-            <tfoot>
-              <tr>
-                <th><select class="form-control form-control-sm col-filter"><option value="">Função...</option></select></th>
-                <th><select class="form-control form-control-sm col-filter"><option value="">Cargo Mercado...</option></select></th>
-                <th><select class="form-control form-control-sm col-filter"><option value="">Nível...</option></select></th>
-                <th></th><th></th><th></th><th></th>
-                <% if (podeCadastrar) { %><th></th><% } %>
-              </tr>
-            </tfoot>
           </table>
         </div>
       </div>
@@ -138,18 +134,15 @@ $(document).ready(function () {
     pageLength:50, order:[[0,'asc']],
     initComplete: function() {
       var api = this.api();
-      [0, 1, 2].forEach(function(i) {
-        var col = api.column(i);
-        var select = $(col.footer()).find('select');
-        if (!select.length) return;
+      $('#filtrosMercado [data-col]').each(function() {
+        var col = api.column(parseInt($(this).data('col')));
+        var select = $(this);
         var vals = [];
         col.nodes().each(function() {
           var t = $(this).text().trim();
           if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
         });
-        vals.sort().forEach(function(v) {
-          select.append('<option value="' + v + '">' + v + '</option>');
-        });
+        vals.sort().forEach(function(v) { select.append('<option value="' + v + '">' + v + '</option>'); });
         select.on('change', function() {
           var v = $(this).val();
           col.search(v ? '^' + $.fn.dataTable.util.escapeRegex(v) + '$' : '', true, false).draw();

@@ -8,8 +8,7 @@
     .me-1 { margin-right:.25rem!important; }
     .me-2 { margin-right:.5rem!important; }
     #tblUsuarios td, #tblUsuarios th { vertical-align: middle; }
-    .col-filter { font-size:.78rem; padding:2px 4px; height:auto; min-width:70px; }
-    #tblUsuarios tfoot th { padding: 4px 3px; }
+    .dt-filtros select { font-size:.82rem; height:calc(1.5em + .5rem + 2px); display:inline-block; width:auto; min-width:110px; }
   </style>
 </head>
 <body>
@@ -41,6 +40,13 @@
           </div>
         </div>
         <div class="card-body">
+          <div id="filtrosUsuarios" class="dt-filtros mb-2 d-flex flex-wrap align-items-center" style="gap:.4rem;">
+            <select class="form-control form-control-sm" data-col="1" style="min-width:130px;"><option value="">Username...</option></select>
+            <select class="form-control form-control-sm" data-col="3" style="min-width:140px;"><option value="">Nome...</option></select>
+            <select class="form-control form-control-sm" data-col="6" style="min-width:130px;"><option value="">Dt Cadastro...</option></select>
+            <select class="form-control form-control-sm" data-col="8" style="min-width:90px;"><option value="">ADM...</option></select>
+            <select class="form-control form-control-sm" data-col="9" style="min-width:130px;"><option value="">ID Protheus...</option></select>
+          </div>
           <table id="tblUsuarios" class="display table table-striped table-hover" style="width:100%">
             <thead>
               <tr>
@@ -78,20 +84,6 @@
                 </tr>
               <% }); %>
             </tbody>
-            <tfoot>
-              <tr>
-                <th></th>
-                <th><select class="form-control form-control-sm col-filter"><option value="">Username...</option></select></th>
-                <th></th>
-                <th><select class="form-control form-control-sm col-filter"><option value="">Nome...</option></select></th>
-                <th></th><th></th>
-                <th><select class="form-control form-control-sm col-filter"><option value="">Dt Cadastro...</option></select></th>
-                <th></th>
-                <th><select class="form-control form-control-sm col-filter"><option value="">ADM...</option></select></th>
-                <th><select class="form-control form-control-sm col-filter"><option value="">ID Protheus...</option></select></th>
-                <th></th>
-              </tr>
-            </tfoot>
           </table>
         </div>
       </div>
@@ -191,18 +183,15 @@ $(document).ready(function() {
     order: [[0, 'desc']],
     initComplete: function() {
       var api = this.api();
-      [1, 3, 6, 8, 9].forEach(function(i) {
-        var col = api.column(i);
-        var select = $(col.footer()).find('select');
-        if (!select.length) return;
+      $('#filtrosUsuarios [data-col]').each(function() {
+        var col = api.column(parseInt($(this).data('col')));
+        var select = $(this);
         var vals = [];
         col.nodes().each(function() {
           var t = $(this).text().trim();
           if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
         });
-        vals.sort().forEach(function(v) {
-          select.append('<option value="' + v + '">' + v + '</option>');
-        });
+        vals.sort().forEach(function(v) { select.append('<option value="' + v + '">' + v + '</option>'); });
         select.on('change', function() {
           var v = $(this).val();
           col.search(v ? '^' + $.fn.dataTable.util.escapeRegex(v) + '$' : '', true, false).draw();
