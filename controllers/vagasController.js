@@ -40,6 +40,7 @@ async function listarVagas(req, res) {
       podeCadastrar,
       username: req.session.username,
       protheusId: req.session.protheusId || null,
+      activePage: 'vagas',
     });
   } catch (err) {
     console.error('Erro ao listar vagas:', err);
@@ -176,6 +177,7 @@ async function renderCadSla(req, res) {
       isProtheus: req.session.isProtheus,
       protheusId: req.session.protheusId || null,
       podeCadastrar: podeCadastrarFn(req.session),
+      activePage: 'cad-sla',
     });
   } catch (err) {
     console.error('Erro ao carregar CAD SLA:', err);
