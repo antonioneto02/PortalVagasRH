@@ -197,14 +197,11 @@
             </div>
             <div class="col-md-3 mb-3">
               <label>SLA (dias)</label>
-              <input type="number" class="form-control" name="sla_dias" id="sla_dias" min="1">
+              <input type="number" class="form-control" name="sla_dias" id="sla_dias" min="1" readonly style="background:#e9ecef;cursor:not-allowed;">
             </div>
             <div class="col-md-3 mb-3">
               <label>Classificação</label>
-              <select class="form-control" name="classificacao" id="classificacao">
-                <option value="">Selecione...</option>
-                <option value="ALTA">ALTA</option><option value="MEDIA">MEDIA</option><option value="BAIXA">BAIXA</option>
-              </select>
+              <input type="text" class="form-control" name="classificacao" id="classificacao" readonly style="background:#e9ecef;cursor:not-allowed;" placeholder="Preenchido automaticamente">
             </div>
           </div>
           <div class="mb-3">
