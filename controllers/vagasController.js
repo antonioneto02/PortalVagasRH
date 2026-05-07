@@ -155,7 +155,12 @@ async function getPessoas(req, res) {
             FROM V_PESSOAS
             WHERE Nome IS NOT NULL AND Nome <> '' AND UPPER(Nome) LIKE @Q
             ORDER BY Nome`);
-    try { console.log('[getPessoas] q="' + q + '", results=' + (result.recordset?result.recordset.length:0)); } catch(e) {}
+      try {
+        console.log('[getPessoas] q="' + q + '", results=' + (result.recordset?result.recordset.length:0));
+        if (result.recordset && result.recordset.length) {
+          console.log('[getPessoas] sample=', JSON.stringify(result.recordset.slice(0,10)));
+        }
+      } catch(e) {}
       res.json(result.recordset.map(r => ({ id: r.Nome, text: r.Nome })));
   } catch (err) {
     console.error('Erro ao buscar pessoas:', err);
