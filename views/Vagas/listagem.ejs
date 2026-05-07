@@ -76,7 +76,7 @@
             <table id="tblVagas" class="display table table-striped table-hover" style="width:100%">
               <thead>
                 <tr>
-                  <th>Função</th><th>Tipo</th><th>Status</th><th>Setor</th><th>Solicitante</th>
+                  <th>Função</th><th>Tipo</th><th>Status</th><th class="text-center">Setor</th><th>Solicitante</th>
                   <th>Classificação</th><th>SLA</th><th>Candidatos</th><th>Entrevistas</th>
                   <th>Abertura</th><th>Prazo</th><th class="text-center">Empresa</th><th class="text-center">Notebook</th><th class="text-center">Celular</th><th>Requisitos</th>
                   <% if (podeCadastrar) { %><th>Ações</th><% } %>
@@ -90,8 +90,8 @@
                     </td>
                     <td class="no-wrap" title="<%= v.TIPO_VAGA %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.TIPO_VAGA %></span></td>
                     <td class="no-wrap" title="<%= v.STATUS %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.STATUS %></span></td>
-                    <td class="no-wrap">
-                      <div class="cell-inner clickable-cell" title="<%= v.SETOR||'-' %>" data-toggle="tooltip"><%= v.SETOR||'-' %></div>
+                    <td class="no-wrap text-center">
+                      <div class="cell-inner clickable-cell text-center" title="<%= v.SETOR||'-' %>" data-toggle="tooltip"><%= v.SETOR||'-' %></div>
                     </td>
                     <td class="no-wrap">
                       <div class="cell-inner clickable-cell" title="<%= v.SOLICITANTE||'-' %>" data-toggle="tooltip"><%= v.SOLICITANTE||'-' %></div>
@@ -103,7 +103,7 @@
                     <td title="<%= v.DATA_ABERTURA||'-' %>" data-toggle="tooltip"><%= v.DATA_ABERTURA||'-' %></td>
                     <td title="<%= v.PRAZO_CONTRATACAO||'-' %>" data-toggle="tooltip"><%= v.PRAZO_CONTRATACAO||'-' %></td>
                     <td class="text-center">
-                      <div class="cell-inner clickable-cell" title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></div>
+                      <div class="cell-inner clickable-cell text-center" title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></div>
                     </td>
                     <td class="text-center"><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
                     <td class="text-center"><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
