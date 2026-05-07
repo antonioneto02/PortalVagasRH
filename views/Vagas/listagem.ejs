@@ -113,7 +113,9 @@
                     <% if (podeCadastrar) { %>
                       <td>
                         <div class="d-flex justify-content-center gap-1">
+                          <% if (v.STATUS !== 'FECHADA') { %>
                           <button class="btn btn-sm btn-primary btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>" title="Candidatar-se" aria-label="Candidatura"><i class="fas fa-user-plus"></i></button>
+                          <% } %>
                           <% if (v.STATUS !== 'FECHADA') { %>
                           <button class="btn btn-sm btn-success btn-fechar-vaga" data-id="<%= v.ID %>" title="Fechar Vaga" aria-label="Fechar Vaga"><i class="fas fa-check"></i></button>
                           <% } else { %>
