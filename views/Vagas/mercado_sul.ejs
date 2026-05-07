@@ -140,8 +140,23 @@ $(document).ready(function () {
   });
   $(document).on('click', '.btn-editar-m', function() {
     clearMModal();
-    $('#mId').val($(this).data('id')); $('#mFuncao').val($(this).data('funcao'));
-    $('#mCargo').val($(this).data('cargo')); $('#mNivel').val($(this).data('nivel'));
+    $('#mId').val($(this).data('id'));
+    $('#mFuncao').val($(this).data('funcao'));
+    $('#mCargo').val($(this).data('cargo'));
+    var nivelVal = $(this).data('nivel') || '';
+    if (nivelVal) {
+      var matched = $('#mNivel option').filter(function() {
+        return String($(this).text()).toLowerCase() === String(nivelVal).toLowerCase() ||
+               String($(this).val()).toLowerCase() === String(nivelVal).toLowerCase();
+      }).first();
+      if (matched.length) {
+        $('#mNivel').val(matched.val());
+      } else {
+        $('#mNivel').val(nivelVal);
+      }
+    } else {
+      $('#mNivel').val('');
+    }
     $('#mPR').val($(this).data('pr')); $('#mSUL').val($(this).data('sul'));
     $('#mMIN').val($(this).data('min')); $('#mMAX').val($(this).data('max'));
     $('#modalMercadoLabel').html('<i class="fas fa-edit me-2"></i>Editar Registro');

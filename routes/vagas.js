@@ -11,21 +11,16 @@ const {
 
 router.get('/vagas', requireAuth, listarVagas);
 router.post('/vagas', requireAuth, cadastrarVaga);
-
 router.get('/cad-sla', requireAuth, renderCadSla);
 router.get('/mercado-sul', requireAuth, renderMercadoSul);
-
 router.get('/api/funcoes', requireAuth, getFuncoes);
 router.get('/api/pessoas', requireAuth, getPessoas);
-
 router.get('/api/sla/by-funcao', requireAuth, slaByFuncao);
 router.get('/api/sla', requireAuth, listarSlaApi);
 router.post('/api/sla', requireAuth, salvarSla);
 router.put('/api/sla/:id', requireAuth, atualizarSla);
 router.delete('/api/sla/:id', requireAuth, deletarSla);
-
 router.post('/api/mercado-sul', requireAuth, salvarMercadoSul);
 router.put('/api/mercado-sul/:id', requireAuth, atualizarMercadoSul);
 router.delete('/api/mercado-sul/:id', requireAuth, deletarMercadoSul);
-
 module.exports = router;

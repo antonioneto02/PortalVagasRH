@@ -1,7 +1,6 @@
 const sql = require('mssql');
 const dbConfig = require('../database/dbConfig');
 const dbConfigDw = require('../database/dbConfigDw');
-
 const ID_PROTHEUS_CADASTRO = '000460';
 
 function podeCadastrarFn(session) {

@@ -50,21 +50,17 @@ async function _tryRefreshToken(refreshToken, req, res) {
   await _restoreSessionFromToken(access_token, req, res);
 }
 
-// Mesmo padrão do Gestao_Portaria: sessão → cookie token → cookie refresh → login
 async function requireAuth(req, res, next) {
-  // 1. Sessão válida e dentro do timeout
   if (req.session.userId) {
     const lastActivity = req.session.lastActivity || 0;
     if (Date.now() - lastActivity < TIMEOUT_MS) {
       req.session.lastActivity = Date.now();
       return next();
     }
-    // Sessão expirou por inatividade
     req.session.destroy(() => {});
     return res.redirect('/login?timeout=true');
   }
 
-  // 2. Sem sessão — tenta revalidar pelo cookie token (Protheus)
   const token = req.cookies['token'];
   const refreshToken = req.cookies['refresh_token'];
 
@@ -73,23 +69,19 @@ async function requireAuth(req, res, next) {
       await _restoreSessionFromToken(token, req, res);
       return next();
     } catch {
-      // Token expirado — tenta refresh
       if (refreshToken) {
         try {
           await _tryRefreshToken(refreshToken, req, res);
           return next();
-        } catch { /* cai para login */ }
+        } catch {}
       }
     }
   } else if (refreshToken) {
-    // Sem token mas tem refresh
     try {
       await _tryRefreshToken(refreshToken, req, res);
       return next();
-    } catch { /* cai para login */ }
+    } catch {}
   }
-
-  // 3. Sem token válido — guarda URL destino e redireciona para login
   const returnTo = req.originalUrl;
   req.session.returnTo = returnTo;
   return req.session.save(() => res.redirect('/login'));
@@ -113,7 +105,6 @@ async function validaLogin(req, res) {
     return res.redirect('/login?error=invalid_credentials');
   }
 
-  // Captura returnTo antes de qualquer alteração na sessão
   const returnTo = req.session.returnTo && req.session.returnTo !== '/login'
     ? req.session.returnTo
     : '/vagas';

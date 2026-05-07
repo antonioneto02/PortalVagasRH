@@ -220,13 +220,7 @@ table.dataTable thead th {
   color: #0c5460;
 }
 
-/* ========================================
-   Layout Sidebar - mesmo esquema do Gestao_Portaria
-   ======================================== */
-
 .layout-container { display: flex; min-height: 100vh; }
-
-/* Sidebar — exatamente como Gestao_Portaria */
 .sidebar {
   width: 56px;
   background: linear-gradient(180deg, #1e1f5c 0%, #2B286F 100%);
@@ -257,7 +251,6 @@ table.dataTable thead th {
 .sidebar-logo { width:32px; height:32px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
 .sidebar-logo-img { width:32px; height:32px; object-fit:contain; }
 .sidebar-title { font-weight:700; font-size:11px; color:white; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap; }
-
 .sidebar-nav { padding: 8px 0; flex: 1; }
 .nav-section { margin-bottom: 4px; }
 .nav-label {
@@ -266,7 +259,6 @@ table.dataTable thead th {
   display: block; white-space: nowrap;
 }
 
-/* nav-item — exatamente como Gestao_Portaria */
 .sidebar .nav-item {
   padding: 9px 12px;
   color: rgba(255,255,255,0.8);
@@ -292,15 +284,10 @@ table.dataTable thead th {
   text-decoration: none;
 }
 .sidebar .nav-item i { font-size:15px; flex-shrink:0; width:20px; text-align:center; }
-
-/* colapso — esconde texto/labels quando não hover */
 .sidebar:not(:hover) .nav-text,
 .sidebar:not(:hover) .nav-label,
 .sidebar:not(:hover) .sidebar-title { display: none; }
-
 .sidebar-divider { border:none; border-top:1px solid rgba(255,255,255,0.1); margin:4px 8px; }
-
-/* main-content — margem que ajusta junto com sidebar */
 .main-content {
   margin-left: 56px;
   flex: 1;
@@ -310,8 +297,6 @@ table.dataTable thead th {
   transition: margin-left 0.18s ease;
 }
 .sidebar:hover ~ .main-content { margin-left: 200px; }
-
-/* Topbar — barra superior dentro do main-content */
 .topbar {
   background: linear-gradient(135deg, #2B286F 0%, #1e1f5c 100%);
   border-bottom: 2.5px solid #D11F3F;
@@ -437,18 +422,15 @@ table.dataTable thead th {
   text-align: center;
 }
 
-/* Esconde texto quando colapsado */
 .sidebar:not(:hover) .nav-text,
 .sidebar:not(:hover) .nav-label,
 .sidebar:not(:hover) .sidebar-title { display: none; }
-
 .sidebar-divider {
   border: none;
   border-top: 1px solid rgba(255,255,255,0.1);
   margin: 4px 8px;
 }
 
-/* Footer do sidebar */
 .sidebar-footer {
   position: absolute;
   left: 0;
@@ -458,8 +440,6 @@ table.dataTable thead th {
 }
 .sidebar-footer .nav-item { justify-content: center; }
 .sidebar:hover .sidebar-footer .nav-item { justify-content: flex-start; }
-
-/* Conteúdo principal */
 .main-content {
   margin-left: 56px;
   flex: 1;
@@ -469,8 +449,6 @@ table.dataTable thead th {
   transition: margin-left 0.18s ease;
 }
 .sidebar:hover ~ .main-content { margin-left: 200px; }
-
-/* Topbar (substitui navbar) */
 .topbar {
   background: linear-gradient(135deg, #2B286F 0%, #1e1f5c 100%);
   border-bottom: 2.5px solid #D11F3F;
@@ -525,8 +503,6 @@ table.dataTable thead th {
 }
 
 .content { padding: 20px; flex: 1; }
-
-/* Responsivo */
 @media (max-width: 768px) {
   .card-header .d-flex { flex-direction: column; gap: 0.5rem; }
   .sidebar { display: none; }
