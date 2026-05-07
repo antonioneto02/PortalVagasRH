@@ -1,103 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
   <title>CAD SLA - Portal Vagas RH</title>
   <%- include('../System/headIncludes.ejs') %>
-  <style>
-    .navbar {
-      background: linear-gradient(135deg, #2B286F 0%, #1e1f5c 100%) !important;
-      border-bottom: 2.5px solid #D11F3F;
-      padding: 0.3rem 1rem;
-    }
-    .navbar-brand { color: white !important; font-weight: 600; }
-    .navbar-logo { height: 40px; margin-right: 10px; }
-    .navbar-subtitle { font-size: 0.85rem; color: rgba(255,255,255,0.85); display: block; }
-    .navbar-logo-container { display: flex; align-items: center; }
-    .user-avatar-link {
-      display: flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px; border-radius: 50%;
-      background: rgba(255,255,255,0.2); color: white; text-decoration: none;
-    }
-    .user-avatar-link:hover { background: rgba(255,255,255,0.3); color: white; }
-    .user-menu { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); }
-    .user-dropdown { right: 0 !important; left: auto !important; }
-
-    .portal-layout { display: flex; min-height: calc(100vh - 50px); }
-    .sidebar {
-      width: 210px; min-width: 210px;
-      background: linear-gradient(180deg, #1e1f5c 0%, #2B286F 100%);
-      padding: 16px 0; flex-shrink: 0;
-    }
-    .sidebar-title {
-      color: rgba(255,255,255,0.5); font-size: 0.7rem;
-      text-transform: uppercase; letter-spacing: 0.08em;
-      padding: 8px 18px 4px; font-weight: 600;
-    }
-    .sidebar-nav { list-style: none; padding: 0; margin: 0; }
-    .sidebar-nav li a {
-      display: flex; align-items: center; gap: 10px;
-      color: rgba(255,255,255,0.75); padding: 10px 18px;
-      text-decoration: none; font-size: 0.88rem;
-      border-left: 3px solid transparent; transition: all 0.15s;
-    }
-    .sidebar-nav li a:hover, .sidebar-nav li a.active {
-      color: white; border-left-color: #D11F3F;
-      background: rgba(255,255,255,0.08);
-    }
-    .sidebar-nav li a i { width: 16px; text-align: center; }
-    .main-content { flex: 1; padding: 20px; overflow-x: auto; }
-    .card-header { background: linear-gradient(135deg, #2B286F 0%, #1e1f5c 100%); color: white; }
-    .card-header h4 { color: white; }
-    .me-1 { margin-right: 0.25rem !important; }
-    .me-2 { margin-right: 0.5rem !important; }
-    #tblSla td { vertical-align: middle; }
-    .badge-alta { background: #e74c3c; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; }
-    .badge-media { background: #f39c12; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; }
-    .badge-baixa { background: #27ae60; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; }
-  </style>
+  <style>#tblSla td{vertical-align:middle;}.badge-alta{background:#e74c3c;color:white;padding:3px 8px;border-radius:4px;font-size:.74rem;}.badge-media{background:#f39c12;color:white;padding:3px 8px;border-radius:4px;font-size:.74rem;}.badge-baixa{background:#27ae60;color:white;padding:3px 8px;border-radius:4px;font-size:.74rem;}.me-1{margin-right:.25rem!important;}.me-2{margin-right:.5rem!important;}</style>
 </head>
 <body>
+<div class="layout-container">
+  <%- include('../partials/sidebar') %>
 
-  <nav class="navbar navbar-expand-lg">
-    <a class="navbar-brand" href="/vagas">
-      <div class="navbar-logo-container">
-        <img src="/css/logo-cini.png" alt="Cini" class="navbar-logo">
-        <div class="navbar-brand-text">
-          <span class="navbar-subtitle">Portal Vagas RH</span>
-        </div>
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1><i class="bi bi-stopwatch me-2"></i>CAD SLA</h1>
       </div>
-    </a>
-    <div class="collapse navbar-collapse">
-      <ul class="navbar-nav mr-auto"></ul>
-      <div class="user-menu">
-        <div class="user-avatar dropdown">
-          <a href="#" class="user-avatar-link" id="userDropdown" role="button" data-toggle="dropdown">
-            <i class="fas fa-user"></i>
-          </a>
-          <div class="dropdown-menu user-dropdown" style="right: 0; left: auto; min-width: 200px;">
-            <div class="dropdown-header text-center" style="padding: 12px;">
-              <i class="fas fa-user-circle fa-2x" style="color: #2B286F;"></i>
-              <div style="margin-top: 6px; font-weight: 600; color: #333;"><%= username %></div>
-            </div>
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
-          </div>
-        </div>
+      <div class="topbar-right">
+        <span><i class="bi bi-person-circle me-1"></i><%= username %></span>
+        <a href="/logout"><i class="bi bi-box-arrow-right me-1"></i>Sair</a>
       </div>
     </div>
-  </nav>
 
-  <div class="portal-layout">
-    <%- include('../partials/sidebar.ejs') %>
-
-    <div class="main-content">
+    <div class="content">
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h4 class="mb-0">
-            <i class="fas fa-stopwatch me-2" style="color: white;"></i> CAD SLA
-          </h4>
+          <h4 class="mb-0"><i class="fas fa-stopwatch me-2"></i>Configuração de SLA</h4>
           <% if (podeCadastrar) { %>
-            <button class="btn" id="btnNovoSla" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white;">
+            <button class="btn btn-sm" id="btnNovoSla" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.4);color:white;">
               <i class="fas fa-plus me-1"></i> Novo
             </button>
           <% } %>
@@ -106,30 +34,20 @@
           <table id="tblSla" class="display table table-striped table-hover" style="width:100%">
             <thead>
               <tr>
-                <th>Função</th>
-                <th>SLA (dias)</th>
-                <th>Classificação</th>
-                <% if (podeCadastrar) { %><th style="width:100px;">Ações</th><% } %>
+                <th>Função</th><th>SLA (dias)</th><th>Classificação</th>
+                <% if (podeCadastrar) { %><th style="width:90px;">Ações</th><% } %>
               </tr>
             </thead>
             <tbody>
               <% slaConfig.forEach(s => { %>
-                <tr data-id="<%= s.ID %>">
+                <tr>
                   <td><%= s.FUNCAO %></td>
                   <td><%= s.SLA_DIAS %></td>
-                  <td>
-                    <span class="badge-<%= s.CLASSIFICACAO === 'ALTA' ? 'alta' : s.CLASSIFICACAO === 'MEDIA' ? 'media' : 'baixa' %>">
-                      <%= s.CLASSIFICACAO %>
-                    </span>
-                  </td>
+                  <td><span class="badge-<%= s.CLASSIFICACAO==='ALTA'?'alta':s.CLASSIFICACAO==='MEDIA'?'media':'baixa' %>"><%= s.CLASSIFICACAO %></span></td>
                   <% if (podeCadastrar) { %>
                     <td>
-                      <button class="btn btn-sm btn-outline-primary btn-editar" style="padding:2px 8px;" data-id="<%= s.ID %>" data-funcao="<%= s.FUNCAO %>" data-sla="<%= s.SLA_DIAS %>" data-class="<%= s.CLASSIFICACAO %>">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-danger btn-deletar" style="padding:2px 8px;" data-id="<%= s.ID %>">
-                        <i class="fas fa-trash"></i>
-                      </button>
+                      <button class="btn btn-sm btn-outline-primary btn-editar" style="padding:2px 7px;" data-id="<%= s.ID %>" data-funcao="<%= s.FUNCAO %>" data-sla="<%= s.SLA_DIAS %>" data-class="<%= s.CLASSIFICACAO %>"><i class="fas fa-edit"></i></button>
+                      <button class="btn btn-sm btn-outline-danger btn-deletar" style="padding:2px 7px;" data-id="<%= s.ID %>"><i class="fas fa-trash"></i></button>
                     </td>
                   <% } %>
                 </tr>
@@ -140,129 +58,72 @@
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Modal SLA -->
-  <% if (podeCadastrar) { %>
-  <div class="modal fade" id="modalSla" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header" style="background: linear-gradient(135deg, #2B286F 100%); color: white;">
-          <h5 class="modal-title" id="modalSlaLabel"><i class="fas fa-stopwatch me-2"></i>SLA</h5>
-          <button type="button" class="close" data-dismiss="modal" style="color: white; opacity: 1;"><span>&times;</span></button>
+<% if (podeCadastrar) { %>
+<div class="modal fade" id="modalSla" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalSlaLabel"><i class="fas fa-stopwatch me-2"></i>SLA</h5>
+        <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="slaId">
+        <div class="form-group mb-3"><label>Função <span class="text-danger">*</span></label><input type="text" class="form-control" id="slaFuncao" placeholder="Ex: ANALISTA ADM - JR"></div>
+        <div class="form-group mb-3"><label>SLA (dias) <span class="text-danger">*</span></label><input type="number" class="form-control" id="slaDias" min="1"></div>
+        <div class="form-group mb-3">
+          <label>Classificação <span class="text-danger">*</span></label>
+          <select class="form-control" id="slaClass"><option value="">Selecione...</option><option value="ALTA">ALTA</option><option value="MEDIA">MEDIA</option><option value="BAIXA">BAIXA</option></select>
         </div>
-        <div class="modal-body">
-          <input type="hidden" id="slaId">
-          <div class="form-group mb-3">
-            <label>Função <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="slaFuncao" placeholder="Ex: ANALISTA ADM - JR">
-          </div>
-          <div class="form-group mb-3">
-            <label>SLA (dias) <span class="text-danger">*</span></label>
-            <input type="number" class="form-control" id="slaDias" min="1" placeholder="Ex: 10">
-          </div>
-          <div class="form-group mb-3">
-            <label>Classificação <span class="text-danger">*</span></label>
-            <select class="form-control" id="slaClass">
-              <option value="">Selecione...</option>
-              <option value="ALTA">ALTA</option>
-              <option value="MEDIA">MEDIA</option>
-              <option value="BAIXA">BAIXA</option>
-            </select>
-          </div>
-          <div id="slaError" class="alert alert-danger" style="display:none;"></div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="btnSalvarSla" style="background: linear-gradient(135deg, #2B286F 100%); border: none;">
-            <i class="fas fa-save me-1"></i>Salvar
-          </button>
-        </div>
+        <div id="slaError" class="alert alert-danger" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSalvarSla" style="background:linear-gradient(135deg,#2B286F 100%);border:none;"><i class="fas fa-save me-1"></i>Salvar</button>
       </div>
     </div>
   </div>
-  <% } %>
+</div>
+<% } %>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    $(document).ready(function () {
-      $('#tblSla').DataTable({
-        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
-        dom: 'Bfrtip',
-        buttons: [{
-          extend: 'excelHtml5',
-          text: '<i class="fas fa-file-excel"></i> Exportar Excel',
-          className: 'btn btn-success btn-sm',
-          title: 'CAD SLA'
-        }],
-        pageLength: 50,
-        order: [[0, 'asc']]
-      });
-
-      $('#userDropdown').on('click', function(e) {
-        e.preventDefault();
-        $(this).next('.dropdown-menu').toggleClass('show');
-      });
-      $(document).on('click', function(e) {
-        if (!$(e.target).closest('.user-avatar').length) $('.user-dropdown').removeClass('show');
-      });
-
-      <% if (podeCadastrar) { %>
-      $('#btnNovoSla').on('click', function() {
-        $('#slaId').val('');
-        $('#slaFuncao').val('');
-        $('#slaDias').val('');
-        $('#slaClass').val('');
-        $('#slaError').hide();
-        $('#modalSlaLabel').html('<i class="fas fa-plus-circle me-2"></i>Novo SLA');
-        $('#modalSla').modal('show');
-      });
-
-      $(document).on('click', '.btn-editar', function() {
-        $('#slaId').val($(this).data('id'));
-        $('#slaFuncao').val($(this).data('funcao'));
-        $('#slaDias').val($(this).data('sla'));
-        $('#slaClass').val($(this).data('class'));
-        $('#slaError').hide();
-        $('#modalSlaLabel').html('<i class="fas fa-edit me-2"></i>Editar SLA');
-        $('#modalSla').modal('show');
-      });
-
-      $('#btnSalvarSla').on('click', function() {
-        const id = $('#slaId').val();
-        const funcao = $('#slaFuncao').val().trim();
-        const sla_dias = $('#slaDias').val();
-        const classificacao = $('#slaClass').val();
-
-        if (!funcao || !sla_dias || !classificacao) {
-          $('#slaError').text('Preencha todos os campos.').show();
-          return;
-        }
-
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? '/api/sla/' + id : '/api/sla';
-
-        $.ajax({
-          url: url, method: method,
-          contentType: 'application/json',
-          data: JSON.stringify({ funcao, sla_dias, classificacao }),
-          success: function() { location.reload(); },
-          error: function(xhr) {
-            $('#slaError').text(xhr.responseJSON?.error || 'Erro ao salvar.').show();
-          }
-        });
-      });
-
-      $(document).on('click', '.btn-deletar', function() {
-        const id = $(this).data('id');
-        if (!confirm('Confirma exclusão?')) return;
-        $.ajax({
-          url: '/api/sla/' + id, method: 'DELETE',
-          success: function() { location.reload(); },
-          error: function() { alert('Erro ao excluir.'); }
-        });
-      });
-      <% } %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function () {
+  $('#tblSla').DataTable({
+    language:{url:'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'},
+    dom:'Bfrtip', buttons:[{extend:'excelHtml5',text:'<i class="fas fa-file-excel"></i> Excel',className:'btn btn-success btn-sm',title:'CAD SLA'}],
+    pageLength:50, order:[[0,'asc']]
+  });
+  <% if (podeCadastrar) { %>
+  $('#btnNovoSla').on('click', function() {
+    $('#slaId').val(''); $('#slaFuncao').val(''); $('#slaDias').val(''); $('#slaClass').val('');
+    $('#slaError').hide(); $('#modalSlaLabel').html('<i class="fas fa-plus-circle me-2"></i>Novo SLA');
+    $('#modalSla').modal('show');
+  });
+  $(document).on('click', '.btn-editar', function() {
+    $('#slaId').val($(this).data('id')); $('#slaFuncao').val($(this).data('funcao'));
+    $('#slaDias').val($(this).data('sla')); $('#slaClass').val($(this).data('class'));
+    $('#slaError').hide(); $('#modalSlaLabel').html('<i class="fas fa-edit me-2"></i>Editar SLA');
+    $('#modalSla').modal('show');
+  });
+  $('#btnSalvarSla').on('click', function() {
+    const id = $('#slaId').val(), funcao=$('#slaFuncao').val().trim(), sla_dias=$('#slaDias').val(), classificacao=$('#slaClass').val();
+    if (!funcao||!sla_dias||!classificacao){$('#slaError').text('Preencha todos os campos.').show();return;}
+    $.ajax({ url: id?'/api/sla/'+id:'/api/sla', method:id?'PUT':'POST', contentType:'application/json',
+      data:JSON.stringify({funcao,sla_dias,classificacao}),
+      success(){ location.reload(); },
+      error(xhr){ $('#slaError').text(xhr.responseJSON?.error||'Erro ao salvar.').show(); }
     });
-  </script>
+  });
+  $(document).on('click', '.btn-deletar', function() {
+    if (!confirm('Confirma exclusão?')) return;
+    $.ajax({ url:'/api/sla/'+$(this).data('id'), method:'DELETE',
+      success(){ location.reload(); }, error(){ alert('Erro ao excluir.'); }
+    });
+  });
+  <% } %>
+});
+</script>
 </body>
 </html>

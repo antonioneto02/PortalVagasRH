@@ -1,7 +1,22 @@
-<nav class="sidebar">
-  <div class="sidebar-title">Menu</div>
-  <ul class="sidebar-nav">
-    <li><a href="/vagas" class="<%= (typeof activePage !== 'undefined' && activePage === 'vagas') ? 'active' : '' %>"><i class="fas fa-briefcase"></i> Vagas</a></li>
-    <li><a href="/cad-sla" class="<%= (typeof activePage !== 'undefined' && activePage === 'cad-sla') ? 'active' : '' %>"><i class="fas fa-stopwatch"></i> CAD SLA</a></li>
-  </ul>
-</nav>
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <img src="/css/logo-cini.png" alt="logo" class="sidebar-logo-img">
+    </div>
+    <div class="sidebar-title"><span class="title-text">PORTAL VAGAS RH</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <span class="nav-label nav-text">Menu</span>
+      <a class="nav-item <%= currentPath === '/vagas' ? 'active' : '' %>" href="/vagas">
+        <i class="bi bi-briefcase"></i> <span class="nav-text">Vagas</span>
+      </a>
+      <a class="nav-item <%= currentPath === '/mercado-sul' ? 'active' : '' %>" href="/mercado-sul">
+        <i class="bi bi-graph-up-arrow"></i> <span class="nav-text">Mercado Sul</span>
+      </a>
+      <a class="nav-item <%= currentPath === '/cad-sla' ? 'active' : '' %>" href="/cad-sla">
+        <i class="bi bi-stopwatch"></i> <span class="nav-text">CAD SLA</span>
+      </a>
+    </div>
+  </nav>
+</aside>

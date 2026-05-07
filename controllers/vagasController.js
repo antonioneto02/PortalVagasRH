@@ -40,7 +40,7 @@ async function listarVagas(req, res) {
       podeCadastrar,
       username: req.session.username,
       protheusId: req.session.protheusId || null,
-      activePage: 'vagas',
+      currentPath: '/vagas',
     });
   } catch (err) {
     console.error('Erro ao listar vagas:', err);
@@ -177,7 +177,7 @@ async function renderCadSla(req, res) {
       isProtheus: req.session.isProtheus,
       protheusId: req.session.protheusId || null,
       podeCadastrar: podeCadastrarFn(req.session),
-      activePage: 'cad-sla',
+      currentPath: '/cad-sla',
     });
   } catch (err) {
     console.error('Erro ao carregar CAD SLA:', err);
@@ -284,9 +284,106 @@ async function deletarSla(req, res) {
   }
 }
 
+async function renderMercadoSul(req, res) {
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request()
+      .query(`SELECT ID, FUNCAO_ORIGINAL, CARGO_MERCADO, NIVEL_HIERARQUICO,
+                     MEDIA_SALARIAL_PR, MEDIA_SALARIAL_SUL, FAIXA_MIN, FAIXA_MAX
+              FROM RH_MERCADO_SUL ORDER BY FUNCAO_ORIGINAL`);
+    res.render('Vagas/mercado_sul', {
+      mercado: result.recordset,
+      username: req.session.username,
+      isProtheus: req.session.isProtheus,
+      protheusId: req.session.protheusId || null,
+      podeCadastrar: podeCadastrarFn(req.session),
+      currentPath: '/mercado-sul',
+    });
+  } catch (err) {
+    console.error('Erro ao carregar Mercado Sul:', err);
+    res.status(500).send('Erro ao carregar Mercado Sul.');
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+async function salvarMercadoSul(req, res) {
+  if (!podeCadastrarFn(req.session)) return res.status(403).json({ error: 'Acesso negado.' });
+  const { funcao, cargo, nivel, media_pr, media_sul, faixa_min, faixa_max } = req.body;
+  if (!funcao) return res.status(400).json({ error: 'Função é obrigatória.' });
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    await pool.request()
+      .input('FUNCAO', sql.VarChar(200), funcao)
+      .input('CARGO', sql.VarChar(200), cargo || null)
+      .input('NIVEL', sql.VarChar(100), nivel || null)
+      .input('PR', sql.Decimal(10, 2), media_pr ? parseFloat(media_pr) : null)
+      .input('SUL', sql.Decimal(10, 2), media_sul ? parseFloat(media_sul) : null)
+      .input('MIN', sql.Decimal(10, 2), faixa_min ? parseFloat(faixa_min) : null)
+      .input('MAX', sql.Decimal(10, 2), faixa_max ? parseFloat(faixa_max) : null)
+      .query(`INSERT INTO RH_MERCADO_SUL (FUNCAO_ORIGINAL, CARGO_MERCADO, NIVEL_HIERARQUICO, MEDIA_SALARIAL_PR, MEDIA_SALARIAL_SUL, FAIXA_MIN, FAIXA_MAX)
+              VALUES (@FUNCAO, @CARGO, @NIVEL, @PR, @SUL, @MIN, @MAX)`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao salvar Mercado Sul:', err);
+    res.status(500).json({ error: 'Erro interno.' });
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+async function atualizarMercadoSul(req, res) {
+  if (!podeCadastrarFn(req.session)) return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  const { funcao, cargo, nivel, media_pr, media_sul, faixa_min, faixa_max } = req.body;
+  if (!funcao) return res.status(400).json({ error: 'Função é obrigatória.' });
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    await pool.request()
+      .input('ID', sql.Int, parseInt(id))
+      .input('FUNCAO', sql.VarChar(200), funcao)
+      .input('CARGO', sql.VarChar(200), cargo || null)
+      .input('NIVEL', sql.VarChar(100), nivel || null)
+      .input('PR', sql.Decimal(10, 2), media_pr ? parseFloat(media_pr) : null)
+      .input('SUL', sql.Decimal(10, 2), media_sul ? parseFloat(media_sul) : null)
+      .input('MIN', sql.Decimal(10, 2), faixa_min ? parseFloat(faixa_min) : null)
+      .input('MAX', sql.Decimal(10, 2), faixa_max ? parseFloat(faixa_max) : null)
+      .query(`UPDATE RH_MERCADO_SUL SET FUNCAO_ORIGINAL=@FUNCAO, CARGO_MERCADO=@CARGO, NIVEL_HIERARQUICO=@NIVEL,
+              MEDIA_SALARIAL_PR=@PR, MEDIA_SALARIAL_SUL=@SUL, FAIXA_MIN=@MIN, FAIXA_MAX=@MAX WHERE ID=@ID`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao atualizar Mercado Sul:', err);
+    res.status(500).json({ error: 'Erro interno.' });
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+async function deletarMercadoSul(req, res) {
+  if (!podeCadastrarFn(req.session)) return res.status(403).json({ error: 'Acesso negado.' });
+  const { id } = req.params;
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    await pool.request()
+      .input('ID', sql.Int, parseInt(id))
+      .query(`DELETE FROM RH_MERCADO_SUL WHERE ID=@ID`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao deletar Mercado Sul:', err);
+    res.status(500).json({ error: 'Erro interno.' });
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
 module.exports = {
   listarVagas, cadastrarVaga,
   getFuncoes, getPessoas,
   renderCadSla, listarSlaApi, slaByFuncao,
   salvarSla, atualizarSla, deletarSla,
+  renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
 };

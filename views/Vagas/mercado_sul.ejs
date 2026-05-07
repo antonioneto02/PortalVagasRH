@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <title>Mercado Sul - Portal Vagas RH</title>
+  <%- include('../System/headIncludes.ejs') %>
+  <style>#tblMercado td{vertical-align:middle;}.me-1{margin-right:.25rem!important;}.me-2{margin-right:.5rem!important;}</style>
+</head>
+<body>
+<div class="layout-container">
+  <%- include('../partials/sidebar') %>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1><i class="bi bi-graph-up-arrow me-2"></i>Mercado Sul</h1>
+        <p>Pesquisa salarial — referência regional Sul</p>
+      </div>
+      <div class="topbar-right">
+        <span><i class="bi bi-person-circle me-1"></i><%= username %></span>
+        <a href="/logout"><i class="bi bi-box-arrow-right me-1"></i>Sair</a>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Pesquisa Salarial — Sul</h4>
+          <% if (podeCadastrar) { %>
+            <button class="btn btn-sm" id="btnNovoMercado" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.4);color:white;">
+              <i class="fas fa-plus me-1"></i> Novo
+            </button>
+          <% } %>
+        </div>
+        <div class="card-body">
+          <table id="tblMercado" class="display table table-striped table-hover" style="width:100%">
+            <thead>
+              <tr>
+                <th>Função</th>
+                <th>Cargo Mercado</th>
+                <th>Nível</th>
+                <th>Média PR (R$)</th>
+                <th>Média Sul (R$)</th>
+                <th>Faixa Mín (R$)</th>
+                <th>Faixa Máx (R$)</th>
+                <% if (podeCadastrar) { %><th style="width:90px;">Ações</th><% } %>
+              </tr>
+            </thead>
+            <tbody>
+              <% mercado.forEach(m => { %>
+                <tr>
+                  <td><%= m.FUNCAO_ORIGINAL %></td>
+                  <td><%= m.CARGO_MERCADO %></td>
+                  <td><span class="badge" style="background:#2B286F;color:white;padding:3px 7px;border-radius:4px;font-size:.74rem;"><%= m.NIVEL_HIERARQUICO %></span></td>
+                  <td>R$ <%= Number(m.MEDIA_SALARIAL_PR).toLocaleString('pt-BR') %></td>
+                  <td>R$ <%= Number(m.MEDIA_SALARIAL_SUL).toLocaleString('pt-BR') %></td>
+                  <td>R$ <%= Number(m.FAIXA_MIN).toLocaleString('pt-BR') %></td>
+                  <td>R$ <%= Number(m.FAIXA_MAX).toLocaleString('pt-BR') %></td>
+                  <% if (podeCadastrar) { %>
+                    <td>
+                      <button class="btn btn-sm btn-outline-primary btn-editar-m" style="padding:2px 7px;"
+                        data-id="<%= m.ID %>" data-funcao="<%= m.FUNCAO_ORIGINAL %>" data-cargo="<%= m.CARGO_MERCADO %>"
+                        data-nivel="<%= m.NIVEL_HIERARQUICO %>" data-pr="<%= m.MEDIA_SALARIAL_PR %>"
+                        data-sul="<%= m.MEDIA_SALARIAL_SUL %>" data-min="<%= m.FAIXA_MIN %>" data-max="<%= m.FAIXA_MAX %>">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger btn-deletar-m" style="padding:2px 7px;" data-id="<%= m.ID %>"><i class="fas fa-trash"></i></button>
+                    </td>
+                  <% } %>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if (podeCadastrar) { %>
+<div class="modal fade" id="modalMercado" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalMercadoLabel"><i class="fas fa-chart-bar me-2"></i>Mercado Sul</h5>
+        <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="mId">
+        <div class="row">
+          <div class="col-md-6 mb-3"><label>Função <span class="text-danger">*</span></label><input type="text" class="form-control" id="mFuncao"></div>
+          <div class="col-md-6 mb-3"><label>Cargo Mercado</label><input type="text" class="form-control" id="mCargo"></div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label>Nível Hierárquico</label>
+            <select class="form-control" id="mNivel">
+              <option value="">Selecione...</option>
+              <option>Operacional</option><option>Assistente</option><option>Analista</option>
+              <option>Técnico</option><option>Liderança</option><option>Gerência</option>
+              <option>Diretoria</option><option>Comercial</option><option>Estágio/Aprendiz</option>
+            </select>
+          </div>
+          <div class="col-md-4 mb-3"><label>Média PR (R$)</label><input type="number" class="form-control" id="mPR" min="0" step="0.01"></div>
+          <div class="col-md-4 mb-3"><label>Média Sul (R$)</label><input type="number" class="form-control" id="mSUL" min="0" step="0.01"></div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3"><label>Faixa Mín (R$)</label><input type="number" class="form-control" id="mMIN" min="0" step="0.01"></div>
+          <div class="col-md-6 mb-3"><label>Faixa Máx (R$)</label><input type="number" class="form-control" id="mMAX" min="0" step="0.01"></div>
+        </div>
+        <div id="mError" class="alert alert-danger" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSalvarMercado" style="background:linear-gradient(135deg,#2B286F 100%);border:none;"><i class="fas fa-save me-1"></i>Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function () {
+  $('#tblMercado').DataTable({
+    language:{url:'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'},
+    dom:'Bfrtip',
+    buttons:[{extend:'excelHtml5',text:'<i class="fas fa-file-excel"></i> Excel',className:'btn btn-success btn-sm',title:'Mercado Sul'}],
+    pageLength:50, order:[[0,'asc']]
+  });
+
+  <% if (podeCadastrar) { %>
+  function clearMModal() {
+    $('#mId').val(''); $('#mFuncao').val(''); $('#mCargo').val(''); $('#mNivel').val('');
+    $('#mPR').val(''); $('#mSUL').val(''); $('#mMIN').val(''); $('#mMAX').val('');
+    $('#mError').hide();
+  }
+  $('#btnNovoMercado').on('click', function() {
+    clearMModal(); $('#modalMercadoLabel').html('<i class="fas fa-plus-circle me-2"></i>Novo Registro');
+    $('#modalMercado').modal('show');
+  });
+  $(document).on('click', '.btn-editar-m', function() {
+    clearMModal();
+    $('#mId').val($(this).data('id')); $('#mFuncao').val($(this).data('funcao'));
+    $('#mCargo').val($(this).data('cargo')); $('#mNivel').val($(this).data('nivel'));
+    $('#mPR').val($(this).data('pr')); $('#mSUL').val($(this).data('sul'));
+    $('#mMIN').val($(this).data('min')); $('#mMAX').val($(this).data('max'));
+    $('#modalMercadoLabel').html('<i class="fas fa-edit me-2"></i>Editar Registro');
+    $('#modalMercado').modal('show');
+  });
+  $('#btnSalvarMercado').on('click', function() {
+    const id=$('#mId').val(), funcao=$('#mFuncao').val().trim(), cargo=$('#mCargo').val().trim(),
+          nivel=$('#mNivel').val(), pr=$('#mPR').val(), sul=$('#mSUL').val(),
+          min=$('#mMIN').val(), max=$('#mMAX').val();
+    if (!funcao){$('#mError').text('Função é obrigatória.').show();return;}
+    $.ajax({
+      url: id?'/api/mercado-sul/'+id:'/api/mercado-sul', method:id?'PUT':'POST',
+      contentType:'application/json',
+      data:JSON.stringify({funcao,cargo,nivel,media_pr:pr,media_sul:sul,faixa_min:min,faixa_max:max}),
+      success(){ location.reload(); },
+      error(xhr){ $('#mError').text(xhr.responseJSON?.error||'Erro ao salvar.').show(); }
+    });
+  });
+  $(document).on('click', '.btn-deletar-m', function() {
+    if (!confirm('Confirma exclusão?')) return;
+    $.ajax({ url:'/api/mercado-sul/'+$(this).data('id'), method:'DELETE',
+      success(){ location.reload(); }, error(){ alert('Erro ao excluir.'); }
+    });
+  });
+  <% } %>
+});
+</script>
+</body>
+</html>

@@ -1,151 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
   <title>Vagas RH - Portal Cini</title>
   <%- include('../System/headIncludes.ejs') %>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
-    .navbar {
-      background: linear-gradient(135deg, #2B286F 0%, #1e1f5c 100%) !important;
-      border-bottom: 2.5px solid #D11F3F;
-      padding: 0.3rem 1rem;
-    }
-    .navbar-brand { color: white !important; font-weight: 600; }
-    .navbar-logo { height: 40px; margin-right: 10px; }
-    .navbar-subtitle { font-size: 0.85rem; color: rgba(255,255,255,0.85); display: block; }
-    .navbar-logo-container { display: flex; align-items: center; }
-    .user-avatar-link {
-      display: flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px; border-radius: 50%;
-      background: rgba(255,255,255,0.2); color: white; text-decoration: none;
-    }
-    .user-avatar-link:hover { background: rgba(255,255,255,0.3); color: white; }
-    .user-menu { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); }
-    .user-dropdown { right: 0 !important; left: auto !important; }
-
-    /* Sidebar */
-    .portal-layout { display: flex; min-height: calc(100vh - 50px); }
-    .sidebar {
-      width: 210px;
-      min-width: 210px;
-      background: linear-gradient(180deg, #1e1f5c 0%, #2B286F 100%);
-      padding: 16px 0;
-      flex-shrink: 0;
-    }
-    .sidebar-title {
-      color: rgba(255,255,255,0.5);
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 8px 18px 4px;
-      font-weight: 600;
-    }
-    .sidebar-nav { list-style: none; padding: 0; margin: 0; }
-    .sidebar-nav li a {
-      display: flex; align-items: center; gap: 10px;
-      color: rgba(255,255,255,0.75);
-      padding: 10px 18px;
-      text-decoration: none;
-      font-size: 0.88rem;
-      border-left: 3px solid transparent;
-      transition: all 0.15s;
-    }
-    .sidebar-nav li a:hover,
-    .sidebar-nav li a.active {
-      color: white;
-      border-left-color: #D11F3F;
-      background: rgba(255,255,255,0.08);
-    }
-    .sidebar-nav li a i { width: 16px; text-align: center; }
-
-    .main-content { flex: 1; padding: 20px; overflow-x: auto; }
-
-    /* Cards / table */
-    .card-header { background: linear-gradient(135deg, #2B286F 0%, #1e1f5c 100%); color: white; }
-    .card-header h4 { color: white; }
-    .me-1 { margin-right: 0.25rem !important; }
-    .me-2 { margin-right: 0.5rem !important; }
-    .modal-header .close:hover { opacity: 0.8; }
-    #tblVagas td { vertical-align: middle; }
-
-    /* Select2 inside modal */
     .select2-container { width: 100% !important; }
     .select2-container--default .select2-selection--single {
-      height: calc(1.5em + 0.75rem + 2px);
-      border: 1px solid #ced4da;
-      border-radius: 0.25rem;
-      padding: 0.375rem 0.75rem;
-      font-size: 1rem;
+      height: calc(1.5em + 0.75rem + 2px); border: 1px solid #ced4da;
+      border-radius: 0.25rem; padding: 0.375rem 0.75rem;
     }
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-      line-height: 1.5;
-      padding: 0;
-      color: #495057;
-    }
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-      height: calc(1.5em + 0.75rem + 2px);
-    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height:1.5; padding:0; color:#495057; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { height: calc(1.5em + 0.75rem + 2px); }
     .select2-dropdown { z-index: 9999; }
+    #tblVagas td { vertical-align: middle; }
+    .me-1 { margin-right:.25rem!important; }
+    .me-2 { margin-right:.5rem!important; }
   </style>
 </head>
 <body>
+<div class="layout-container">
+  <%- include('../partials/sidebar') %>
 
-  <nav class="navbar navbar-expand-lg">
-    <a class="navbar-brand" href="/vagas">
-      <div class="navbar-logo-container">
-        <img src="/css/logo-cini.png" alt="Cini" class="navbar-logo">
-        <div class="navbar-brand-text">
-          <span class="navbar-subtitle">Portal Vagas RH</span>
-        </div>
+  <div class="main-content">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1><i class="bi bi-briefcase me-2"></i>Vagas<% if (!isProtheus) { %> <small style="font-size:0.72rem; background:#17a2b8; border-radius:4px; padding:2px 7px; vertical-align:middle;">Somente Externas</small><% } %></h1>
       </div>
-    </a>
-    <div class="collapse navbar-collapse">
-      <ul class="navbar-nav mr-auto"></ul>
-      <div class="user-menu">
-        <div class="user-avatar dropdown">
-          <a href="#" class="user-avatar-link" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <i class="fas fa-user"></i>
-          </a>
-          <div class="dropdown-menu user-dropdown" aria-labelledby="userDropdown" style="right: 0; left: auto; min-width: 220px;">
-            <div class="dropdown-header text-center" style="padding: 15px;">
-              <i class="fas fa-user-circle fa-2x" style="color: #2B286F;"></i>
-              <div style="margin-top: 8px; font-weight: 600; color: #333;"><%= username %></div>
-              <% if (isProtheus && protheusId) { %>
-                <div><small class="text-muted"><i class="fas fa-id-card"></i> ID Protheus: <strong><%= protheusId %></strong></small></div>
-              <% } else { %>
-                <div><small class="text-muted"><i class="fas fa-user"></i> Acesso Externo</small></div>
-              <% } %>
-            </div>
-            <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="/logout">
-              <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-          </div>
-        </div>
+      <div class="topbar-right">
+        <span><i class="bi bi-person-circle me-1"></i><%= username %><% if (isProtheus && protheusId) { %> &nbsp;<small style="opacity:.6;">(<%= protheusId %>)</small><% } %></span>
+        <a href="/logout"><i class="bi bi-box-arrow-right me-1"></i>Sair</a>
       </div>
     </div>
-  </nav>
 
-  <div class="portal-layout">
-
-    <!-- Sidebar -->
-    <%- include('../partials/sidebar.ejs') %>
-
-    <!-- Main content -->
-    <div class="main-content">
+    <!-- Conteúdo -->
+    <div class="content">
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <div>
-            <h4 class="mb-0">
-              <i class="fas fa-briefcase me-2" style="color: white;"></i>
-              Vagas
-              <% if (!isProtheus) { %>
-                <span class="badge" style="background: #17a2b8; font-size: 0.7rem; vertical-align: middle; padding: 4px 8px; border-radius: 4px;">Somente Externas</span>
-              <% } %>
-            </h4>
-          </div>
+          <h4 class="mb-0"><i class="fas fa-briefcase me-2"></i>Vagas</h4>
           <% if (podeCadastrar) { %>
-            <button class="btn btn-primary" id="btnNovaVaga" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);">
+            <button class="btn btn-sm" id="btnNovaVaga" style="background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.4); color:white;">
               <i class="fas fa-plus me-1"></i> Nova Vaga
             </button>
           <% } %>
@@ -155,67 +50,29 @@
             <table id="tblVagas" class="display table table-striped table-hover" style="width:100%">
               <thead>
                 <tr>
-                  <th>Função</th>
-                  <th>Tipo</th>
-                  <th>Status</th>
-                  <th>Setor</th>
-                  <th>Solicitante</th>
-                  <th>Classificação</th>
-                  <th>SLA (dias)</th>
-                  <th>Candidatos</th>
-                  <th>Entrevistas</th>
-                  <th>Abertura</th>
-                  <th>Prazo</th>
-                  <th>Empresa</th>
-                  <th>Notebook</th>
-                  <th>Celular</th>
-                  <th>Requisitos</th>
+                  <th>Função</th><th>Tipo</th><th>Status</th><th>Setor</th><th>Solicitante</th>
+                  <th>Classificação</th><th>SLA</th><th>Candidatos</th><th>Entrevistas</th>
+                  <th>Abertura</th><th>Prazo</th><th>Empresa</th><th>Notebook</th><th>Celular</th><th>Requisitos</th>
                 </tr>
               </thead>
               <tbody>
                 <% vagas.forEach(v => { %>
                   <tr>
                     <td><%= v.FUNCAO %></td>
-                    <td>
-                      <span class="badge" style="background: <%= v.TIPO_VAGA === 'INTERNA' ? '#2B286F' : '#D11F3F' %>; padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.75rem;">
-                        <%= v.TIPO_VAGA %>
-                      </span>
-                    </td>
-                    <td>
-                      <span class="badge" style="
-                        background: <%= v.STATUS === 'ABERTA' ? '#27ae60' : v.STATUS === 'FECHADA' ? '#6c757d' : '#e67e22' %>;
-                        padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.75rem;">
-                        <%= v.STATUS %>
-                      </span>
-                    </td>
-                    <td><%= v.SETOR || '-' %></td>
-                    <td><%= v.SOLICITANTE || '-' %></td>
-                    <td>
-                      <% if (v.CLASSIFICACAO) { %>
-                        <span class="badge" style="
-                          background: <%= v.CLASSIFICACAO === 'ALTA' ? '#e74c3c' : v.CLASSIFICACAO === 'MEDIA' ? '#f39c12' : '#27ae60' %>;
-                          padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.75rem;">
-                          <%= v.CLASSIFICACAO %>
-                        </span>
-                      <% } else { %>-<% } %>
-                    </td>
-                    <td><%= v.SLA_DIAS !== null ? v.SLA_DIAS : '-' %></td>
-                    <td><%= v.CANDIDATOS !== null ? v.CANDIDATOS : 0 %></td>
-                    <td><%= v.ENTREVISTAS !== null ? v.ENTREVISTAS : 0 %></td>
-                    <td><%= v.DATA_ABERTURA || '-' %></td>
-                    <td><%= v.PRAZO_CONTRATACAO || '-' %></td>
-                    <td><%= v.EMPRESA || '-' %></td>
-                    <td>
-                      <span style="color: <%= v.NOTEBOOK === 'SIM' ? '#27ae60' : '#e74c3c' %>; font-weight: 600;">
-                        <i class="fas fa-<%= v.NOTEBOOK === 'SIM' ? 'check' : 'times' %>"></i>
-                      </span>
-                    </td>
-                    <td>
-                      <span style="color: <%= v.CELULAR === 'SIM' ? '#27ae60' : '#e74c3c' %>; font-weight: 600;">
-                        <i class="fas fa-<%= v.CELULAR === 'SIM' ? 'check' : 'times' %>"></i>
-                      </span>
-                    </td>
-                    <td style="max-width: 300px; white-space: normal; font-size: 0.82rem;"><%= v.REQUISITOS_VAGA || '-' %></td>
+                    <td><span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.TIPO_VAGA %></span></td>
+                    <td><span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.STATUS %></span></td>
+                    <td><%= v.SETOR||'-' %></td>
+                    <td><%= v.SOLICITANTE||'-' %></td>
+                    <td><% if(v.CLASSIFICACAO){ %><span class="badge" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.CLASSIFICACAO %></span><% }else{ %>-<% } %></td>
+                    <td><%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %></td>
+                    <td><%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></td>
+                    <td><%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %></td>
+                    <td><%= v.DATA_ABERTURA||'-' %></td>
+                    <td><%= v.PRAZO_CONTRATACAO||'-' %></td>
+                    <td><%= v.EMPRESA||'-' %></td>
+                    <td><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
+                    <td><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
+                    <td style="max-width:280px;white-space:normal;font-size:.82rem;"><%= v.REQUISITOS_VAGA||'-' %></td>
                   </tr>
                 <% }); %>
               </tbody>
@@ -223,287 +80,190 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </div><!-- /content -->
+  </div><!-- /main-content -->
+</div><!-- /layout-container -->
 
-  <!-- Modal Nova Vaga -->
-  <% if (podeCadastrar) { %>
-  <div class="modal fade" id="modalNovaVaga" tabindex="-1" role="dialog" aria-labelledby="modalNovaVagaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-      <div class="modal-content">
-        <div class="modal-header" style="background: linear-gradient(135deg, #2B286F 100%); color: white;">
-          <h5 class="modal-title" id="modalNovaVagaLabel">
-            <i class="fas fa-plus-circle me-2"></i>Cadastrar Nova Vaga
-          </h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Fechar" style="color: white; opacity: 1;">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <form id="formNovaVaga">
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label>Função <span class="text-danger">*</span></label>
-                <select id="funcaoSelect" name="funcao" class="form-control" required></select>
-              </div>
-              <div class="col-md-3 mb-3">
-                <label>Data Abertura <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" name="data_abertura" required>
-              </div>
-              <div class="col-md-3 mb-3">
-                <label>Tipo de Vaga <span class="text-danger">*</span></label>
-                <select class="form-control" name="tipo_vaga" required>
-                  <option value="">Selecione...</option>
-                  <option value="INTERNA">INTERNA</option>
-                  <option value="EXTERNA">EXTERNA</option>
-                </select>
-              </div>
+<!-- Modal Nova Vaga -->
+<% if (podeCadastrar) { %>
+<div class="modal fade" id="modalNovaVaga" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Cadastrar Nova Vaga</h5>
+        <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <form id="formNovaVaga">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Função <span class="text-danger">*</span></label>
+              <select id="funcaoSelect" name="funcao" class="form-control" required></select>
             </div>
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label>Solicitante</label>
-                <select id="solicitanteSelect" name="solicitante" class="form-control"></select>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label>Setor</label>
-                <select class="form-control" name="setor">
-                  <option value="">Selecione...</option>
-                  <option value="FISCAL">Fiscal</option>
-                  <option value="FRETEIRO">Freteiro</option>
-                  <option value="LOGISTICA">Logística</option>
-                  <option value="ADM">ADM</option>
-                  <option value="FINANCEIRO">Financeiro</option>
-                  <option value="COMERCIAL">Comercial</option>
-                  <option value="CONTABILIDADE">Contabilidade</option>
-                  <option value="TI">TI</option>
-                  <option value="RH">RH</option>
-                  <option value="TST">TST</option>
-                  <option value="COMPRAS">Compras</option>
-                  <option value="FATURAMENTO">Faturamento</option>
-                  <option value="MARKETING">Marketing</option>
-                  <option value="OPERACAO">Operação</option>
-                  <option value="SERVICOS">Serviços</option>
-                  <option value="DIRETORIA">Diretoria</option>
-                  <option value="QUALIDADE">Qualidade</option>
-                  <option value="MANUTENCAO">Manutenção</option>
-                  <option value="PRODUCAO">Produção</option>
-                  <option value="FROTA">Frota</option>
-                  <option value="ALMOXARIFADO">Almoxarifado</option>
-                  <option value="ETA">ETA</option>
-                  <option value="ETE">ETE</option>
-                </select>
-              </div>
+            <div class="col-md-3 mb-3">
+              <label>Data Abertura <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" name="data_abertura" required>
             </div>
-            <div class="row">
-              <div class="col-md-3 mb-3">
-                <label>Notebook</label>
-                <select class="form-control" name="notebook">
-                  <option value="NAO">NÃO</option>
-                  <option value="SIM">SIM</option>
-                </select>
-              </div>
-              <div class="col-md-3 mb-3">
-                <label>Celular</label>
-                <select class="form-control" name="celular">
-                  <option value="NAO">NÃO</option>
-                  <option value="SIM">SIM</option>
-                </select>
-              </div>
-              <div class="col-md-3 mb-3">
-                <label>SLA (dias)</label>
-                <input type="number" class="form-control" name="sla_dias" id="sla_dias" min="1">
-              </div>
-              <div class="col-md-3 mb-3">
-                <label>Classificação</label>
-                <select class="form-control" name="classificacao" id="classificacao">
-                  <option value="">Selecione...</option>
-                  <option value="ALTA">ALTA</option>
-                  <option value="MEDIA">MEDIA</option>
-                  <option value="BAIXA">BAIXA</option>
-                </select>
-              </div>
+            <div class="col-md-3 mb-3">
+              <label>Tipo de Vaga <span class="text-danger">*</span></label>
+              <select class="form-control" name="tipo_vaga" required>
+                <option value="">Selecione...</option>
+                <option value="INTERNA">INTERNA</option>
+                <option value="EXTERNA">EXTERNA</option>
+              </select>
             </div>
-            <div class="mb-3">
-              <label>Requisitos da Vaga</label>
-              <textarea class="form-control" name="requisitos_vaga" rows="4"
-                placeholder="ANALISTA ADM - JR | 1 A 2 ANOS DE EXPERIENCIA - ENSINO SUPERIOR CURSANDO OU COMPLETO - EXCEL INTERMEDIARIO - ROTINAS ADMINISTRATIVAS - ORGANIZACAO E ATENCAO A DETALHES - TRABALHO EM EQUIPE - DISPONIBILIDADE IMEDIATA"></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Solicitante</label>
+              <select id="solicitanteSelect" name="solicitante" class="form-control"></select>
             </div>
-            <div class="row">
-              <div class="col-md-4 mb-3">
-                <label>Candidatos</label>
-                <input type="number" class="form-control" name="candidatos" value="0" min="0">
-              </div>
-              <div class="col-md-4 mb-3">
-                <label>Entrevistas</label>
-                <input type="number" class="form-control" name="entrevistas" value="0" min="0">
-              </div>
-              <div class="col-md-4 mb-3">
-                <label>Matrícula</label>
-                <input type="text" class="form-control" name="matricula">
-              </div>
+            <div class="col-md-6 mb-3">
+              <label>Setor</label>
+              <select class="form-control" name="setor">
+                <option value="">Selecione...</option>
+                <option>FISCAL</option><option>FRETEIRO</option><option>LOGISTICA</option>
+                <option>ADM</option><option>FINANCEIRO</option><option>COMERCIAL</option>
+                <option>CONTABILIDADE</option><option>TI</option><option>RH</option>
+                <option>TST</option><option>COMPRAS</option><option>FATURAMENTO</option>
+                <option>MARKETING</option><option>OPERACAO</option><option>SERVICOS</option>
+                <option>DIRETORIA</option><option>QUALIDADE</option><option>MANUTENCAO</option>
+                <option>PRODUCAO</option><option>FROTA</option><option>ALMOXARIFADO</option>
+                <option>ETA</option><option>ETE</option>
+              </select>
             </div>
-            <div class="row">
-              <div class="col-md-4 mb-3">
-                <label>Prazo Contratação</label>
-                <input type="date" class="form-control" name="prazo_contratacao">
-              </div>
-              <div class="col-md-4 mb-3">
-                <label>Data Contratação</label>
-                <input type="date" class="form-control" name="dt_contratacao">
-              </div>
-              <div class="col-md-4 mb-3">
-                <label>Status</label>
-                <select class="form-control" name="status">
-                  <option value="ABERTA">ABERTA</option>
-                  <option value="FECHADA">FECHADA</option>
-                  <option value="ATRASADA">ATRASADA</option>
-                </select>
-              </div>
+          </div>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label>Notebook</label>
+              <select class="form-control" name="notebook"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select>
             </div>
-            <div class="mb-3">
-              <label>Empresa</label>
-              <input type="text" class="form-control" name="empresa">
+            <div class="col-md-3 mb-3">
+              <label>Celular</label>
+              <select class="form-control" name="celular"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select>
             </div>
-            <div id="formError" class="alert alert-danger" style="display:none;"></div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="btnSalvarVaga" style="background: linear-gradient(135deg, #2B286F 100%); border: none;">
-            <span id="savingSpinner" class="spinner-border spinner-border-sm me-1" style="display:none;" role="status"></span>
-            <i class="fas fa-save me-1" id="saveIcon"></i>Salvar Vaga
-          </button>
-        </div>
+            <div class="col-md-3 mb-3">
+              <label>SLA (dias)</label>
+              <input type="number" class="form-control" name="sla_dias" id="sla_dias" min="1">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label>Classificação</label>
+              <select class="form-control" name="classificacao" id="classificacao">
+                <option value="">Selecione...</option>
+                <option value="ALTA">ALTA</option><option value="MEDIA">MEDIA</option><option value="BAIXA">BAIXA</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label>Requisitos da Vaga</label>
+            <textarea class="form-control" name="requisitos_vaga" rows="4"
+              placeholder="ANALISTA ADM - JR | 1 A 2 ANOS DE EXPERIENCIA - ENSINO SUPERIOR CURSANDO OU COMPLETO - EXCEL INTERMEDIARIO - ROTINAS ADMINISTRATIVAS - ORGANIZACAO E ATENCAO A DETALHES - TRABALHO EM EQUIPE - DISPONIBILIDADE IMEDIATA"></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3"><label>Candidatos</label><input type="number" class="form-control" name="candidatos" value="0" min="0"></div>
+            <div class="col-md-4 mb-3"><label>Entrevistas</label><input type="number" class="form-control" name="entrevistas" value="0" min="0"></div>
+            <div class="col-md-4 mb-3"><label>Matrícula</label><input type="text" class="form-control" name="matricula"></div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3"><label>Prazo Contratação</label><input type="date" class="form-control" name="prazo_contratacao"></div>
+            <div class="col-md-4 mb-3"><label>Data Contratação</label><input type="date" class="form-control" name="dt_contratacao"></div>
+            <div class="col-md-4 mb-3">
+              <label>Status</label>
+              <select class="form-control" name="status">
+                <option value="ABERTA">ABERTA</option><option value="FECHADA">FECHADA</option><option value="ATRASADA">ATRASADA</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3"><label>Empresa</label><input type="text" class="form-control" name="empresa"></div>
+          <div id="formError" class="alert alert-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSalvarVaga" style="background:linear-gradient(135deg,#2B286F 100%);border:none;">
+          <span id="savingSpinner" class="spinner-border spinner-border-sm me-1" style="display:none;" role="status"></span>
+          <i class="fas fa-save me-1" id="saveIcon"></i>Salvar Vaga
+        </button>
       </div>
     </div>
   </div>
-  <% } %>
+</div>
+<% } %>
 
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    $(document).ready(function () {
-      $('#tblVagas').DataTable({
-        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
-        dom: 'Bfrtip',
-        buttons: [{
-          extend: 'excelHtml5',
-          text: '<i class="fas fa-file-excel"></i> Exportar Excel',
-          className: 'btn btn-success btn-sm',
-          title: 'Vagas RH'
-        }],
-        pageLength: 25,
-        order: [[9, 'desc']],
-        columnDefs: [{ targets: [14], orderable: false }]
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function () {
+  $('#tblVagas').DataTable({
+    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+    dom: 'Bfrtip',
+    buttons: [{ extend:'excelHtml5', text:'<i class="fas fa-file-excel"></i> Excel', className:'btn btn-success btn-sm', title:'Vagas RH' }],
+    pageLength: 25,
+    order: [[9,'desc']],
+    columnDefs: [{ targets:[14], orderable:false }]
+  });
+
+  <% if (podeCadastrar) { %>
+  function initSelect2() {
+    if (!$('#funcaoSelect').hasClass('select2-hidden-accessible')) {
+      $('#funcaoSelect').select2({
+        placeholder: 'Selecione ou digite...', allowClear: true,
+        dropdownParent: $('#modalNovaVaga'),
+        ajax: { url:'/api/funcoes', dataType:'json', delay:250,
+          data: p => ({ q: p.term||'' }),
+          processResults: d => ({ results: d.map(f=>({id:f,text:f})) }), cache:true }
       });
-
-      $('#userDropdown').on('click', function(e) {
-        e.preventDefault();
-        $(this).next('.dropdown-menu').toggleClass('show');
+    }
+    if (!$('#solicitanteSelect').hasClass('select2-hidden-accessible')) {
+      $('#solicitanteSelect').select2({
+        placeholder: 'Selecione ou digite...', allowClear: true,
+        dropdownParent: $('#modalNovaVaga'),
+        ajax: { url:'/api/pessoas', dataType:'json', delay:250,
+          data: p => ({ q: p.term||'' }),
+          processResults: d => ({ results: d.map(p=>({id:p,text:p})) }), cache:true }
       });
-      $(document).on('click', function(e) {
-        if (!$(e.target).closest('.user-avatar').length) {
-          $('.user-dropdown').removeClass('show');
-        }
+    }
+  }
+
+  $('#modalNovaVaga').on('shown.bs.modal', initSelect2);
+
+  $('#funcaoSelect').on('change', function() {
+    const funcao = $(this).val();
+    if (funcao) {
+      $.getJSON('/api/sla/by-funcao', { funcao }, function(d) {
+        if (d.sla_dias) $('#sla_dias').val(d.sla_dias);
+        if (d.classificacao) $('#classificacao').val(d.classificacao);
       });
+    }
+  });
 
-      <% if (podeCadastrar) { %>
-      function initSelect2() {
-        $('#funcaoSelect').select2({
-          placeholder: 'Selecione ou digite para filtrar...',
-          allowClear: true,
-          dropdownParent: $('#modalNovaVaga'),
-          ajax: {
-            url: '/api/funcoes',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) { return { q: params.term || '' }; },
-            processResults: function(data) {
-              return { results: data.map(f => ({ id: f, text: f })) };
-            },
-            cache: true
-          },
-          minimumInputLength: 0,
-          language: { loadingMore: function() { return 'Carregando...'; } }
-        });
+  $('#btnNovaVaga').on('click', function() {
+    $('#formNovaVaga')[0].reset();
+    $('#formError').hide();
+    $('#funcaoSelect').val(null).trigger('change');
+    $('#solicitanteSelect').val(null).trigger('change');
+    $('[name="data_abertura"]').val(new Date().toISOString().split('T')[0]);
+    $('#modalNovaVaga').modal('show');
+  });
 
-        $('#solicitanteSelect').select2({
-          placeholder: 'Selecione ou digite para filtrar...',
-          allowClear: true,
-          dropdownParent: $('#modalNovaVaga'),
-          ajax: {
-            url: '/api/pessoas',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) { return { q: params.term || '' }; },
-            processResults: function(data) {
-              return { results: data.map(p => ({ id: p, text: p })) };
-            },
-            cache: true
-          },
-          minimumInputLength: 0
-        });
+  $('#btnSalvarVaga').on('click', function() {
+    if (!$('#funcaoSelect').val()) { $('#formError').text('Selecione a função.').show(); return; }
+    const form = document.getElementById('formNovaVaga');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    const data = {};
+    $(form).serializeArray().forEach(f => data[f.name] = f.value);
+    $('#savingSpinner').show(); $('#saveIcon').hide(); $('#btnSalvarVaga').prop('disabled',true);
+    $.ajax({
+      url:'/vagas', method:'POST', contentType:'application/json', data:JSON.stringify(data),
+      success() { $('#modalNovaVaga').modal('hide'); location.reload(); },
+      error(xhr) {
+        $('#formError').text(xhr.responseJSON?.error||'Erro ao salvar.').show();
+        $('#savingSpinner').hide(); $('#saveIcon').show(); $('#btnSalvarVaga').prop('disabled',false);
       }
-
-      $('#modalNovaVaga').on('shown.bs.modal', function() {
-        initSelect2();
-      });
-
-      $('#funcaoSelect').on('change', function() {
-        const funcao = $(this).val();
-        if (funcao) {
-          $.getJSON('/api/sla/by-funcao', { funcao: funcao }, function(data) {
-            if (data.sla_dias) $('#sla_dias').val(data.sla_dias);
-            if (data.classificacao) $('#classificacao').val(data.classificacao);
-          });
-        }
-      });
-
-      $('#btnNovaVaga').on('click', function() {
-        $('#formNovaVaga')[0].reset();
-        $('#formError').hide();
-        $('#funcaoSelect').val(null).trigger('change');
-        $('#solicitanteSelect').val(null).trigger('change');
-        const today = new Date().toISOString().split('T')[0];
-        $('[name="data_abertura"]').val(today);
-        $('#modalNovaVaga').modal('show');
-      });
-
-      $('#btnSalvarVaga').on('click', function() {
-        const form = document.getElementById('formNovaVaga');
-        if (!$('#funcaoSelect').val()) {
-          $('#formError').text('Selecione a função.').show();
-          return;
-        }
-        if (!form.checkValidity()) { form.reportValidity(); return; }
-
-        const data = {};
-        $(form).serializeArray().forEach(f => data[f.name] = f.value);
-
-        $('#savingSpinner').show();
-        $('#saveIcon').hide();
-        $('#btnSalvarVaga').prop('disabled', true);
-
-        $.ajax({
-          url: '/vagas',
-          method: 'POST',
-          contentType: 'application/json',
-          data: JSON.stringify(data),
-          success: function() {
-            $('#modalNovaVaga').modal('hide');
-            location.reload();
-          },
-          error: function(xhr) {
-            const msg = xhr.responseJSON?.error || 'Erro ao salvar. Tente novamente.';
-            $('#formError').text(msg).show();
-            $('#savingSpinner').hide();
-            $('#saveIcon').show();
-            $('#btnSalvarVaga').prop('disabled', false);
-          }
-        });
-      });
-      <% } %>
     });
-  </script>
+  });
+  <% } %>
+});
+</script>
 </body>
 </html>
