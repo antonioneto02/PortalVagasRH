@@ -61,11 +61,17 @@
               <tbody>
                 <% vagas.forEach(v => { %>
                   <tr>
-                    <td class="no-wrap clickable-cell" title="<%= v.FUNCAO %>" data-toggle="tooltip"><%= v.FUNCAO %></td>
+                    <td class="no-wrap">
+                      <div class="cell-inner clickable-cell" title="<%= v.FUNCAO %>" data-toggle="tooltip"><%= v.FUNCAO %></div>
+                    </td>
                     <td class="no-wrap" title="<%= v.TIPO_VAGA %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.TIPO_VAGA %></span></td>
                     <td class="no-wrap" title="<%= v.STATUS %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.STATUS %></span></td>
-                    <td class="no-wrap clickable-cell" title="<%= v.SETOR||'-' %>" data-toggle="tooltip"><%= v.SETOR||'-' %></td>
-                    <td class="no-wrap clickable-cell" title="<%= v.SOLICITANTE||'-' %>" data-toggle="tooltip"><%= v.SOLICITANTE||'-' %></td>
+                    <td class="no-wrap">
+                      <div class="cell-inner clickable-cell" title="<%= v.SETOR||'-' %>" data-toggle="tooltip"><%= v.SETOR||'-' %></div>
+                    </td>
+                    <td class="no-wrap">
+                      <div class="cell-inner clickable-cell" title="<%= v.SOLICITANTE||'-' %>" data-toggle="tooltip"><%= v.SOLICITANTE||'-' %></div>
+                    </td>
                     <td><% if(v.CLASSIFICACAO){ %><span class="badge" title="<%= v.CLASSIFICACAO %>" data-toggle="tooltip" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.CLASSIFICACAO %></span><% }else{ %>-<% } %></td>
                     <td title="<%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %>" data-toggle="tooltip"><%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %></td>
                     <td title="<%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %>" data-toggle="tooltip"><%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></td>
@@ -75,7 +81,9 @@
                     <td title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></td>
                     <td><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
                     <td><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
-                    <td title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip" class="req-cell clickable-cell"><%= v.REQUISITOS_VAGA||'-' %></td>
+                    <td class="req-cell">
+                      <div class="cell-inner clickable-cell" title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip"><%= v.REQUISITOS_VAGA||'-' %></div>
+                    </td>
                     <% if (podeCadastrar) { %>
                       <td>
                           <% if (v.STATUS !== 'FECHADA') { %>
