@@ -13,7 +13,10 @@
     .select2-container--default .select2-selection--single .select2-selection__rendered { line-height:1.5; padding:0; color:#495057; }
     .select2-container--default .select2-selection--single .select2-selection__arrow { height: calc(1.5em + 0.75rem + 2px); }
     .select2-dropdown { z-index: 9999; }
+    /* tighter table rows */
+    #tblVagas td, #tblVagas th { padding: .35rem .5rem; line-height:1.15; }
     #tblVagas td { vertical-align: middle; }
+    .no-wrap { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
     .me-1 { margin-right:.25rem!important; }
     .me-2 { margin-right:.5rem!important; }
     .req-cell { max-width:280px; font-size:.82rem; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
@@ -56,11 +59,11 @@
               <tbody>
                 <% vagas.forEach(v => { %>
                   <tr>
-                    <td title="<%= v.FUNCAO %>" data-toggle="tooltip"><%= v.FUNCAO %></td>
-                    <td title="<%= v.TIPO_VAGA %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.TIPO_VAGA %></span></td>
-                    <td title="<%= v.STATUS %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.STATUS %></span></td>
-                    <td title="<%= v.SETOR||'-' %>" data-toggle="tooltip"><%= v.SETOR||'-' %></td>
-                    <td title="<%= v.SOLICITANTE||'-' %>" data-toggle="tooltip" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= v.SOLICITANTE||'-' %></td>
+                    <td class="no-wrap" title="<%= v.FUNCAO %>" data-toggle="tooltip"><%= v.FUNCAO %></td>
+                    <td class="no-wrap" title="<%= v.TIPO_VAGA %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.TIPO_VAGA %></span></td>
+                    <td class="no-wrap" title="<%= v.STATUS %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.STATUS %></span></td>
+                    <td class="no-wrap" title="<%= v.SETOR||'-' %>" data-toggle="tooltip"><%= v.SETOR||'-' %></td>
+                    <td class="no-wrap" title="<%= v.SOLICITANTE||'-' %>" data-toggle="tooltip"><%= v.SOLICITANTE||'-' %></td>
                     <td><% if(v.CLASSIFICACAO){ %><span class="badge" title="<%= v.CLASSIFICACAO %>" data-toggle="tooltip" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.CLASSIFICACAO %></span><% }else{ %>-<% } %></td>
                     <td title="<%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %>" data-toggle="tooltip"><%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %></td>
                     <td title="<%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %>" data-toggle="tooltip"><%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></td>
