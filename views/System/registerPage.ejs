@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cadastro - Portal Vagas RH</title>
+  <%- include('headIncludes.ejs') %>
+</head>
+<body class="d-flex align-items-center min-vh-100" style="background-image: url('/css/Background.png'); background-size: cover; background-position: center; background-repeat: no-repeat; padding-top: 6vh; padding-bottom: 4vh;">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header text-center" style="background: linear-gradient(135deg, #2B286F 100%); border: none;">
+            <div class="d-flex align-items-center justify-content-center mb-2">
+              <img src="/css/logo-cini.png" alt="Cini" style="height: 40px; margin-right: 15px;">
+              <h2 class="text-white mb-0">Cadastro de Acesso</h2>
+            </div>
+            <h6 class="text-white mb-0">Crie seu acesso para visualizar vagas externas.</h6>
+
+            <% if (error === 'campos_obrigatorios') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Preencha todos os campos obrigatórios.</strong>
+              </div>
+            <% } else if (error === 'usuario_ja_existe') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Este nome de usuário já está em uso.</strong>
+              </div>
+            <% } else if (error === 'erro_interno') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Erro interno. Tente novamente.</strong>
+              </div>
+            <% } %>
+          </div>
+
+          <div class="card-body">
+            <form method="POST" action="/register">
+              <div class="form-group mb-3">
+                <label for="username">Usuário <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="username" name="username"
+                       value="<%= username %>" required>
+                <small class="text-muted">Use o mesmo usuário que tentou fazer login.</small>
+              </div>
+
+              <div class="form-group mb-3">
+                <label for="nome">Nome Completo <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="nome" name="nome" required>
+              </div>
+
+              <div class="form-group mb-3">
+                <label for="email">E-mail</label>
+                <input type="email" class="form-control" id="email" name="email">
+              </div>
+
+              <div class="form-group mb-3">
+                <label for="telefone">Telefone</label>
+                <input type="text" class="form-control" id="telefone" name="telefone" placeholder="(00) 00000-0000">
+              </div>
+
+              <div class="form-group mb-3">
+                <label for="password">Senha <span class="text-danger">*</span></label>
+                <div style="position: relative;">
+                  <input type="password" class="form-control" id="password" name="password" required style="padding-right: 45px;">
+                  <button class="btn" type="button" id="togglePw" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 10; border: none; background: none; padding: 0; color: #6c757d;">
+                    <i class="fas fa-eye" id="togglePwIcon"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group mb-4">
+                <label for="confirmPassword">Confirmar Senha <span class="text-danger">*</span></label>
+                <input type="password" class="form-control" id="confirmPassword" required>
+                <div id="pwMismatch" class="text-danger mt-1" style="display:none; font-size:0.85rem;">
+                  As senhas não coincidem.
+                </div>
+              </div>
+
+              <div class="alert alert-info" style="border-left: 4px solid #17a2b8; font-size: 0.875rem;">
+                <i class="fas fa-info-circle me-1"></i>
+                Usuários externos visualizam apenas <strong>vagas externas</strong>.
+              </div>
+
+              <div class="text-center mt-3">
+                <button type="submit" id="submitBtn" class="btn" style="background: linear-gradient(135deg, #2B286F 100%); border: none; color: white; padding: 10px 30px; font-weight: 600;">
+                  <i class="fas fa-user-plus me-2"></i>Cadastrar
+                </button>
+              </div>
+              <div class="text-center mt-3">
+                <small class="text-muted">
+                  Já possui cadastro? <a href="/login" style="color: #2B286F; font-weight: 600;">Faça login</a>
+                </small>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('togglePw').addEventListener('click', function() {
+      const pw = document.getElementById('password');
+      const icon = document.getElementById('togglePwIcon');
+      if (pw.type === 'password') { pw.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash'); }
+      else { pw.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
+    });
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+      const pw = document.getElementById('password').value;
+      const confirm = document.getElementById('confirmPassword').value;
+      if (pw !== confirm) {
+        e.preventDefault();
+        document.getElementById('pwMismatch').style.display = 'block';
+      }
+    });
+
+    document.getElementById('confirmPassword').addEventListener('input', function() {
+      const pw = document.getElementById('password').value;
+      document.getElementById('pwMismatch').style.display = (this.value && this.value !== pw) ? 'block' : 'none';
+    });
+  </script>
+</body>
+</html>
