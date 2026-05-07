@@ -96,10 +96,10 @@
                     <td class="no-wrap">
                       <div class="cell-inner clickable-cell" title="<%= v.SOLICITANTE||'-' %>" data-toggle="tooltip"><%= v.SOLICITANTE||'-' %></div>
                     </td>
-                    <td><% if(v.CLASSIFICACAO){ %><span class="badge" title="<%= v.CLASSIFICACAO %>" data-toggle="tooltip" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.CLASSIFICACAO %></span><% }else{ %>-<% } %></td>
-                    <td title="<%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %>" data-toggle="tooltip"><%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %></td>
-                    <td title="<%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %>" data-toggle="tooltip"><%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></td>
-                    <td title="<%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %>" data-toggle="tooltip"><%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %></td>
+                    <td class="text-center"><% if(v.CLASSIFICACAO){ %><span class="badge" title="<%= v.CLASSIFICACAO %>" data-toggle="tooltip" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.CLASSIFICACAO %></span><% }else{ %>-<% } %></td>
+                    <td class="text-center" title="<%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %>" data-toggle="tooltip"><%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %></td>
+                    <td class="text-center" title="<%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %>" data-toggle="tooltip"><%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></td>
+                    <td class="text-center" title="<%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %>" data-toggle="tooltip"><%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %></td>
                     <td title="<%= v.DATA_ABERTURA||'-' %>" data-toggle="tooltip"><%= v.DATA_ABERTURA||'-' %></td>
                     <td title="<%= v.PRAZO_CONTRATACAO||'-' %>" data-toggle="tooltip"><%= v.PRAZO_CONTRATACAO||'-' %></td>
                     <td title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></td>
