@@ -379,28 +379,16 @@ $(document).ready(function () {
     });
   });
   <% } %>
-
-  // Inicializa tooltips
-  $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
-
-  // Lógica corrigida para o Modal de Detalhes
+  $('body').tooltip({ selector: '[data-toggle="tooltip"]', container: 'body' });
   $('#tblVagas').on('click', '.clickable-cell', function(e) {
-    // Evita abrir se for apenas um traço ou vazio
-    const text = $(this).attr('title');
-    if (text && text !== '-' && text !== 'null') {
-      // Remove o tooltip para não ficar por cima do modal
-      $(this).tooltip('hide');
-      // Insere o texto no modal
-      $('#modalCellFullContent').text(text.trim());
-      // Abre o modal
+    const fullText = $(this).attr('data-original-title') || $(this).attr('title') || $(this).text();
+    if (fullText && fullText.trim() !== '-' && fullText.trim() !== '') {
+      try { $(this).tooltip('hide'); } catch (err) {}
+      $('#modalCellFullContent').text(fullText.trim());
       $('#modalCellFull').modal('show');
     }
   });
-
-  // Limpa o conteúdo do modal ao fechar
-  $('#modalCellFull').on('hidden.bs.modal', function () {
-      $('#modalCellFullContent').text('');
-  });
+  $('#modalCellFull').on('hidden.bs.modal', function () { $('#modalCellFullContent').text(''); });
 });
 </script>
 </body>
