@@ -84,38 +84,38 @@ async function cadastrarVaga(req, res) {
           sla_dias_final = sla_dias_final || slaResult.recordset[0].SLA_DIAS;
           classificacao_final = classificacao_final || slaResult.recordset[0].CLASSIFICACAO;
         }
-      try {
-        const all = await pool.request().query(`SELECT SLA_DIAS, CLASSIFICACAO, RTRIM(LTRIM(FUNCAO)) AS FUNCAO FROM RH_SLA_CONFIG`);
-        const removeDiacritics = s => String(s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'');
-        const clean = s => removeDiacritics(String(s||'')).toUpperCase().replace(/[^A-Z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
-        const abbrev = { 'PL':'PLENO', 'JR':'JUNIOR', 'SR':'SENIOR' };
-        const stopWords = new Set(['DE','DA','DO','DOS','DAS','E','O','A','POR','PARA','EM']);
-        const normalizeTokens = s => {
-          const t = clean(s).split(' ').map(w=> (abbrev[w]||w)).filter(w=> w && !stopWords.has(w));
-          return t;
-        };
-        const targetTokens = normalizeTokens(funcao);
-        try { console.log('[slaByFuncao] normalized targetTokens=', JSON.stringify(targetTokens)); } catch(e) {}
+      } catch {}
+    }
 
-        let best = {score:0,row:null};
-        for (const row of (all.recordset||[])) {
-          const candTokens = normalizeTokens(row.FUNCAO);
-          if (!candTokens.length) continue;
-          const candSet = new Set(candTokens);
-          let inter = 0;
-          for (const t of targetTokens) if (candSet.has(t)) inter++;
-          let interReverse = 0;
-          const targetSet = new Set(targetTokens);
-          for (const c of candTokens) if (targetSet.has(c)) interReverse++;
-          const score = Math.max(inter, interReverse);
-          if (score > best.score) best = { score, row };
-        }
-        if (best.row && best.score > 0 && (best.score >= Math.max(1, Math.floor(targetTokens.length/2)))) {
-          try { console.log('[slaByFuncao] matched FUNCAO="' + best.row.FUNCAO + '" score=' + best.score); } catch(e) {}
-          return res.json({ sla_dias: best.row.SLA_DIAS, classificacao: best.row.CLASSIFICACAO });
-        }
-      } catch(e) { try { console.error('[slaByFuncao] fallback error', e); } catch(_) {} }
-      res.json({});
+    await pool.request()
+      .input('FUNCAO', sql.VarChar(200), funcao)
+      .input('DATA_ABERTURA', sql.Date, new Date(data_abertura))
+      .input('TIPO_VAGA', sql.VarChar(20), tipo_vaga)
+      .input('SOLICITANTE', sql.VarChar(200), solicitante || null)
+      .input('SETOR', sql.VarChar(200), setor || null)
+      .input('NOTEBOOK', sql.Char(3), notebook === 'SIM' ? 'SIM' : 'NAO')
+      .input('CELULAR', sql.Char(3), celular === 'SIM' ? 'SIM' : 'NAO')
+      .input('REQUISITOS_VAGA', sql.VarChar(sql.MAX), requisitos_vaga || null)
+      .input('SLA_DIAS', sql.Int, sla_dias_final)
+      .input('CLASSIFICACAO', sql.VarChar(20), classificacao_final)
+      .input('CANDIDATOS', sql.Int, candidatos ? parseInt(candidatos) : 0)
+      .input('ENTREVISTAS', sql.Int, entrevistas ? parseInt(entrevistas) : 0)
+      .input('PRAZO_CONTRATACAO', sql.Date, prazo_contratacao ? new Date(prazo_contratacao) : null)
+      .input('DT_CONTRATACAO', sql.Date, dt_contratacao ? new Date(dt_contratacao) : null)
+      .input('MATRICULA', sql.VarChar(50), matricula || null)
+      .input('STATUS', sql.VarChar(20), status || 'ABERTA')
+      .input('EMPRESA', sql.VarChar(200), empresa || null)
+      .input('USUARIO_CADASTRO', sql.VarChar(50), protheusId)
+      .query(`INSERT INTO RH_VAGAS
+        (FUNCAO, DATA_ABERTURA, TIPO_VAGA, SOLICITANTE, SETOR, NOTEBOOK, CELULAR,
+         REQUISITOS_VAGA, SLA_DIAS, CLASSIFICACAO, CANDIDATOS, ENTREVISTAS,
+         PRAZO_CONTRATACAO, DT_CONTRATACAO, MATRICULA, STATUS, EMPRESA, USUARIO_CADASTRO)
+        VALUES
+        (@FUNCAO, @DATA_ABERTURA, @TIPO_VAGA, @SOLICITANTE, @SETOR, @NOTEBOOK, @CELULAR,
+         @REQUISITOS_VAGA, @SLA_DIAS, @CLASSIFICACAO, @CANDIDATOS, @ENTREVISTAS,
+         @PRAZO_CONTRATACAO, @DT_CONTRATACAO, @MATRICULA, @STATUS, @EMPRESA, @USUARIO_CADASTRO)`);
+
+    return res.json({ success: true });
   } catch (err) {
     console.error('Erro ao cadastrar vaga:', err);
     return res.status(500).json({ error: 'Erro interno ao cadastrar vaga.' });
@@ -260,22 +260,32 @@ async function slaByFuncao(req, res) {
     } else {
       try {
         const all = await pool.request().query(`SELECT SLA_DIAS, CLASSIFICACAO, RTRIM(LTRIM(FUNCAO)) AS FUNCAO FROM RH_SLA_CONFIG`);
-        const normalize = s => String(s||'').toUpperCase().replace(/[^A-Z0-9\sÀ-ÿ]/g,' ').replace(/\s+/g,' ').trim();
-        const target = normalize(funcao);
-        try { console.log('[slaByFuncao] normalized target="' + target + '"'); } catch(e) {}
-        if (all.recordset && all.recordset.length) {
-          try { console.log('[slaByFuncao] slaConfigSample=', JSON.stringify(all.recordset.slice(0,20).map(r=>({FUNCAO:r.FUNCAO,SLA_DIAS:r.SLA_DIAS})))) } catch(e) {}
-        }
-        let found = null;
+        const removeDiacritics = s => String(s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'');
+        const clean = s => removeDiacritics(String(s||'')).toUpperCase().replace(/[^A-Z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+        const abbrev = { 'PL':'PLENO', 'JR':'JUNIOR', 'SR':'SENIOR' };
+        const stopWords = new Set(['DE','DA','DO','DOS','DAS','E','O','A','POR','PARA','EM']);
+        const normalizeTokens = s => {
+          return clean(s).split(' ').map(w => (abbrev[w]||w)).filter(w => w && !stopWords.has(w));
+        };
+        const targetTokens = normalizeTokens(funcao);
+        try { console.log('[slaByFuncao] normalized targetTokens=', JSON.stringify(targetTokens)); } catch(e) {}
+
+        let best = { score: 0, row: null };
         for (const row of (all.recordset||[])) {
-          const nf = normalize(row.FUNCAO);
-          try {} catch(e) {}
-          if (!nf) continue;
-          if (nf.includes(target) || target.includes(nf)) { found = row; break; }
+          const candTokens = normalizeTokens(row.FUNCAO);
+          if (!candTokens.length) continue;
+          const candSet = new Set(candTokens);
+          let inter = 0;
+          for (const t of targetTokens) if (candSet.has(t)) inter++;
+          let interReverse = 0;
+          const targetSet = new Set(targetTokens);
+          for (const c of candTokens) if (targetSet.has(c)) interReverse++;
+          const score = Math.max(inter, interReverse);
+          if (score > best.score) best = { score, row };
         }
-        if (found) {
-          try { console.log('[slaByFuncao] matched FUNCAO="' + found.FUNCAO + '"'); } catch(e) {}
-          return res.json({ sla_dias: found.SLA_DIAS, classificacao: found.CLASSIFICACAO });
+        if (best.row && best.score > 0 && (best.score >= Math.max(1, Math.floor(targetTokens.length/2)))) {
+          try { console.log('[slaByFuncao] matched FUNCAO="' + best.row.FUNCAO + '" score=' + best.score); } catch(e) {}
+          return res.json({ sla_dias: best.row.SLA_DIAS, classificacao: best.row.CLASSIFICACAO });
         }
       } catch(e) { try { console.error('[slaByFuncao] fallback error', e); } catch(_) {} }
       res.json({});
