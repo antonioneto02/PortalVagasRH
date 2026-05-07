@@ -249,14 +249,29 @@ async function slaByFuncao(req, res) {
   if (!funcao) return res.json({});
   let pool = null;
   try {
+    try { console.log('[slaByFuncao] funcao="' + funcao + '"'); } catch(e) {}
     pool = await new sql.ConnectionPool(dbConfig).connect();
-    // Use case-insensitive partial match to find SLA even if funcao formatting differs
     const result = await pool.request()
       .input('Q', sql.VarChar(200), '%' + funcao.toUpperCase() + '%')
       .query(`SELECT SLA_DIAS, CLASSIFICACAO FROM RH_SLA_CONFIG WHERE UPPER(FUNCAO) LIKE @Q`);
+    try { console.log('[slaByFuncao] returned=' + (result.recordset?result.recordset.length:0) + ' rows'); } catch(e) {}
     if (result.recordset.length > 0) {
       res.json({ sla_dias: result.recordset[0].SLA_DIAS, classificacao: result.recordset[0].CLASSIFICACAO });
     } else {
+      try {
+        const all = await pool.request().query(`SELECT SLA_DIAS, CLASSIFICACAO, RTRIM(LTRIM(FUNCAO)) AS FUNCAO FROM RH_SLA_CONFIG`);
+        const normalize = s => String(s||'').toUpperCase().replace(/[^A-Z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+        const target = normalize(funcao);
+        let found = null;
+        for (const row of (all.recordset||[])) {
+          const nf = normalize(row.FUNCAO);
+          if (!nf) continue;
+          if (nf.includes(target) || target.includes(nf)) { found = row; break; }
+        }
+        if (found) {
+          return res.json({ sla_dias: found.SLA_DIAS, classificacao: found.CLASSIFICACAO });
+        }
+      } catch(e) {}
       res.json({});
     }
   } catch (err) {

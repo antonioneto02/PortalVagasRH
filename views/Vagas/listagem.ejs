@@ -288,6 +288,16 @@ $(document).ready(function () {
       });
     }
   });
+  // also handle select2 selection event
+  $('#funcaoSelect').on('select2:select', function(e) {
+    const funcao = e.params.data.id || $(this).val();
+    if (funcao) {
+      $.getJSON('/api/sla/by-funcao', { funcao }, function(d) {
+        if (d.sla_dias) $('#sla_dias').val(d.sla_dias);
+        if (d.classificacao) $('#classificacao').val(d.classificacao);
+      });
+    }
+  });
 
   $('#btnNovaVaga').on('click', function() {
     $('#formNovaVaga')[0].reset();
