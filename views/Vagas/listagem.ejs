@@ -112,11 +112,14 @@
                     </td>
                     <% if (podeCadastrar) { %>
                       <td>
+                        <div class="d-flex justify-content-center gap-1">
+                          <button class="btn btn-sm btn-primary btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>" title="Candidatar-se" aria-label="Candidatura"><i class="fas fa-user-plus"></i></button>
                           <% if (v.STATUS !== 'FECHADA') { %>
                           <button class="btn btn-sm btn-success btn-fechar-vaga" data-id="<%= v.ID %>" title="Fechar Vaga" aria-label="Fechar Vaga"><i class="fas fa-check"></i></button>
-                        <% } else { %>
+                          <% } else { %>
                           <span class="text-muted">-</span>
-                        <% } %>
+                          <% } %>
+                        </div>
                       </td>
                     <% } %>
                   </tr>
@@ -252,7 +255,76 @@
 </div>
 <% } %>
 
-  <!-- Modal: Mostrar conteúdo completo da célula -->
+  <!-- Modal: Candidatura -->
+<div class="modal fade" id="modalCandidatura" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Candidatura — <span id="candidaturaFuncao"></span></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <form id="formCandidatura" enctype="multipart/form-data">
+          <input type="hidden" id="candidaturaIdVaga" name="id_vaga">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Nome completo <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="nome" id="candNome" placeholder="Seu nome completo" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Celular <span class="text-danger">*</span></label>
+              <input type="tel" class="form-control" name="celular" id="candCelular" placeholder="(00) 00000-0000" maxlength="15" required>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>E-mail <span class="text-danger">*</span></label>
+              <input type="email" class="form-control" name="email" id="candEmail" placeholder="seu@email.com" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>LinkedIn <small class="text-muted">(opcional)</small></label>
+              <input type="url" class="form-control" name="linkedin" id="candLinkedin" placeholder="https://linkedin.com/in/seuperfil">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label>Apresentação breve <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="apresentacao" id="candApresentacao" rows="4" placeholder="Fale um pouco sobre você, experiências relevantes, por que tem interesse nesta vaga..." required></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label>Link adicional <small class="text-muted">(opcional)</small></label>
+              <input type="url" class="form-control" name="link_adicional" id="candLinkAdicional" placeholder="Portfólio, GitHub, etc.">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Currículo <small class="text-muted">(PDF, DOC, DOCX — máx. 10MB)</small></label>
+              <input type="file" class="form-control" name="curriculo" id="candCurriculo" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+              <div id="curriculoPreview" class="mt-2" style="display:none;">
+                <div class="d-flex align-items-center p-2 border rounded" style="background:#f8f9fa;gap:.5rem;">
+                  <i class="fas fa-file-alt fa-2x text-primary"></i>
+                  <div>
+                    <div id="curriculoNome" style="font-weight:500;font-size:.85rem;"></div>
+                    <div id="curriculoTamanho" style="font-size:.75rem;color:#6c757d;"></div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-danger ml-auto" id="removerCurriculo"><i class="fas fa-times"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="candFormError" class="alert alert-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSalvarCandidatura">
+          <span id="candSpinner" class="spinner-border spinner-border-sm me-1" style="display:none;"></span>
+          <i class="fas fa-paper-plane me-1" id="candIcon"></i>Enviar Candidatura
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Mostrar conteúdo completo da célula -->
   <div class="modal fade" id="modalCellFull" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
@@ -403,6 +475,72 @@ $(document).ready(function () {
     }
   });
   $('#modalCellFull').on('hidden.bs.modal', function () { $('#modalCellFullContent').text(''); });
+
+  // Botão candidatura
+  $(document).on('click', '.btn-candidatura', function() {
+    const id = $(this).data('id');
+    const funcao = $(this).data('funcao');
+    $('#candidaturaIdVaga').val(id);
+    $('#candidaturaFuncao').text(funcao);
+    $('#formCandidatura')[0].reset();
+    $('#curriculoPreview').hide();
+    $('#candFormError').hide();
+    $('#modalCandidatura').modal('show');
+  });
+
+  // Máscara de celular
+  $('#candCelular').on('input', function() {
+    let v = $(this).val().replace(/\D/g, '').substring(0, 11);
+    if (v.length >= 7) v = '(' + v.substring(0,2) + ') ' + v.substring(2,7) + '-' + v.substring(7);
+    else if (v.length >= 3) v = '(' + v.substring(0,2) + ') ' + v.substring(2);
+    else if (v.length > 0) v = '(' + v;
+    $(this).val(v);
+  });
+
+  // Preview do currículo
+  $('#candCurriculo').on('change', function() {
+    const file = this.files[0];
+    if (file) {
+      $('#curriculoNome').text(file.name);
+      $('#curriculoTamanho').text((file.size / 1024 / 1024).toFixed(2) + ' MB');
+      $('#curriculoPreview').show();
+    } else {
+      $('#curriculoPreview').hide();
+    }
+  });
+  $('#removerCurriculo').on('click', function() {
+    $('#candCurriculo').val('');
+    $('#curriculoPreview').hide();
+  });
+
+  // Salvar candidatura
+  $('#btnSalvarCandidatura').on('click', function() {
+    const nome = $('#candNome').val().trim();
+    const celular = $('#candCelular').val().trim();
+    const email = $('#candEmail').val().trim();
+    const apresentacao = $('#candApresentacao').val().trim();
+    if (!nome || !celular || !email || !apresentacao) {
+      $('#candFormError').text('Preencha todos os campos obrigatórios.').show(); return;
+    }
+    if (!email.includes('@') || !email.includes('.')) {
+      $('#candFormError').text('E-mail inválido.').show(); return;
+    }
+    const formData = new FormData(document.getElementById('formCandidatura'));
+    $('#candSpinner').show(); $('#candIcon').hide(); $('#btnSalvarCandidatura').prop('disabled', true);
+    $.ajax({
+      url: '/api/candidatura', method: 'POST', data: formData,
+      processData: false, contentType: false,
+      success() {
+        $('#modalCandidatura').modal('hide');
+        alert('Candidatura enviada com sucesso!');
+        location.reload();
+      },
+      error(xhr) {
+        $('#candFormError').text(xhr.responseJSON?.error || 'Erro ao enviar.').show();
+        $('#candSpinner').hide(); $('#candIcon').show(); $('#btnSalvarCandidatura').prop('disabled', false);
+      }
+    });
+  });
 });
 </script>
 </body>

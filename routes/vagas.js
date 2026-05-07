@@ -9,6 +9,7 @@ const {
   renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
   fecharVaga,
 } = require('../controllers/vagasController');
+const { salvarCandidatura } = require('../controllers/candidaturasController');
 
 router.get('/vagas', requireAuth, listarVagas);
 router.post('/vagas', requireAuth, cadastrarVaga);
@@ -27,4 +28,5 @@ router.post('/api/mercado-sul', requireAuth, salvarMercadoSul);
 router.put('/api/mercado-sul/:id', requireAuth, atualizarMercadoSul);
 router.delete('/api/mercado-sul/:id', requireAuth, deletarMercadoSul);
 router.put('/vagas/fechar/:id', requireAuth, fecharVaga);
+router.post('/api/candidatura', salvarCandidatura);
 module.exports = router;
