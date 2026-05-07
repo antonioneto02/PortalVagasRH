@@ -78,7 +78,7 @@
                 <tr>
                   <th>Função</th><th>Tipo</th><th>Status</th><th>Setor</th><th>Solicitante</th>
                   <th>Classificação</th><th>SLA</th><th>Candidatos</th><th>Entrevistas</th>
-                  <th>Abertura</th><th>Prazo</th><th>Empresa</th><th>Notebook</th><th>Celular</th><th>Requisitos</th>
+                  <th>Abertura</th><th>Prazo</th><th class="text-center">Empresa</th><th class="text-center">Notebook</th><th class="text-center">Celular</th><th>Requisitos</th>
                   <% if (podeCadastrar) { %><th>Ações</th><% } %>
                 </tr>
               </thead>
@@ -102,9 +102,11 @@
                     <td class="text-center" title="<%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %>" data-toggle="tooltip"><%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %></td>
                     <td title="<%= v.DATA_ABERTURA||'-' %>" data-toggle="tooltip"><%= v.DATA_ABERTURA||'-' %></td>
                     <td title="<%= v.PRAZO_CONTRATACAO||'-' %>" data-toggle="tooltip"><%= v.PRAZO_CONTRATACAO||'-' %></td>
-                    <td title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></td>
-                    <td><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
-                    <td><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
+                    <td class="text-center">
+                      <div class="cell-inner clickable-cell" title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></div>
+                    </td>
+                    <td class="text-center"><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
+                    <td class="text-center"><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
                     <td class="req-cell">
                       <div class="cell-inner clickable-cell" title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip"><%= v.REQUISITOS_VAGA||'-' %></div>
                     </td>
