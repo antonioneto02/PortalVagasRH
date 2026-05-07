@@ -40,6 +40,7 @@ async function listarVagas(req, res) {
       podeCadastrar,
       username: req.session.username,
       protheusId: req.session.protheusId || null,
+      candidaturasFeitas: req.session.candidaturasFeitas || [],
       currentPath: '/vagas',
     });
   } catch (err) {

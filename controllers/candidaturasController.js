@@ -77,6 +77,15 @@ async function salvarCandidatura(req, res) {
           SELECT COUNT(*) FROM RH_CANDIDATURAS WHERE ID_VAGA = @ID_VAGA
         ) WHERE ID = @ID_VAGA`);
 
+      // Registra na sessão que o usuário se candidatou a essa vaga
+      if (req.session) {
+        if (!Array.isArray(req.session.candidaturasFeitas)) req.session.candidaturasFeitas = [];
+        const idVagaNum = parseInt(id_vaga);
+        if (!req.session.candidaturasFeitas.includes(idVagaNum)) {
+          req.session.candidaturasFeitas.push(idVagaNum);
+        }
+      }
+
       res.json({ success: true });
     } catch (err) {
       console.error('Erro ao salvar candidatura:', err);

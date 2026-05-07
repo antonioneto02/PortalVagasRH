@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const sql = require('mssql');
 const dbConfig = require('../database/dbConfig');
 const dbConfigDw = require('../database/dbConfigDw');
+const dbConfigProtheus = require('../database/dbConfigProtheus');
 
 async function renderUsuarios(req, res) {
   let pool = null;
@@ -98,25 +99,26 @@ async function buscarUsuariosProtheus(req, res) {
   const q = (req.query.q || '').trim();
   let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfigDw).connect();
+    pool = await new sql.ConnectionPool(dbConfigProtheus).connect();
     const result = await pool.request()
       .input('Q', sql.VarChar(200), `%${q.toUpperCase()}%`)
       .query(`
-        SELECT DISTINCT TOP 50
-          RTRIM(LTRIM(MATRICULA)) AS ID_PROTHEUS,
-          RTRIM(LTRIM(NOME)) AS NOME
-        FROM V_RECURSOS_HUMANOS
-        WHERE NOME IS NOT NULL
-          AND MATRICULA IS NOT NULL
-          AND UPPER(NOME) LIKE @Q
-        ORDER BY NOME
+        SELECT TOP 50
+          RTRIM(LTRIM(USR_ID))   AS USR_ID,
+          RTRIM(LTRIM(USR_NOME)) AS USR_NOME
+        FROM [dbo].[SYS_USR]
+        WHERE D_E_L_E_T_ = ''
+          AND USR_NOME IS NOT NULL
+          AND USR_ID   IS NOT NULL
+          AND UPPER(USR_NOME) LIKE @Q
+        ORDER BY USR_NOME
       `);
 
     const itens = result.recordset.map((r) => ({
-      id: r.ID_PROTHEUS,
-      text: `${r.NOME} (${r.ID_PROTHEUS})`,
-      nome: r.NOME,
-      id_protheus: r.ID_PROTHEUS,
+      id: r.USR_ID,
+      text: r.USR_ID + ' - ' + r.USR_NOME,
+      nome: r.USR_NOME,
+      id_protheus: r.USR_ID,
     }));
 
     return res.json(itens);

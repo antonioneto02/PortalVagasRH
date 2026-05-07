@@ -148,6 +148,9 @@
                       <td class="req-cell"><div class="cell-inner clickable-cell" title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip"><%= v.REQUISITOS_VAGA||'-' %></div></td>
                       <td>
                         <div class="d-flex justify-content-center" style="gap:.25rem;">
+                          <% if (candidaturasFeitas.includes(v.ID)) { %>
+                            <span class="badge" style="background:#17a2b8;color:white;font-size:.74rem;padding:4px 7px;"><i class="fas fa-check-circle me-1"></i>Candidatado</span>
+                          <% } %>
                           <% if (v.STATUS !== 'FECHADA') { %>
                             <button class="btn btn-sm btn-primary btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>" title="Candidatar-se" aria-label="Candidatura"><i class="fas fa-user-plus"></i></button>
                             <button class="btn btn-sm btn-success btn-fechar-vaga" data-id="<%= v.ID %>" title="Fechar Vaga" aria-label="Fechar Vaga"><i class="fas fa-check"></i></button>
@@ -182,7 +185,12 @@
                     <span><i class="fas fa-users me-1"></i>Candidatos: <%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></span>
                   </div>
                   <div class="vaga-requisitos" title="<%= v.REQUISITOS_VAGA || '-' %>"><%= v.REQUISITOS_VAGA || 'Sem requisitos informados.' %></div>
-                  <div class="mt-auto pt-2 d-flex justify-content-end">
+                  <div class="mt-auto pt-2 d-flex justify-content-between align-items-center">
+                    <% if (candidaturasFeitas.includes(v.ID)) { %>
+                      <span style="font-size:.82rem;color:#17a2b8;font-weight:600;"><i class="fas fa-check-circle me-1"></i>Já me candidatei</span>
+                    <% } else { %>
+                      <span></span>
+                    <% } %>
                     <% if (v.STATUS !== 'FECHADA') { %>
                       <button class="btn btn-primary btn-sm btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>">
                         <i class="fas fa-paper-plane me-1"></i>Candidatar-se
@@ -245,7 +253,7 @@
           </div>
           <div class="mb-3">
             <label>Requisitos da Vaga</label>
-            <textarea class="form-control requisitos-textarea" name="requisitos_vaga" rows="3" style="max-height:120px;overflow:auto;resize:vertical;"></textarea>
+            <textarea class="form-control requisitos-textarea" name="requisitos_vaga" rows="3" style="max-height:120px;overflow:auto;resize:vertical;" placeholder="ANALISTA ADM - JR | 1 A 2 ANOS DE EXPERIENCIA - ENSINO SUPERIOR CURSANDO OU COMPLETO - EXCEL INTERMEDIARIO - ROTINAS ADMINISTRATIVAS - ORGANIZACAO E ATENCAO A DETALHES - TRABALHO EM EQUIPE - DISPONIBILIDADE IMEDIATA"></textarea>
           </div>
           <div class="row">
             <div class="col-md-6 mb-3"><label>Prazo Contratação</label><input type="date" class="form-control" name="prazo_contratacao"></div>
