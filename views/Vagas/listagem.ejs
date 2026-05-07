@@ -240,7 +240,7 @@
       <div class="modal-body">
         <input type="hidden" id="fecharVagaId">
         <div class="mb-3"><label>Matrícula</label><select id="fecharMatricula" name="fecharMatricula" class="form-control"></select></div>
-        <div class="mb-3"><label>Entrevistas</label><input type="number" id="fecharEntrevistas" class="form-control" min="0"></div>
+        <div class="mb-3"><label>Entrevistas</label><input type="number" id="fecharEntrevistas" class="form-control" min="0" placeholder="Ex: 3 (número de entrevistas realizadas)"></div>
         <div class="mb-3"><label>Data Contratação</label><input type="date" id="fecharDtContratacao" class="form-control"></div>
       </div>
       <div class="modal-footer">
@@ -322,8 +322,11 @@ $(document).ready(function () {
 
   $(document).on('click', '.btn-fechar-vaga', function() {
     const id = $(this).data('id');
+    const today = new Date().toISOString().split('T')[0];
     $('#fecharVagaId').val(id);
-    $('#fecharMatricula').val(null).trigger('change'); $('#fecharEntrevistas').val(''); $('#fecharDtContratacao').val('');
+    $('#fecharMatricula').val(null).trigger('change');
+    $('#fecharEntrevistas').val('');
+    $('#fecharDtContratacao').val(today);
     $('#modalFecharVaga').modal('show');
   });
 

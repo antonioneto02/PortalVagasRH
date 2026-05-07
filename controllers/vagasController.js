@@ -194,7 +194,8 @@ async function getMatriculas(req, res) {
       .input('Q', sql.VarChar(200), '%' + q.toUpperCase() + '%')
       .query(`SELECT DISTINCT RTRIM(LTRIM(MATRICULA)) AS MATRICULA, RTRIM(LTRIM(NOME)) AS NOME
         FROM V_RECURSOS_HUMANOS
-        WHERE MATRICULA IS NOT NULL AND MATRICULA <> '' AND UPPER(MATRICULA) LIKE @Q
+        WHERE MATRICULA IS NOT NULL AND MATRICULA <> '' 
+        AND (UPPER(MATRICULA) LIKE @Q OR UPPER(NOME) LIKE @Q)
         ORDER BY MATRICULA`);
     try {
       console.log('[getMatriculas] q="' + q + '", results=' + (result.recordset?result.recordset.length:0));
