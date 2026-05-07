@@ -4,14 +4,6 @@
   <title>Vagas RH - Portal Cini</title>
   <%- include('../System/headIncludes.ejs') %>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    </style>
-</head>
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <title>Vagas RH - Portal Cini</title>
-  <%- include('../System/headIncludes.ejs') %>
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
     .select2-container { width: 100% !important; }
     .select2-container--default .select2-selection--single {
@@ -23,12 +15,15 @@
     .select2-container--default .select2-selection--single .select2-selection__rendered { line-height:1.5; padding:0; color:#495057; }
     .select2-container--default .select2-selection--single .select2-selection__arrow { height: calc(1.5em + 0.75rem + 2px); }
     .select2-dropdown { z-index: 9999; }
+
     #tblVagas td, #tblVagas th { padding: .35rem .5rem; line-height:1.15; vertical-align: middle; }
     .no-wrap { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
     .req-cell { max-width:280px; font-size:.82rem; }
-    .clickable-cell { 
-      cursor: pointer; 
-      display: block; 
+
+    .clickable-cell {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
       width: 100%;
       height: 100%;
       box-sizing: border-box;
@@ -36,14 +31,57 @@
       overflow: hidden;
       text-overflow: ellipsis;
       padding: 2px 6px;
-      pointer-events: auto;
-      display: flex; align-items: center;
     }
-
     .clickable-cell:hover { background: rgba(0,0,0,0.05); border-radius: 4px; }
-
-    /* ensure inner wrapper fills the td area */
     td .cell-inner { height: 100%; width: 100%; display: flex; align-items: center; }
+
+    .vagas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+    .vaga-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfbff 100%);
+      box-shadow: 0 6px 14px rgba(43, 40, 111, 0.08);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .55rem;
+      min-height: 260px;
+    }
+    .vaga-card .head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: .6rem;
+    }
+    .vaga-card h5 {
+      margin: 0;
+      font-size: 1.02rem;
+      color: #1f2937;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .vaga-meta {
+      font-size: .86rem;
+      color: #4b5563;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .45rem .8rem;
+    }
+    .vaga-requisitos {
+      font-size: .88rem;
+      color: #374151;
+      border-top: 1px dashed #d1d5db;
+      padding-top: .55rem;
+      margin-top: .1rem;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+    }
 
     .me-1 { margin-right:.25rem!important; }
     .me-2 { margin-right:.5rem!important; }
@@ -55,87 +93,116 @@
   <div class="main-content">
     <div class="topbar">
       <div class="topbar-left">
-        <h1><i class="bi bi-briefcase me-2"></i>Vagas<% if (!isProtheus) { %> <small style="font-size:0.72rem; background:#17a2b8; border-radius:4px; padding:2px 7px; vertical-align:middle;">Somente Externas</small><% } %></h1>
+        <h1>
+          <i class="bi bi-briefcase me-2"></i>Vagas
+          <% if (!isAdmin) { %>
+            <small style="font-size:0.72rem; background:#17a2b8; border-radius:4px; padding:2px 7px; vertical-align:middle;">Área do Candidato</small>
+          <% } %>
+        </h1>
       </div>
       <div class="topbar-right">
+        <span><i class="bi bi-person-circle me-1"></i><%= username %></span>
         <a href="/logout"><i class="bi bi-box-arrow-right me-1"></i>Sair</a>
       </div>
     </div>
+
     <div class="content">
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h4 class="mb-0"><i class="fas fa-briefcase me-2"></i>Vagas</h4>
-          <% if (podeCadastrar) { %>
+          <% if (isAdmin) { %>
             <button class="btn btn-sm" id="btnNovaVaga" style="background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.4); color:white;">
               <i class="fas fa-plus me-1"></i> Nova Vaga
             </button>
           <% } %>
         </div>
+
         <div class="card-body">
-          <div class="table-responsive">
-            <table id="tblVagas" class="display table table-striped table-hover" style="width:100%">
-              <thead>
-                <tr>
-                  <th>Função</th><th>Tipo</th><th>Status</th><th class="text-center">Setor</th><th>Solicitante</th>
-                  <th>Classificação</th><th>SLA</th><th>Candidatos</th><th>Entrevistas</th>
-                  <th>Abertura</th><th>Prazo</th><th class="text-center">Empresa</th><th class="text-center">Notebook</th><th class="text-center">Celular</th><th>Requisitos</th>
-                  <% if (podeCadastrar) { %><th>Ações</th><% } %>
-                </tr>
-              </thead>
-              <tbody>
-                <% vagas.forEach(v => { %>
+          <% if (isAdmin) { %>
+            <div class="table-responsive">
+              <table id="tblVagas" class="display table table-striped table-hover" style="width:100%">
+                <thead>
                   <tr>
-                    <td class="no-wrap">
-                      <div class="cell-inner clickable-cell" title="<%= v.FUNCAO %>" data-toggle="tooltip"><%= v.FUNCAO %></div>
-                    </td>
-                    <td class="no-wrap" title="<%= v.TIPO_VAGA %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.TIPO_VAGA %></span></td>
-                    <td class="no-wrap" title="<%= v.STATUS %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.STATUS %></span></td>
-                    <td class="no-wrap text-center">
-                      <div class="cell-inner clickable-cell text-center" title="<%= v.SETOR||'-' %>" data-toggle="tooltip"><%= v.SETOR||'-' %></div>
-                    </td>
-                    <td class="no-wrap">
-                      <div class="cell-inner clickable-cell" title="<%= v.SOLICITANTE||'-' %>" data-toggle="tooltip"><%= v.SOLICITANTE||'-' %></div>
-                    </td>
-                    <td class="text-center"><% if(v.CLASSIFICACAO){ %><span class="badge" title="<%= v.CLASSIFICACAO %>" data-toggle="tooltip" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.CLASSIFICACAO %></span><% }else{ %>-<% } %></td>
-                    <td class="text-center" title="<%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %>" data-toggle="tooltip"><%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %></td>
-                    <td class="text-center" title="<%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %>" data-toggle="tooltip"><%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></td>
-                    <td class="text-center" title="<%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %>" data-toggle="tooltip"><%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %></td>
-                    <td title="<%= v.DATA_ABERTURA||'-' %>" data-toggle="tooltip"><%= v.DATA_ABERTURA||'-' %></td>
-                    <td title="<%= v.PRAZO_CONTRATACAO||'-' %>" data-toggle="tooltip"><%= v.PRAZO_CONTRATACAO||'-' %></td>
-                    <td class="text-center">
-                      <div class="cell-inner clickable-cell text-center" title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></div>
-                    </td>
-                    <td class="text-center"><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
-                    <td class="text-center"><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
-                    <td class="req-cell">
-                      <div class="cell-inner clickable-cell" title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip"><%= v.REQUISITOS_VAGA||'-' %></div>
-                    </td>
-                    <% if (podeCadastrar) { %>
+                    <th>Função</th><th>Tipo</th><th>Status</th><th class="text-center">Setor</th><th>Solicitante</th>
+                    <th>Classificação</th><th>SLA</th><th>Candidatos</th><th>Entrevistas</th>
+                    <th>Abertura</th><th>Prazo</th><th class="text-center">Empresa</th><th class="text-center">Notebook</th><th class="text-center">Celular</th><th>Requisitos</th><th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% vagas.forEach(v => { %>
+                    <tr>
+                      <td class="no-wrap"><div class="cell-inner clickable-cell" title="<%= v.FUNCAO %>" data-toggle="tooltip"><%= v.FUNCAO %></div></td>
+                      <td class="no-wrap" title="<%= v.TIPO_VAGA %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.TIPO_VAGA %></span></td>
+                      <td class="no-wrap" title="<%= v.STATUS %>" data-toggle="tooltip"><span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.STATUS %></span></td>
+                      <td class="no-wrap text-center"><div class="cell-inner clickable-cell text-center" title="<%= v.SETOR||'-' %>" data-toggle="tooltip"><%= v.SETOR||'-' %></div></td>
+                      <td class="no-wrap"><div class="cell-inner clickable-cell" title="<%= v.SOLICITANTE||'-' %>" data-toggle="tooltip"><%= v.SOLICITANTE||'-' %></div></td>
+                      <td class="text-center"><% if(v.CLASSIFICACAO){ %><span class="badge" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;padding:3px 7px;border-radius:4px;color:white;font-size:.74rem;"><%= v.CLASSIFICACAO %></span><% } else { %>-<% } %></td>
+                      <td class="text-center" title="<%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %>" data-toggle="tooltip"><%= v.SLA_DIAS!==null?v.SLA_DIAS:'-' %></td>
+                      <td class="text-center" title="<%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %>" data-toggle="tooltip"><%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></td>
+                      <td class="text-center" title="<%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %>" data-toggle="tooltip"><%= v.ENTREVISTAS!==null?v.ENTREVISTAS:0 %></td>
+                      <td title="<%= v.DATA_ABERTURA||'-' %>" data-toggle="tooltip"><%= v.DATA_ABERTURA||'-' %></td>
+                      <td title="<%= v.PRAZO_CONTRATACAO||'-' %>" data-toggle="tooltip"><%= v.PRAZO_CONTRATACAO||'-' %></td>
+                      <td class="text-center"><div class="cell-inner clickable-cell text-center" title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></div></td>
+                      <td class="text-center"><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
+                      <td class="text-center"><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
+                      <td class="req-cell"><div class="cell-inner clickable-cell" title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip"><%= v.REQUISITOS_VAGA||'-' %></div></td>
                       <td>
-                        <div class="d-flex justify-content-center gap-1">
+                        <div class="d-flex justify-content-center" style="gap:.25rem;">
                           <% if (v.STATUS !== 'FECHADA') { %>
-                          <button class="btn btn-sm btn-primary btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>" title="Candidatar-se" aria-label="Candidatura"><i class="fas fa-user-plus"></i></button>
-                          <% } %>
-                          <% if (v.STATUS !== 'FECHADA') { %>
-                          <button class="btn btn-sm btn-success btn-fechar-vaga" data-id="<%= v.ID %>" title="Fechar Vaga" aria-label="Fechar Vaga"><i class="fas fa-check"></i></button>
+                            <button class="btn btn-sm btn-primary btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>" title="Candidatar-se" aria-label="Candidatura"><i class="fas fa-user-plus"></i></button>
+                            <button class="btn btn-sm btn-success btn-fechar-vaga" data-id="<%= v.ID %>" title="Fechar Vaga" aria-label="Fechar Vaga"><i class="fas fa-check"></i></button>
                           <% } else { %>
-                          <span class="text-muted">-</span>
+                            <span class="text-muted">-</span>
                           <% } %>
                         </div>
                       </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="vagas-grid">
+              <% vagas.forEach(v => { %>
+                <div class="vaga-card">
+                  <div class="head">
+                    <h5><%= v.FUNCAO %></h5>
+                    <span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;color:white;"><%= v.STATUS %></span>
+                  </div>
+                  <div>
+                    <span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;color:white;"><%= v.TIPO_VAGA %></span>
+                    <% if(v.CLASSIFICACAO){ %>
+                      <span class="badge" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;color:white;"><%= v.CLASSIFICACAO %></span>
                     <% } %>
-                  </tr>
-                <% }); %>
-              </tbody>
-            </table>
-          </div>
+                  </div>
+                  <div class="vaga-meta">
+                    <span><i class="fas fa-building me-1"></i><%= v.EMPRESA || '-' %></span>
+                    <span><i class="fas fa-calendar me-1"></i>Abertura: <%= v.DATA_ABERTURA || '-' %></span>
+                    <span><i class="fas fa-hourglass-half me-1"></i>SLA: <%= v.SLA_DIAS !== null ? v.SLA_DIAS : '-' %> dias</span>
+                    <span><i class="fas fa-users me-1"></i>Candidatos: <%= v.CANDIDATOS!==null?v.CANDIDATOS:0 %></span>
+                  </div>
+                  <div class="vaga-requisitos" title="<%= v.REQUISITOS_VAGA || '-' %>"><%= v.REQUISITOS_VAGA || 'Sem requisitos informados.' %></div>
+                  <div class="mt-auto pt-2 d-flex justify-content-end">
+                    <% if (v.STATUS !== 'FECHADA') { %>
+                      <button class="btn btn-primary btn-sm btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>">
+                        <i class="fas fa-paper-plane me-1"></i>Candidatar-se
+                      </button>
+                    <% } else { %>
+                      <button class="btn btn-secondary btn-sm" disabled>Vaga Fechada</button>
+                    <% } %>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
         </div>
       </div>
     </div>
   </div>
 </div>
-        <% if (podeCadastrar) { %>
-        <div class="modal fade" id="modalNovaVaga" tabindex="-1" role="dialog" aria-hidden="true">
+
+<% if (isAdmin) { %>
+<div class="modal fade" id="modalNovaVaga" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -145,36 +212,20 @@
       <div class="modal-body">
         <form id="formNovaVaga">
           <div class="row">
-            <div class="col-md-3 mb-3">
-              <label>Empresa</label>
-              <select id="empresaSelect" name="empresa" class="form-control"></select>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label>Função <span class="text-danger">*</span></label>
-              <select id="funcaoSelect" name="funcao" class="form-control" required></select>
-            </div>
-            <div class="col-md-3 mb-3">
-              <label>Data Abertura <span class="text-danger">*</span></label>
-              <input type="date" class="form-control" name="data_abertura" required>
-            </div>
+            <div class="col-md-3 mb-3"><label>Empresa</label><select id="empresaSelect" name="empresa" class="form-control"></select></div>
+            <div class="col-md-6 mb-3"><label>Função <span class="text-danger">*</span></label><select id="funcaoSelect" name="funcao" class="form-control" required></select></div>
+            <div class="col-md-3 mb-3"><label>Data Abertura <span class="text-danger">*</span></label><input type="date" class="form-control" name="data_abertura" required></div>
           </div>
           <div class="row">
-            <div class="col-md-4 mb-3">
-              <label>Solicitante</label>
-              <select id="solicitanteSelect" name="solicitante" class="form-control"></select>
-            </div>
+            <div class="col-md-4 mb-3"><label>Solicitante</label><select id="solicitanteSelect" name="solicitante" class="form-control"></select></div>
             <div class="col-md-4 mb-3">
               <label>Setor</label>
               <select class="form-control" name="setor">
                 <option value="">Selecione...</option>
-                <option>FISCAL</option><option>FRETEIRO</option><option>LOGISTICA</option>
-                <option>ADM</option><option>FINANCEIRO</option><option>COMERCIAL</option>
-                <option>CONTABILIDADE</option><option>TI</option><option>RH</option>
-                <option>TST</option><option>COMPRAS</option><option>FATURAMENTO</option>
-                <option>MARKETING</option><option>OPERACAO</option><option>SERVICOS</option>
-                <option>DIRETORIA</option><option>QUALIDADE</option><option>MANUTENCAO</option>
-                <option>PRODUCAO</option><option>FROTA</option><option>ALMOXARIFADO</option>
-                <option>ETA</option><option>ETE</option>
+                <option>FISCAL</option><option>FRETEIRO</option><option>LOGISTICA</option><option>ADM</option><option>FINANCEIRO</option><option>COMERCIAL</option>
+                <option>CONTABILIDADE</option><option>TI</option><option>RH</option><option>TST</option><option>COMPRAS</option><option>FATURAMENTO</option>
+                <option>MARKETING</option><option>OPERACAO</option><option>SERVICOS</option><option>DIRETORIA</option><option>QUALIDADE</option><option>MANUTENCAO</option>
+                <option>PRODUCAO</option><option>FROTA</option><option>ALMOXARIFADO</option><option>ETA</option><option>ETE</option>
               </select>
             </div>
             <div class="col-md-4 mb-3">
@@ -187,27 +238,14 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-md-3 mb-3">
-              <label>Notebook</label>
-              <select class="form-control" name="notebook"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select>
-            </div>
-            <div class="col-md-3 mb-3">
-              <label>Celular</label>
-              <select class="form-control" name="celular"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select>
-            </div>
-            <div class="col-md-3 mb-3">
-              <label>SLA (dias)</label>
-              <input type="number" class="form-control" name="sla_dias" id="sla_dias" min="1" readonly style="background:#e9ecef;cursor:not-allowed;">
-            </div>
-            <div class="col-md-3 mb-3">
-              <label>Classificação</label>
-              <input type="text" class="form-control" name="classificacao" id="classificacao" readonly style="background:#e9ecef;cursor:not-allowed;" placeholder="Preenchido automaticamente">
-            </div>
+            <div class="col-md-3 mb-3"><label>Notebook</label><select class="form-control" name="notebook"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
+            <div class="col-md-3 mb-3"><label>Celular</label><select class="form-control" name="celular"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
+            <div class="col-md-3 mb-3"><label>SLA (dias)</label><input type="number" class="form-control" name="sla_dias" id="sla_dias" min="1" readonly style="background:#e9ecef;cursor:not-allowed;"></div>
+            <div class="col-md-3 mb-3"><label>Classificação</label><input type="text" class="form-control" name="classificacao" id="classificacao" readonly style="background:#e9ecef;cursor:not-allowed;"></div>
           </div>
           <div class="mb-3">
             <label>Requisitos da Vaga</label>
-            <textarea class="form-control requisitos-textarea" name="requisitos_vaga" rows="3" style="max-height:120px;overflow:auto;resize:vertical;"
-              placeholder="ANALISTA ADM - JR | 1 A 2 ANOS DE EXPERIENCIA - ENSINO SUPERIOR CURSANDO OU COMPLETO - EXCEL INTERMEDIARIO - ROTINAS ADMINISTRATIVAS - ORGANIZACAO E ATENCAO A DETALHES - TRABALHO EM EQUIPE - DISPONIBILIDADE IMEDIATA"></textarea>
+            <textarea class="form-control requisitos-textarea" name="requisitos_vaga" rows="3" style="max-height:120px;overflow:auto;resize:vertical;"></textarea>
           </div>
           <div class="row">
             <div class="col-md-6 mb-3"><label>Prazo Contratação</label><input type="date" class="form-control" name="prazo_contratacao"></div>
@@ -231,6 +269,7 @@
     </div>
   </div>
 </div>
+
 <div class="modal fade" id="modalFecharVaga" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -241,7 +280,7 @@
       <div class="modal-body">
         <input type="hidden" id="fecharVagaId">
         <div class="mb-3"><label>Matrícula</label><select id="fecharMatricula" name="fecharMatricula" class="form-control"></select></div>
-        <div class="mb-3"><label>Entrevistas</label><input type="number" id="fecharEntrevistas" class="form-control" min="0" placeholder="Ex: 3 (número de entrevistas realizadas)"></div>
+        <div class="mb-3"><label>Entrevistas</label><input type="number" id="fecharEntrevistas" class="form-control" min="0" placeholder="Ex: 3"></div>
         <div class="mb-3"><label>Data Contratação</label><input type="date" id="fecharDtContratacao" class="form-control"></div>
       </div>
       <div class="modal-footer">
@@ -253,48 +292,29 @@
 </div>
 <% } %>
 
-  <!-- Modal: Candidatura -->
 <div class="modal fade" id="modalCandidatura" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Candidatura — <span id="candidaturaFuncao"></span></h5>
+        <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Candidatura - <span id="candidaturaFuncao"></span></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Fechar"><span>&times;</span></button>
       </div>
       <div class="modal-body">
         <form id="formCandidatura" enctype="multipart/form-data">
           <input type="hidden" id="candidaturaIdVaga" name="id_vaga">
           <div class="row">
-            <div class="col-md-6 mb-3">
-              <label>Nome completo <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="nome" id="candNome" placeholder="Seu nome completo" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label>Celular <span class="text-danger">*</span></label>
-              <input type="tel" class="form-control" name="celular" id="candCelular" placeholder="(00) 00000-0000" maxlength="15" required>
-            </div>
+            <div class="col-md-6 mb-3"><label>Nome completo <span class="text-danger">*</span></label><input type="text" class="form-control" name="nome" id="candNome" required></div>
+            <div class="col-md-6 mb-3"><label>Celular <span class="text-danger">*</span></label><input type="tel" class="form-control" name="celular" id="candCelular" maxlength="15" required></div>
           </div>
           <div class="row">
-            <div class="col-md-6 mb-3">
-              <label>E-mail <span class="text-danger">*</span></label>
-              <input type="email" class="form-control" name="email" id="candEmail" placeholder="seu@email.com" required>
-            </div>
-            <div class="col-md-6 mb-3">
-              <label>LinkedIn <small class="text-muted">(opcional)</small></label>
-              <input type="url" class="form-control" name="linkedin" id="candLinkedin" placeholder="https://linkedin.com/in/seuperfil">
-            </div>
+            <div class="col-md-6 mb-3"><label>E-mail <span class="text-danger">*</span></label><input type="email" class="form-control" name="email" id="candEmail" required></div>
+            <div class="col-md-6 mb-3"><label>LinkedIn <small class="text-muted">(opcional)</small></label><input type="url" class="form-control" name="linkedin" id="candLinkedin"></div>
           </div>
-          <div class="mb-3">
-            <label>Apresentação breve <span class="text-danger">*</span></label>
-            <textarea class="form-control" name="apresentacao" id="candApresentacao" rows="4" placeholder="Fale um pouco sobre você, experiências relevantes, por que tem interesse nesta vaga..." required></textarea>
-          </div>
+          <div class="mb-3"><label>Apresentação breve <span class="text-danger">*</span></label><textarea class="form-control" name="apresentacao" id="candApresentacao" rows="4" required></textarea></div>
           <div class="row">
+            <div class="col-md-6 mb-3"><label>Link adicional <small class="text-muted">(opcional)</small></label><input type="url" class="form-control" name="link_adicional" id="candLinkAdicional"></div>
             <div class="col-md-6 mb-3">
-              <label>Link adicional <small class="text-muted">(opcional)</small></label>
-              <input type="url" class="form-control" name="link_adicional" id="candLinkAdicional" placeholder="Portfólio, GitHub, etc.">
-            </div>
-            <div class="col-md-6 mb-3">
-              <label>Currículo <small class="text-muted">(PDF, DOC, DOCX — máx. 10MB)</small></label>
+              <label>Currículo <small class="text-muted">(PDF, DOC, DOCX, PNG, JPG)</small></label>
               <input type="file" class="form-control" name="curriculo" id="candCurriculo" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
               <div id="curriculoPreview" class="mt-2" style="display:none;">
                 <div class="d-flex align-items-center p-2 border rounded" style="background:#f8f9fa;gap:.5rem;">
@@ -322,42 +342,41 @@
   </div>
 </div>
 
-<!-- Modal: Mostrar conteúdo completo da célula -->
-  <div class="modal fade" id="modalCellFull" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Detalhes</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Fechar"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <div class="modal-body"><pre id="modalCellFullContent" style="white-space:pre-wrap;word-wrap:break-word;margin:0;"></pre></div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button></div>
+<div class="modal fade" id="modalCellFull" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detalhes</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar"><span aria-hidden="true">&times;</span></button>
       </div>
+      <div class="modal-body"><pre id="modalCellFullContent" style="white-space:pre-wrap;word-wrap:break-word;margin:0;"></pre></div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button></div>
     </div>
   </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 $(document).ready(function () {
+  <% if (isAdmin) { %>
   $('#tblVagas').DataTable({
     language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
     dom: 'Bfrtip',
     buttons: [{ extend:'excelHtml5', text:'<i class="fas fa-file-excel"></i> Excel', className:'btn btn-success btn-sm', title:'Vagas RH' }],
     pageLength: 25,
     order: [[9,'desc']],
-    columnDefs: [{ targets:[14], orderable:false }]
+    columnDefs: [{ targets:[15], orderable:false }]
   });
 
-  <% if (podeCadastrar) { %>
   function initSelect2() {
     if (!$('#funcaoSelect').hasClass('select2-hidden-accessible')) {
       $('#funcaoSelect').select2({
         placeholder: 'Selecione ou digite...', allowClear: true,
         dropdownParent: $('#modalNovaVaga'),
         ajax: { url:'/api/funcoes', dataType:'json', delay:250,
-          data: p => ({ q: p.term||'' }),
-          processResults: d => ({ results: d.map(f=>({id:f,text:f})) }), cache:true }
+          data: function(p){ return { q: p.term || '' }; },
+          processResults: function(d){ return { results: d.map(function(f){ return {id:f,text:f}; }) }; }, cache:true }
       });
     }
     if (!$('#solicitanteSelect').hasClass('select2-hidden-accessible')) {
@@ -365,19 +384,21 @@ $(document).ready(function () {
         placeholder: 'Selecione ou digite...', allowClear: true,
         dropdownParent: $('#modalNovaVaga'),
         ajax: { url:'/api/pessoas', dataType:'json', delay:250,
-          data: p => ({ q: p.term||'' }),
-          processResults: d => ({ results: d }), cache:true }
+          data: function(p){ return { q: p.term || '' }; },
+          processResults: function(d){ return { results: d }; }, cache:true }
       });
     }
   }
 
   $('#modalNovaVaga').on('shown.bs.modal', initSelect2);
+
   if (!$('#empresaSelect').hasClass('select2-hidden-accessible')) {
     $('#empresaSelect').select2({
       placeholder: 'Selecione ou digite...', allowClear: true,
       dropdownParent: $('#modalNovaVaga'),
       ajax: { url:'/api/empresas', dataType:'json', delay:250,
-        data: p => ({ q: p.term||'' }), processResults: d => ({ results: d }), cache:true }
+        data: function(p){ return { q: p.term || '' }; },
+        processResults: function(d){ return { results: d }; }, cache:true }
     });
   }
 
@@ -386,9 +407,58 @@ $(document).ready(function () {
       placeholder: 'Selecione ou digite...', allowClear: true,
       dropdownParent: $('#modalFecharVaga'),
       ajax: { url:'/api/matriculas', dataType:'json', delay:250,
-        data: p => ({ q: p.term||'' }), processResults: d => ({ results: d }), cache:true }
+        data: function(p){ return { q: p.term || '' }; },
+        processResults: function(d){ return { results: d }; }, cache:true }
     });
   }
+
+  if (!$('select[name="setor"]').hasClass('select2-hidden-accessible')) {
+    $('select[name="setor"]').select2({ placeholder: 'Selecione ou digite...', allowClear: true, dropdownParent: $('#modalNovaVaga') });
+  }
+
+  $('#funcaoSelect').on('change select2:select', function() {
+    const funcao = $(this).val();
+    if (!funcao) return;
+    $.getJSON('/api/sla/by-funcao', { funcao: funcao }, function(d) {
+      if (d.sla_dias !== undefined) $('#sla_dias').val(d.sla_dias);
+      if (d.classificacao) $('#classificacao').val(d.classificacao);
+    });
+  });
+
+  $('#btnNovaVaga').on('click', function() {
+    $('#formNovaVaga')[0].reset();
+    $('#formError').hide();
+    $('#funcaoSelect').val(null).trigger('change');
+    $('#solicitanteSelect').val(null).trigger('change');
+    $('#empresaSelect').val(null).trigger('change');
+    $('[name="data_abertura"]').val(new Date().toISOString().split('T')[0]);
+    $('[name="tipo_vaga"]').val('EXTERNA');
+    $('#modalNovaVaga').modal('show');
+  });
+
+  $('#btnSalvarVaga').on('click', function() {
+    if (!$('#funcaoSelect').val()) { $('#formError').text('Selecione a função.').show(); return; }
+    const form = document.getElementById('formNovaVaga');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    const data = {};
+    $(form).serializeArray().forEach(function(f) { data[f.name] = f.value; });
+
+    $('#savingSpinner').show();
+    $('#saveIcon').hide();
+    $('#btnSalvarVaga').prop('disabled', true);
+
+    $.ajax({
+      url:'/vagas', method:'POST', contentType:'application/json', data:JSON.stringify(data),
+      success: function() { $('#modalNovaVaga').modal('hide'); location.reload(); },
+      error: function(xhr) {
+        $('#formError').text(xhr.responseJSON?.error || 'Erro ao salvar.').show();
+        $('#savingSpinner').hide();
+        $('#saveIcon').show();
+        $('#btnSalvarVaga').prop('disabled', false);
+      }
+    });
+  });
 
   $(document).on('click', '.btn-fechar-vaga', function() {
     const id = $(this).data('id');
@@ -402,79 +472,38 @@ $(document).ready(function () {
 
   $('#btnFecharVaga').on('click', function() {
     const id = $('#fecharVagaId').val();
-    const data = { matricula: $('#fecharMatricula').val(), entrevistas: $('#fecharEntrevistas').val(), dt_contratacao: $('#fecharDtContratacao').val() };
     if (!id) return alert('ID da vaga não encontrado.');
-    $.ajax({ url:'/vagas/fechar/'+id, method:'PUT', contentType:'application/json', data:JSON.stringify(data),
-      success() { $('#modalFecharVaga').modal('hide'); location.reload(); },
-      error(xhr) { alert(xhr.responseJSON?.error||'Erro ao fechar vaga.'); }
-    });
-  });
 
-  if (!$('select[name="setor"]').hasClass('select2-hidden-accessible')) {
-    $('select[name="setor"]').select2({
-      placeholder: 'Selecione ou digite...', allowClear: true,
-      dropdownParent: $('#modalNovaVaga')
-    });
-  }
+    const data = {
+      matricula: $('#fecharMatricula').val(),
+      entrevistas: $('#fecharEntrevistas').val(),
+      dt_contratacao: $('#fecharDtContratacao').val()
+    };
 
-  $('#funcaoSelect').on('change', function() {
-    const funcao = $(this).val();
-    if (funcao) {
-      $.getJSON('/api/sla/by-funcao', { funcao }, function(d) {
-        if (d.sla_dias) $('#sla_dias').val(d.sla_dias);
-        if (d.classificacao) $('#classificacao').val(d.classificacao);
-      });
-    }
-  });
-  $('#funcaoSelect').on('select2:select', function(e) {
-    const funcao = e.params.data.id || $(this).val();
-    if (funcao) {
-      $.getJSON('/api/sla/by-funcao', { funcao }, function(d) {
-        if (d.sla_dias) $('#sla_dias').val(d.sla_dias);
-        if (d.classificacao) $('#classificacao').val(d.classificacao);
-      });
-    }
-  });
-
-  $('#btnNovaVaga').on('click', function() {
-    $('#formNovaVaga')[0].reset();
-    $('#formError').hide();
-    $('#funcaoSelect').val(null).trigger('change');
-    $('#solicitanteSelect').val(null).trigger('change');
-    $('[name="data_abertura"]').val(new Date().toISOString().split('T')[0]);
-    $('[name="tipo_vaga"]').val('EXTERNA');
-    $('#modalNovaVaga').modal('show');
-  });
-
-  $('#btnSalvarVaga').on('click', function() {
-    if (!$('#funcaoSelect').val()) { $('#formError').text('Selecione a função.').show(); return; }
-    const form = document.getElementById('formNovaVaga');
-    if (!form.checkValidity()) { form.reportValidity(); return; }
-    const data = {};
-    $(form).serializeArray().forEach(f => data[f.name] = f.value);
-    $('#savingSpinner').show(); $('#saveIcon').hide(); $('#btnSalvarVaga').prop('disabled',true);
     $.ajax({
-      url:'/vagas', method:'POST', contentType:'application/json', data:JSON.stringify(data),
-      success() { $('#modalNovaVaga').modal('hide'); location.reload(); },
-      error(xhr) {
-        $('#formError').text(xhr.responseJSON?.error||'Erro ao salvar.').show();
-        $('#savingSpinner').hide(); $('#saveIcon').show(); $('#btnSalvarVaga').prop('disabled',false);
-      }
+      url:'/vagas/fechar/' + id,
+      method:'PUT',
+      contentType:'application/json',
+      data: JSON.stringify(data),
+      success: function() { $('#modalFecharVaga').modal('hide'); location.reload(); },
+      error: function(xhr) { alert(xhr.responseJSON?.error || 'Erro ao fechar vaga.'); }
     });
   });
   <% } %>
+
   $('body').tooltip({ selector: '[data-toggle="tooltip"]', container: 'body' });
-  $('#tblVagas').on('click', '.clickable-cell', function(e) {
+
+  $('#tblVagas').on('click', '.clickable-cell', function() {
     const fullText = $(this).attr('data-original-title') || $(this).attr('title') || $(this).text();
     if (fullText && fullText.trim() !== '-' && fullText.trim() !== '') {
-      try { $(this).tooltip('hide'); } catch (err) {}
+      try { $(this).tooltip('hide'); } catch (e) {}
       $('#modalCellFullContent').text(fullText.trim());
       $('#modalCellFull').modal('show');
     }
   });
+
   $('#modalCellFull').on('hidden.bs.modal', function () { $('#modalCellFullContent').text(''); });
 
-  // Botão candidatura
   $(document).on('click', '.btn-candidatura', function() {
     const id = $(this).data('id');
     const funcao = $(this).data('funcao');
@@ -486,7 +515,6 @@ $(document).ready(function () {
     $('#modalCandidatura').modal('show');
   });
 
-  // Máscara de celular
   $('#candCelular').on('input', function() {
     let v = $(this).val().replace(/\D/g, '').substring(0, 11);
     if (v.length >= 7) v = '(' + v.substring(0,2) + ') ' + v.substring(2,7) + '-' + v.substring(7);
@@ -495,7 +523,6 @@ $(document).ready(function () {
     $(this).val(v);
   });
 
-  // Preview do currículo
   $('#candCurriculo').on('change', function() {
     const file = this.files[0];
     if (file) {
@@ -506,36 +533,50 @@ $(document).ready(function () {
       $('#curriculoPreview').hide();
     }
   });
+
   $('#removerCurriculo').on('click', function() {
     $('#candCurriculo').val('');
     $('#curriculoPreview').hide();
   });
 
-  // Salvar candidatura
   $('#btnSalvarCandidatura').on('click', function() {
     const nome = $('#candNome').val().trim();
     const celular = $('#candCelular').val().trim();
     const email = $('#candEmail').val().trim();
     const apresentacao = $('#candApresentacao').val().trim();
+
     if (!nome || !celular || !email || !apresentacao) {
-      $('#candFormError').text('Preencha todos os campos obrigatórios.').show(); return;
+      $('#candFormError').text('Preencha todos os campos obrigatórios.').show();
+      return;
     }
+
     if (!email.includes('@') || !email.includes('.')) {
-      $('#candFormError').text('E-mail inválido.').show(); return;
+      $('#candFormError').text('E-mail inválido.').show();
+      return;
     }
+
     const formData = new FormData(document.getElementById('formCandidatura'));
-    $('#candSpinner').show(); $('#candIcon').hide(); $('#btnSalvarCandidatura').prop('disabled', true);
+
+    $('#candSpinner').show();
+    $('#candIcon').hide();
+    $('#btnSalvarCandidatura').prop('disabled', true);
+
     $.ajax({
-      url: '/api/candidatura', method: 'POST', data: formData,
-      processData: false, contentType: false,
-      success() {
+      url: '/api/candidatura',
+      method: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function() {
         $('#modalCandidatura').modal('hide');
         alert('Candidatura enviada com sucesso!');
         location.reload();
       },
-      error(xhr) {
+      error: function(xhr) {
         $('#candFormError').text(xhr.responseJSON?.error || 'Erro ao enviar.').show();
-        $('#candSpinner').hide(); $('#candIcon').show(); $('#btnSalvarCandidatura').prop('disabled', false);
+        $('#candSpinner').hide();
+        $('#candIcon').show();
+        $('#btnSalvarCandidatura').prop('disabled', false);
       }
     });
   });

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <title>Usuários - Portal Vagas RH</title>
+  <%- include('../System/headIncludes.ejs') %>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <style>
+    .me-1 { margin-right:.25rem!important; }
+    .me-2 { margin-right:.5rem!important; }
+    #tblUsuarios td, #tblUsuarios th { vertical-align: middle; }
+  </style>
+</head>
+<body>
+<div class="layout-container">
+  <%- include('../partials/sidebar') %>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1><i class="bi bi-people me-2"></i>Usuários</h1>
+      </div>
+      <div class="topbar-right">
+        <span><i class="bi bi-person-circle me-1"></i><%= username %></span>
+        <a href="/logout"><i class="bi bi-box-arrow-right me-1"></i>Sair</a>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4 class="mb-0"><i class="fas fa-users me-2"></i>Cadastro de Usuários</h4>
+          <div class="d-flex" style="gap:.5rem;">
+            <button class="btn btn-sm" id="btnNovoUsuario" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.4);color:white;">
+              <i class="fas fa-user-plus me-1"></i>Novo Usuário
+            </button>
+            <button class="btn btn-sm" id="btnIncluirProtheus" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.4);color:white;">
+              <i class="fas fa-id-card me-1"></i>Incluir Usuário Protheus
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table id="tblUsuarios" class="display table table-striped table-hover" style="width:100%">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Password Hash</th>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Telefone</th>
+                <th>DtCadastro</th>
+                <th>Ativo</th>
+                <th>ADM</th>
+                <th>ID Protheus</th>
+                <th style="width:90px;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% usuarios.forEach(u => { %>
+                <tr>
+                  <td><%= u.ID %></td>
+                  <td><%= u.USERNAME || '-' %></td>
+                  <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<%= u.PASSWORD_HASH || '-' %>"><%= u.PASSWORD_HASH || '-' %></td>
+                  <td><%= u.NOME || '-' %></td>
+                  <td><%= u.EMAIL || '-' %></td>
+                  <td><%= u.TELEFONE || '-' %></td>
+                  <td><%= u.DTCADASTRO || '-' %></td>
+                  <td><span class="badge" style="background:<%= Number(u.ATIVO) === 1 ? '#27ae60' : '#6c757d' %>;color:white;"><%= Number(u.ATIVO) === 1 ? 'SIM' : 'NÃO' %></span></td>
+                  <td><span class="badge" style="background:<%= Number(u.ADM) === 1 ? '#2B286F' : '#f39c12' %>;color:white;"><%= Number(u.ADM) === 1 ? 'SIM' : 'NÃO' %></span></td>
+                  <td><%= u.ID_PROTHEUS || '-' %></td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary btn-editar-adm" data-id="<%= u.ID %>" data-adm="<%= Number(u.ADM) === 1 ? 1 : 0 %>">
+                      <i class="fas fa-user-shield"></i>
+                    </button>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalNovoUsuario" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Novo Usuário</h5>
+        <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <form id="formNovoUsuario">
+          <div class="form-group mb-2"><label>Username *</label><input type="text" class="form-control" name="username" required></div>
+          <div class="form-group mb-2"><label>Senha *</label><input type="password" class="form-control" name="password" required></div>
+          <div class="form-group mb-2"><label>Nome *</label><input type="text" class="form-control" name="nome" required></div>
+          <div class="form-group mb-2"><label>Email</label><input type="email" class="form-control" name="email"></div>
+          <div class="form-group mb-2"><label>Telefone</label><input type="text" class="form-control" name="telefone"></div>
+          <div class="form-group mb-2">
+            <label>ADM</label>
+            <select class="form-control" name="adm"><option value="0">Não</option><option value="1">Sim</option></select>
+          </div>
+          <div id="novoUsuarioErro" class="alert alert-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" type="button" id="btnSalvarNovoUsuario"><i class="fas fa-save me-1"></i>Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalAdm" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-user-shield me-2"></i>Alterar Permissão ADM</h5>
+        <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="admUserId">
+        <div class="form-group mb-2">
+          <label>Administrador</label>
+          <select class="form-control" id="admValor"><option value="0">Não</option><option value="1">Sim</option></select>
+        </div>
+        <div id="admErro" class="alert alert-danger" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" type="button" id="btnSalvarAdm"><i class="fas fa-save me-1"></i>Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalProtheus" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-id-card me-2"></i>Incluir Usuário Protheus</h5>
+        <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <form id="formProtheus">
+          <div class="form-group mb-2">
+            <label>Buscar por nome</label>
+            <select id="protheusPessoa" class="form-control"></select>
+          </div>
+          <div class="form-group mb-2">
+            <label>ADM</label>
+            <select class="form-control" name="adm"><option value="0">Não</option><option value="1">Sim</option></select>
+          </div>
+          <input type="hidden" name="id_protheus" id="idProtheusSelecionado">
+          <input type="hidden" name="nome" id="nomeProtheusSelecionado">
+          <div id="protheusErro" class="alert alert-danger" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" type="button" id="btnSalvarProtheus"><i class="fas fa-save me-1"></i>Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function() {
+  $('#tblUsuarios').DataTable({
+    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+    pageLength: 25,
+    order: [[0, 'desc']]
+  });
+
+  $('#btnNovoUsuario').on('click', function() {
+    $('#formNovoUsuario')[0].reset();
+    $('#novoUsuarioErro').hide();
+    $('#modalNovoUsuario').modal('show');
+  });
+
+  $('#btnSalvarNovoUsuario').on('click', function() {
+    const form = document.getElementById('formNovoUsuario');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    const data = {};
+    $(form).serializeArray().forEach(function(item) { data[item.name] = item.value; });
+
+    $.ajax({
+      url: '/api/usuarios',
+      method: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(data),
+      success: function() { location.reload(); },
+      error: function(xhr) { $('#novoUsuarioErro').text(xhr.responseJSON?.error || 'Erro ao salvar usuário.').show(); }
+    });
+  });
+
+  $(document).on('click', '.btn-editar-adm', function() {
+    $('#admUserId').val($(this).data('id'));
+    $('#admValor').val($(this).data('adm'));
+    $('#admErro').hide();
+    $('#modalAdm').modal('show');
+  });
+
+  $('#btnSalvarAdm').on('click', function() {
+    const id = $('#admUserId').val();
+    const adm = $('#admValor').val();
+
+    $.ajax({
+      url: '/api/usuarios/' + id + '/adm',
+      method: 'PUT',
+      contentType: 'application/json',
+      data: JSON.stringify({ adm: adm }),
+      success: function() { location.reload(); },
+      error: function(xhr) { $('#admErro').text(xhr.responseJSON?.error || 'Erro ao atualizar ADM.').show(); }
+    });
+  });
+
+  $('#btnIncluirProtheus').on('click', function() {
+    $('#formProtheus')[0].reset();
+    $('#protheusErro').hide();
+    $('#idProtheusSelecionado').val('');
+    $('#nomeProtheusSelecionado').val('');
+    $('#protheusPessoa').val(null).trigger('change');
+    $('#modalProtheus').modal('show');
+  });
+
+  $('#protheusPessoa').select2({
+    placeholder: 'Digite o nome...',
+    allowClear: true,
+    dropdownParent: $('#modalProtheus'),
+    ajax: {
+      url: '/api/protheus/usuarios',
+      dataType: 'json',
+      delay: 250,
+      data: function(params) { return { q: params.term || '' }; },
+      processResults: function(data) { return { results: data }; },
+      cache: true
+    }
+  });
+
+  $('#protheusPessoa').on('select2:select', function(e) {
+    const pessoa = e.params.data;
+    $('#idProtheusSelecionado').val(pessoa.id_protheus || pessoa.id || '');
+    $('#nomeProtheusSelecionado').val((pessoa.text || '').replace(/\s*\(.+\)$/, ''));
+  });
+
+  $('#btnSalvarProtheus').on('click', function() {
+    const data = {
+      id_protheus: $('#idProtheusSelecionado').val(),
+      nome: $('#nomeProtheusSelecionado').val(),
+      adm: $('#formProtheus select[name="adm"]').val()
+    };
+
+    if (!data.id_protheus || !data.nome) {
+      $('#protheusErro').text('Selecione um usuário do Protheus.').show();
+      return;
+    }
+
+    $.ajax({
+      url: '/api/usuarios/protheus',
+      method: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(data),
+      success: function() { location.reload(); },
+      error: function(xhr) { $('#protheusErro').text(xhr.responseJSON?.error || 'Erro ao incluir usuário Protheus.').show(); }
+    });
+  });
+});
+</script>
+</body>
+</html>

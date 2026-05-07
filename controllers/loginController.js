@@ -8,6 +8,7 @@ dotenv.config();
 
 const PROTHEUS_SERVER = process.env.PROTHEUS_SERVER;
 const TIMEOUT_MS = 120 * 60 * 1000;
+const PROTHEUS_ADMIN_FIXO_ID = '000460';
 
 async function getLocalUser(username) {
   let pool = null;
@@ -15,9 +16,24 @@ async function getLocalUser(username) {
     pool = await new sql.ConnectionPool(dbConfig).connect();
     const result = await pool.request()
       .input('USERNAME', sql.VarChar(100), username)
-      .query(`SELECT ID, USERNAME, PASSWORD_HASH, NOME, EMAIL, ATIVO
+      .query(`SELECT ID, USERNAME, PASSWORD_HASH, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
               FROM RH_USUARIOS
               WHERE USERNAME = @USERNAME AND ATIVO = 1`);
+    return result.recordset.length > 0 ? result.recordset[0] : null;
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+async function getUserByProtheusId(protheusId) {
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request()
+      .input('ID_PROTHEUS', sql.VarChar(50), String(protheusId || '').trim())
+      .query(`SELECT TOP 1 ID, USERNAME, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
+              FROM RH_USUARIOS
+              WHERE ID_PROTHEUS = @ID_PROTHEUS AND ATIVO = 1`);
     return result.recordset.length > 0 ? result.recordset[0] : null;
   } finally {
     if (pool) try { await pool.close(); } catch {}
@@ -30,10 +46,12 @@ async function _restoreSessionFromToken(token, req, _res) {
     { headers: { Authorization: `Bearer ${token}` }, timeout: 6000 }
   );
   const userID = resp.data.userID;
+  const vinculado = await getUserByProtheusId(userID);
   req.session.userId = userID;
   req.session.isProtheus = true;
   req.session.protheusId = userID;
-  req.session.username = req.cookies['username'] || 'Usuário';
+  req.session.username = vinculado?.NOME || req.cookies['username'] || 'Usuário';
+  req.session.isAdmin = Number(vinculado?.ADM || 0) === 1 || String(userID) === PROTHEUS_ADMIN_FIXO_ID;
   req.session.lastActivity = Date.now();
   return new Promise(resolve => req.session.save(() => resolve()));
 }
@@ -122,15 +140,17 @@ async function validaLogin(req, res) {
       { headers: { Authorization: `Bearer ${access_token}` }, timeout: 6000 }
     );
     const userID = userIDResp.data.userID;
+    const vinculado = await getUserByProtheusId(userID);
 
     res.cookie('token', access_token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 3600000 });
     res.cookie('refresh_token', refresh_token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 43200000 });
     res.cookie('username', username, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 43200000 });
 
     req.session.userId = userID;
-    req.session.username = username;
+    req.session.username = vinculado?.NOME || username;
     req.session.isProtheus = true;
     req.session.protheusId = userID;
+    req.session.isAdmin = Number(vinculado?.ADM || 0) === 1 || String(userID) === PROTHEUS_ADMIN_FIXO_ID;
     req.session.lastActivity = Date.now();
     delete req.session.returnTo;
 
@@ -155,6 +175,7 @@ async function validaLogin(req, res) {
       req.session.username = localUser.NOME;
       req.session.isProtheus = false;
       req.session.localUserId = localUser.ID;
+      req.session.isAdmin = Number(localUser.ADM || 0) === 1;
       req.session.lastActivity = Date.now();
       delete req.session.returnTo;
 
@@ -194,8 +215,8 @@ async function cadastrarUsuario(req, res) {
       .input('NOME', sql.VarChar(200), nome)
       .input('EMAIL', sql.VarChar(200), email || null)
       .input('TELEFONE', sql.VarChar(20), telefone || null)
-      .query(`INSERT INTO RH_USUARIOS (USERNAME, PASSWORD_HASH, NOME, EMAIL, TELEFONE)
-              VALUES (@USERNAME, @PASSWORD_HASH, @NOME, @EMAIL, @TELEFONE)`);
+      .query(`INSERT INTO RH_USUARIOS (USERNAME, PASSWORD_HASH, NOME, EMAIL, TELEFONE, ADM, ATIVO)
+              VALUES (@USERNAME, @PASSWORD_HASH, @NOME, @EMAIL, @TELEFONE, 0, 1)`);
 
     const newUser = await pool.request()
       .input('USERNAME2', sql.VarChar(100), username)
@@ -205,6 +226,7 @@ async function cadastrarUsuario(req, res) {
     req.session.localUserId = newUser.recordset[0].ID;
     req.session.username = nome;
     req.session.isProtheus = false;
+    req.session.isAdmin = false;
     req.session.lastActivity = Date.now();
 
     return req.session.save(err => {
@@ -219,4 +241,10 @@ async function cadastrarUsuario(req, res) {
   }
 }
 
-module.exports = { validaLogin, cadastrarUsuario, requireAuth };
+function requireAdmin(req, res, next) {
+  if (!req.session.userId) return res.redirect('/login');
+  if (req.session.isAdmin === true) return next();
+  return res.status(403).send('Acesso restrito a administradores.');
+}
+
+module.exports = { validaLogin, cadastrarUsuario, requireAuth, requireAdmin };

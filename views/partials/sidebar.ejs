@@ -11,12 +11,17 @@
       <a class="nav-item <%= currentPath === '/vagas' ? 'active' : '' %>" href="/vagas">
         <i class="bi bi-briefcase"></i> <span class="nav-text">Vagas</span>
       </a>
+      <% if (isAdmin) { %>
       <a class="nav-item <%= currentPath === '/mercado-sul' ? 'active' : '' %>" href="/mercado-sul">
         <i class="bi bi-graph-up-arrow"></i> <span class="nav-text">Mercado Sul</span>
       </a>
       <a class="nav-item <%= currentPath === '/cad-sla' ? 'active' : '' %>" href="/cad-sla">
         <i class="bi bi-stopwatch"></i> <span class="nav-text">CAD SLA</span>
       </a>
+      <a class="nav-item <%= currentPath === '/usuarios' ? 'active' : '' %>" href="/usuarios">
+        <i class="bi bi-people"></i> <span class="nav-text">Usuários</span>
+      </a>
+      <% } %>
     </div>
   </nav>
 </aside>

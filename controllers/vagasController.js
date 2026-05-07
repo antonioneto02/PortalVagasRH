@@ -1,14 +1,14 @@
 const sql = require('mssql');
 const dbConfig = require('../database/dbConfig');
 const dbConfigDw = require('../database/dbConfigDw');
-const ID_PROTHEUS_CADASTRO = '000460';
 
 function podeCadastrarFn(session) {
-  return session.isProtheus && session.protheusId === ID_PROTHEUS_CADASTRO;
+  return session.isAdmin === true;
 }
 
 async function listarVagas(req, res) {
   const isProtheus = req.session.isProtheus;
+  const isAdmin = req.session.isAdmin === true;
   const podeCadastrar = podeCadastrarFn(req.session);
 
   let pool = null;
@@ -27,7 +27,7 @@ async function listarVagas(req, res) {
       WHERE 1=1
     `;
 
-    if (!isProtheus) {
+    if (!isAdmin) {
       query += ` AND TIPO_VAGA = 'EXTERNA'`;
     }
 
@@ -36,6 +36,7 @@ async function listarVagas(req, res) {
     res.render('Vagas/listagem', {
       vagas: result.recordset,
       isProtheus,
+      isAdmin,
       podeCadastrar,
       username: req.session.username,
       protheusId: req.session.protheusId || null,
@@ -50,10 +51,8 @@ async function listarVagas(req, res) {
 }
 
 async function cadastrarVaga(req, res) {
-  const isProtheus = req.session.isProtheus;
-  const protheusId = req.session.protheusId || '';
-
-  if (!isProtheus || protheusId !== ID_PROTHEUS_CADASTRO) {
+  const protheusId = req.session.protheusId || req.session.username || 'ADMIN';
+  if (!podeCadastrarFn(req.session)) {
     return res.status(403).json({ error: 'Acesso negado.' });
   }
 
@@ -245,6 +244,7 @@ async function renderCadSla(req, res) {
       slaConfig: result.recordset,
       username: req.session.username,
       isProtheus: req.session.isProtheus,
+      isAdmin: req.session.isAdmin === true,
       protheusId: req.session.protheusId || null,
       podeCadastrar: podeCadastrarFn(req.session),
       currentPath: '/cad-sla',
@@ -398,6 +398,7 @@ async function renderMercadoSul(req, res) {
       mercado: result.recordset,
       username: req.session.username,
       isProtheus: req.session.isProtheus,
+      isAdmin: req.session.isAdmin === true,
       protheusId: req.session.protheusId || null,
       podeCadastrar: podeCadastrarFn(req.session),
       currentPath: '/mercado-sul',
