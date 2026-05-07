@@ -130,10 +130,10 @@ async function getFuncoes(req, res) {
   try {
     pool = await new sql.ConnectionPool(dbConfigDw).connect();
     const result = await pool.request()
-      .input('Q', sql.VarChar(200), '%' + q + '%')
+      .input('Q', sql.VarChar(200), '%' + q.toUpperCase() + '%')
       .query(`SELECT DISTINCT RTRIM(LTRIM(FUNCAO)) AS FUNCAO
               FROM V_RECURSOS_HUMANOS
-              WHERE FUNCAO IS NOT NULL AND FUNCAO <> '' AND FUNCAO LIKE @Q
+              WHERE FUNCAO IS NOT NULL AND FUNCAO <> '' AND UPPER(FUNCAO) LIKE @Q
               ORDER BY FUNCAO`);
     res.json(result.recordset.map(r => r.FUNCAO));
   } catch (err) {
@@ -150,10 +150,10 @@ async function getPessoas(req, res) {
   try {
     pool = await new sql.ConnectionPool(dbConfigDw).connect();
     const result = await pool.request()
-      .input('Q', sql.VarChar(200), '%' + q + '%')
+      .input('Q', sql.VarChar(200), '%' + q.toUpperCase() + '%')
       .query(`SELECT DISTINCT RTRIM(LTRIM(Nome)) AS Nome
               FROM V_PESSOAS
-              WHERE Nome IS NOT NULL AND Nome <> '' AND Nome LIKE @Q
+              WHERE Nome IS NOT NULL AND Nome <> '' AND UPPER(Nome) LIKE @Q
               ORDER BY Nome`);
     res.json(result.recordset.map(r => r.Nome));
   } catch (err) {
