@@ -239,7 +239,7 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="fecharVagaId">
-        <div class="mb-3"><label>Matrícula</label><input type="text" id="fecharMatricula" class="form-control"></div>
+        <div class="mb-3"><label>Matrícula</label><select id="fecharMatricula" name="fecharMatricula" class="form-control"></select></div>
         <div class="mb-3"><label>Entrevistas</label><input type="number" id="fecharEntrevistas" class="form-control" min="0"></div>
         <div class="mb-3"><label>Data Contratação</label><input type="date" id="fecharDtContratacao" class="form-control"></div>
       </div>
@@ -311,10 +311,19 @@ $(document).ready(function () {
     });
   }
 
+  if (!$('#fecharMatricula').hasClass('select2-hidden-accessible')) {
+    $('#fecharMatricula').select2({
+      placeholder: 'Selecione ou digite...', allowClear: true,
+      dropdownParent: $('#modalFecharVaga'),
+      ajax: { url:'/api/matriculas', dataType:'json', delay:250,
+        data: p => ({ q: p.term||'' }), processResults: d => ({ results: d }), cache:true }
+    });
+  }
+
   $(document).on('click', '.btn-fechar-vaga', function() {
     const id = $(this).data('id');
     $('#fecharVagaId').val(id);
-    $('#fecharMatricula').val(''); $('#fecharEntrevistas').val(''); $('#fecharDtContratacao').val('');
+    $('#fecharMatricula').val(null).trigger('change'); $('#fecharEntrevistas').val(''); $('#fecharDtContratacao').val('');
     $('#modalFecharVaga').modal('show');
   });
 

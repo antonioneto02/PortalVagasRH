@@ -185,6 +185,32 @@ async function getEmpresas(_req, res) {
   }
 }
 
+async function getMatriculas(req, res) {
+  const q = req.query.q || '';
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfigDw).connect();
+    const result = await pool.request()
+      .input('Q', sql.VarChar(200), '%' + q.toUpperCase() + '%')
+      .query(`SELECT DISTINCT RTRIM(LTRIM(MATRICULA)) AS MATRICULA, RTRIM(LTRIM(NOME)) AS NOME
+        FROM V_RECURSOS_HUMANOS
+        WHERE MATRICULA IS NOT NULL AND MATRICULA <> '' AND UPPER(MATRICULA) LIKE @Q
+        ORDER BY MATRICULA`);
+    try {
+      console.log('[getMatriculas] q="' + q + '", results=' + (result.recordset?result.recordset.length:0));
+      if (result.recordset && result.recordset.length) {
+        console.log('[getMatriculas] sample=', JSON.stringify(result.recordset.slice(0,5)));
+      }
+    } catch(e) {}
+    res.json(result.recordset.map(r => ({ id: r.MATRICULA, text: r.MATRICULA + ' - ' + r.NOME })));
+  } catch (err) {
+    console.error('Erro ao buscar matrículas:', err);
+    res.json([]);
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
 async function fecharVaga(req, res) {
   if (!podeCadastrarFn(req.session)) return res.status(403).json({ error: 'Acesso negado.' });
   const id = req.params.id;
@@ -461,5 +487,5 @@ module.exports = {
   renderCadSla, listarSlaApi, slaByFuncao,
   salvarSla, atualizarSla, deletarSla,
   renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
-  getEmpresas, fecharVaga,
+  getEmpresas, getMatriculas, fecharVaga,
 };

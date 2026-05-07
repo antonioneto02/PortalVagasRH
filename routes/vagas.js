@@ -3,7 +3,7 @@ const router = express.Router();
 const { requireAuth } = require('../controllers/loginController');
 const {
   listarVagas, cadastrarVaga,
-  getFuncoes, getPessoas, getEmpresas,
+  getFuncoes, getPessoas, getEmpresas, getMatriculas,
   renderCadSla, listarSlaApi, slaByFuncao,
   salvarSla, atualizarSla, deletarSla,
   renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
@@ -17,6 +17,7 @@ router.get('/mercado-sul', requireAuth, renderMercadoSul);
 router.get('/api/funcoes', requireAuth, getFuncoes);
 router.get('/api/pessoas', requireAuth, getPessoas);
 router.get('/api/empresas', requireAuth, getEmpresas);
+router.get('/api/matriculas', requireAuth, getMatriculas);
 router.get('/api/sla/by-funcao', requireAuth, slaByFuncao);
 router.get('/api/sla', requireAuth, listarSlaApi);
 router.post('/api/sla', requireAuth, salvarSla);
