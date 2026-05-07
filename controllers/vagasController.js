@@ -170,6 +170,44 @@ async function getPessoas(req, res) {
   }
 }
 
+async function getEmpresas(_req, res) {
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfigDw).connect();
+    const result = await pool.request()
+      .query(`SELECT DISTINCT RTRIM(LTRIM(EMPRESA)) AS EMPRESA FROM DIM_FILIAIS WHERE EMPRESA IS NOT NULL AND EMPRESA <> '' ORDER BY EMPRESA`);
+    res.json(result.recordset.map(r => ({ id: r.EMPRESA, text: r.EMPRESA })));
+  } catch (err) {
+    console.error('Erro ao buscar empresas:', err);
+    res.json([]);
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+async function fecharVaga(req, res) {
+  if (!podeCadastrarFn(req.session)) return res.status(403).json({ error: 'Acesso negado.' });
+  const id = req.params.id;
+  const { matricula, entrevistas, dt_contratacao } = req.body;
+  if (!id) return res.status(400).json({ error: 'ID da vaga é obrigatório.' });
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    await pool.request()
+      .input('ID', sql.Int, parseInt(id))
+      .input('MATRICULA', sql.VarChar(50), matricula || null)
+      .input('ENTREVISTAS', sql.Int, entrevistas?parseInt(entrevistas):null)
+      .input('DT_CONTRATACAO', sql.Date, dt_contratacao?new Date(dt_contratacao):null)
+      .query(`UPDATE RH_VAGAS SET MATRICULA=@MATRICULA, ENTREVISTAS=@ENTREVISTAS, DT_CONTRATACAO=@DT_CONTRATACAO, STATUS='FECHADA' WHERE ID=@ID`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao fechar vaga:', err);
+    res.status(500).json({ error: 'Erro ao fechar vaga.' });
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
 async function renderCadSla(req, res) {
   let pool = null;
   try {

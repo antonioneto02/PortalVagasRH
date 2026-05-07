@@ -49,6 +49,7 @@
                   <th>Função</th><th>Tipo</th><th>Status</th><th>Setor</th><th>Solicitante</th>
                   <th>Classificação</th><th>SLA</th><th>Candidatos</th><th>Entrevistas</th>
                   <th>Abertura</th><th>Prazo</th><th>Empresa</th><th>Notebook</th><th>Celular</th><th>Requisitos</th>
+                  <% if (podeCadastrar) { %><th>Ações</th><% } %>
                 </tr>
               </thead>
               <tbody>
@@ -69,6 +70,15 @@
                     <td><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
                     <td><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
                     <td style="max-width:280px;white-space:normal;font-size:.82rem;"><%= v.REQUISITOS_VAGA||'-' %></td>
+                    <% if (podeCadastrar) { %>
+                      <td>
+                        <% if (v.STATUS !== 'FECHADA') { %>
+                          <button class="btn btn-sm btn-outline-secondary btn-fechar-vaga" data-id="<%= v.ID %>"><i class="fas fa-times-circle me-1"></i>Fechar Vaga</button>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                    <% } %>
                   </tr>
                 <% }); %>
               </tbody>
@@ -79,8 +89,8 @@
     </div>
   </div>
 </div>
-<% if (podeCadastrar) { %>
-<div class="modal fade" id="modalNovaVaga" tabindex="-1" role="dialog" aria-hidden="true">
+        <% if (podeCadastrar) { %>
+        <div class="modal fade" id="modalNovaVaga" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -90,6 +100,10 @@
       <div class="modal-body">
         <form id="formNovaVaga">
           <div class="row">
+            <div class="col-md-3 mb-3">
+              <label>Empresa</label>
+              <select id="empresaSelect" name="empresa" class="form-control"></select>
+            </div>
             <div class="col-md-6 mb-3">
               <label>Função <span class="text-danger">*</span></label>
               <select id="funcaoSelect" name="funcao" class="form-control" required></select>
@@ -97,14 +111,6 @@
             <div class="col-md-3 mb-3">
               <label>Data Abertura <span class="text-danger">*</span></label>
               <input type="date" class="form-control" name="data_abertura" required>
-            </div>
-            <div class="col-md-3 mb-3">
-              <label>Tipo de Vaga <span class="text-danger">*</span></label>
-              <select class="form-control" name="tipo_vaga" required>
-                <option value="">Selecione...</option>
-                <option value="INTERNA">INTERNA</option>
-                <option value="EXTERNA">EXTERNA</option>
-              </select>
             </div>
           </div>
           <div class="row">
@@ -155,12 +161,9 @@
           </div>
           <div class="row">
             <div class="col-md-4 mb-3"><label>Candidatos</label><input type="number" class="form-control" name="candidatos" value="0" min="0"></div>
-            <div class="col-md-4 mb-3"><label>Entrevistas</label><input type="number" class="form-control" name="entrevistas" value="0" min="0"></div>
-            <div class="col-md-4 mb-3"><label>Matrícula</label><input type="text" class="form-control" name="matricula"></div>
           </div>
           <div class="row">
             <div class="col-md-4 mb-3"><label>Prazo Contratação</label><input type="date" class="form-control" name="prazo_contratacao"></div>
-            <div class="col-md-4 mb-3"><label>Data Contratação</label><input type="date" class="form-control" name="dt_contratacao"></div>
             <div class="col-md-4 mb-3">
               <label>Status</label>
               <select class="form-control" name="status">
@@ -168,7 +171,6 @@
               </select>
             </div>
           </div>
-          <div class="mb-3"><label>Empresa</label><input type="text" class="form-control" name="empresa"></div>
           <div id="formError" class="alert alert-danger" style="display:none;"></div>
         </form>
       </div>
@@ -178,6 +180,27 @@
           <span id="savingSpinner" class="spinner-border spinner-border-sm me-1" style="display:none;" role="status"></span>
           <i class="fas fa-save me-1" id="saveIcon"></i>Salvar Vaga
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Modal: Fechar Vaga -->
+<div class="modal fade" id="modalFecharVaga" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Fechar Vaga</h5>
+        <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="fecharVagaId">
+        <div class="mb-3"><label>Matrícula</label><input type="text" id="fecharMatricula" class="form-control"></div>
+        <div class="mb-3"><label>Entrevistas</label><input type="number" id="fecharEntrevistas" class="form-control" min="0"></div>
+        <div class="mb-3"><label>Data Contratação</label><input type="date" id="fecharDtContratacao" class="form-control"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnFecharVaga">Fechar Vaga</button>
       </div>
     </div>
   </div>
@@ -221,6 +244,34 @@ $(document).ready(function () {
   }
 
   $('#modalNovaVaga').on('shown.bs.modal', initSelect2);
+
+  // Init empresa select
+  if (!$('#empresaSelect').hasClass('select2-hidden-accessible')) {
+    $('#empresaSelect').select2({
+      placeholder: 'Selecione ou digite...', allowClear: true,
+      dropdownParent: $('#modalNovaVaga'),
+      ajax: { url:'/api/empresas', dataType:'json', delay:250,
+        data: p => ({ q: p.term||'' }), processResults: d => ({ results: d }), cache:true }
+    });
+  }
+
+  // Fechar vaga modal handling
+  $(document).on('click', '.btn-fechar-vaga', function() {
+    const id = $(this).data('id');
+    $('#fecharVagaId').val(id);
+    $('#fecharMatricula').val(''); $('#fecharEntrevistas').val(''); $('#fecharDtContratacao').val('');
+    $('#modalFecharVaga').modal('show');
+  });
+
+  $('#btnFecharVaga').on('click', function() {
+    const id = $('#fecharVagaId').val();
+    const data = { matricula: $('#fecharMatricula').val(), entrevistas: $('#fecharEntrevistas').val(), dt_contratacao: $('#fecharDtContratacao').val() };
+    if (!id) return alert('ID da vaga não encontrado.');
+    $.ajax({ url:'/vagas/fechar/'+id, method:'PUT', contentType:'application/json', data:JSON.stringify(data),
+      success() { $('#modalFecharVaga').modal('hide'); location.reload(); },
+      error(xhr) { alert(xhr.responseJSON?.error||'Erro ao fechar vaga.'); }
+    });
+  });
 
   // Apply Select2 to the static 'Setor' select so it has the same searchable behavior
   if (!$('select[name="setor"]').hasClass('select2-hidden-accessible')) {
