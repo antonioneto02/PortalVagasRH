@@ -116,17 +116,6 @@ async function cadastrarVaga(req, res) {
         }
       } catch(e) { try { console.error('[slaByFuncao] fallback error', e); } catch(_) {} }
       res.json({});
-      .input('USUARIO_CADASTRO', sql.VarChar(50), protheusId)
-      .query(`INSERT INTO RH_VAGAS
-        (FUNCAO, DATA_ABERTURA, TIPO_VAGA, SOLICITANTE, SETOR, NOTEBOOK, CELULAR,
-         REQUISITOS_VAGA, SLA_DIAS, CLASSIFICACAO, CANDIDATOS, ENTREVISTAS,
-         PRAZO_CONTRATACAO, DT_CONTRATACAO, MATRICULA, STATUS, EMPRESA, USUARIO_CADASTRO)
-        VALUES
-        (@FUNCAO, @DATA_ABERTURA, @TIPO_VAGA, @SOLICITANTE, @SETOR, @NOTEBOOK, @CELULAR,
-         @REQUISITOS_VAGA, @SLA_DIAS, @CLASSIFICACAO, @CANDIDATOS, @ENTREVISTAS,
-         @PRAZO_CONTRATACAO, @DT_CONTRATACAO, @MATRICULA, @STATUS, @EMPRESA, @USUARIO_CADASTRO)`);
-
-    return res.json({ success: true });
   } catch (err) {
     console.error('Erro ao cadastrar vaga:', err);
     return res.status(500).json({ error: 'Erro interno ao cadastrar vaga.' });
