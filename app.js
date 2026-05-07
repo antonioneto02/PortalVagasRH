@@ -19,7 +19,7 @@ app.use(cookieParser());
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'vagas-rh-secret',
-  resave: false,
+  resave: true,
   saveUninitialized: false,
   cookie: {
     secure: false,

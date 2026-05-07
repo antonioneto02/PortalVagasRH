@@ -64,7 +64,10 @@ async function validaLogin(req, res) {
     req.session.protheusId = userID;
     req.session.lastActivity = Date.now();
 
-    return res.redirect('/vagas');
+    return req.session.save(err => {
+      if (err) console.error('Session save error:', err);
+      return res.redirect('/vagas');
+    });
   } catch (protheusErr) {
     try {
       const localUser = await getLocalUser(username);
@@ -84,7 +87,10 @@ async function validaLogin(req, res) {
       req.session.localUserId = localUser.ID;
       req.session.lastActivity = Date.now();
 
-      return res.redirect('/vagas');
+      return req.session.save(err => {
+        if (err) console.error('Session save error:', err);
+        return res.redirect('/vagas');
+      });
     } catch (dbErr) {
       console.error('Erro ao verificar usuário local:', dbErr);
       return res.redirect('/login?error=invalid_credentials');
