@@ -20,6 +20,8 @@
     .me-1 { margin-right:.25rem!important; }
     .me-2 { margin-right:.5rem!important; }
     .req-cell { max-width:280px; font-size:.82rem; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+    .clickable-cell { cursor: pointer; }
+    .clickable-cell:hover { background: #f8f9fa; }
   </style>
 </head>
 <body>
@@ -73,7 +75,7 @@
                     <td title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></td>
                     <td><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
                     <td><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
-                    <td title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip" class="req-cell"><%= v.REQUISITOS_VAGA||'-' %></td>
+                    <td title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip" class="req-cell clickable-cell"><%= v.REQUISITOS_VAGA||'-' %></td>
                     <% if (podeCadastrar) { %>
                       <td>
                           <% if (v.STATUS !== 'FECHADA') { %>
