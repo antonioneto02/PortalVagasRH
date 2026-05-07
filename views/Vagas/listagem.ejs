@@ -9,27 +9,33 @@
     .select2-container--default .select2-selection--single {
       height: calc(1.5em + 0.75rem + 2px); border: 1px solid #ced4da;
       border-radius: 0.25rem; padding: 0.375rem 0.75rem;
+    <style>
+    .select2-container { width: 100% !important; }
+    .select2-container--default .select2-selection--single {
+      height: calc(1.5em + 0.75rem + 2px); border: 1px solid #ced4da;
+      border-radius: 0.25rem; padding: 0.375rem 0.75rem;
     }
     .select2-container--default .select2-selection--single .select2-selection__rendered { line-height:1.5; padding:0; color:#495057; }
     .select2-container--default .select2-selection--single .select2-selection__arrow { height: calc(1.5em + 0.75rem + 2px); }
     .select2-dropdown { z-index: 9999; }
-    #tblVagas td, #tblVagas th { padding: .35rem .5rem; line-height:1.15; }
-    #tblVagas td { vertical-align: middle; }
+    #tblVagas td, #tblVagas th { padding: .35rem .5rem; line-height:1.15; vertical-align: middle; }
     .no-wrap { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
+    .req-cell { max-width:280px; font-size:.82rem; }
+    .clickable-cell { 
+      cursor: pointer; 
+      display: block; 
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 2px;
+    }
+
+    .clickable-cell:hover { background: rgba(0,0,0,0.05); border-radius: 4px; }
+
     .me-1 { margin-right:.25rem!important; }
     .me-2 { margin-right:.5rem!important; }
-    .req-cell { max-width:280px; font-size:.82rem; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
-    .clickable-cell { cursor: pointer; position:relative; z-index:2; }
-    .clickable-cell:hover { background: #f8f9fa; }
-    #tblVagas td { background-clip: padding-box; }
-  </style>
-</head>
-<body>
-<div class="layout-container">
-  <%- include('../partials/sidebar') %>
-  <div class="main-content">
-    <div class="topbar">
-      <div class="topbar-left">
+    </style>
         <h1><i class="bi bi-briefcase me-2"></i>Vagas<% if (!isProtheus) { %> <small style="font-size:0.72rem; background:#17a2b8; border-radius:4px; padding:2px 7px; vertical-align:middle;">Somente Externas</small><% } %></h1>
       </div>
       <div class="topbar-right">
@@ -356,18 +362,26 @@ $(document).ready(function () {
   });
   <% } %>
 
-  // initialize bootstrap tooltips for table cells
+  // Inicializa tooltips
   $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
 
-  // show full content modal when clicking truncated cells (catch clicks on child elements too)
-  $('#tblVagas').on('click', 'td.clickable-cell, td.clickable-cell *', function(e) {
-    // ignore clicks on the fechar-vaga button inside the row
-    if ($(e.target).closest('.btn-fechar-vaga').length) return;
-    const td = $(this).closest('td.clickable-cell');
-    if (!td.length) return;
-    const text = td.attr('title') || td.text() || '';
-    $('#modalCellFullContent').text(text.trim());
-    $('#modalCellFull').modal('show');
+  // Lógica corrigida para o Modal de Detalhes
+  $('#tblVagas').on('click', '.clickable-cell', function(e) {
+    // Evita abrir se for apenas um traço ou vazio
+    const text = $(this).attr('title');
+    if (text && text !== '-' && text !== 'null') {
+      // Remove o tooltip para não ficar por cima do modal
+      $(this).tooltip('hide');
+      // Insere o texto no modal
+      $('#modalCellFullContent').text(text.trim());
+      // Abre o modal
+      $('#modalCellFull').modal('show');
+    }
+  });
+
+  // Limpa o conteúdo do modal ao fechar
+  $('#modalCellFull').on('hidden.bs.modal', function () {
+      $('#modalCellFullContent').text('');
   });
 });
 </script>
