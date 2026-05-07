@@ -260,18 +260,24 @@ async function slaByFuncao(req, res) {
     } else {
       try {
         const all = await pool.request().query(`SELECT SLA_DIAS, CLASSIFICACAO, RTRIM(LTRIM(FUNCAO)) AS FUNCAO FROM RH_SLA_CONFIG`);
-        const normalize = s => String(s||'').toUpperCase().replace(/[^A-Z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+        const normalize = s => String(s||'').toUpperCase().replace(/[^A-Z0-9\sÀ-ÿ]/g,' ').replace(/\s+/g,' ').trim();
         const target = normalize(funcao);
+        try { console.log('[slaByFuncao] normalized target="' + target + '"'); } catch(e) {}
+        if (all.recordset && all.recordset.length) {
+          try { console.log('[slaByFuncao] slaConfigSample=', JSON.stringify(all.recordset.slice(0,20).map(r=>({FUNCAO:r.FUNCAO,SLA_DIAS:r.SLA_DIAS})))) } catch(e) {}
+        }
         let found = null;
         for (const row of (all.recordset||[])) {
           const nf = normalize(row.FUNCAO);
+          try {} catch(e) {}
           if (!nf) continue;
           if (nf.includes(target) || target.includes(nf)) { found = row; break; }
         }
         if (found) {
+          try { console.log('[slaByFuncao] matched FUNCAO="' + found.FUNCAO + '"'); } catch(e) {}
           return res.json({ sla_dias: found.SLA_DIAS, classificacao: found.CLASSIFICACAO });
         }
-      } catch(e) {}
+      } catch(e) { try { console.error('[slaByFuncao] fallback error', e); } catch(_) {} }
       res.json({});
     }
   } catch (err) {
