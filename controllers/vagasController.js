@@ -151,11 +151,11 @@ async function getPessoas(req, res) {
     pool = await new sql.ConnectionPool(dbConfigDw).connect();
     const result = await pool.request()
       .input('Q', sql.VarChar(200), '%' + q.toUpperCase() + '%')
-      .query(`SELECT DISTINCT RTRIM(LTRIM(Nome)) AS Nome
-              FROM V_PESSOAS
-              WHERE Nome IS NOT NULL AND Nome <> '' AND UPPER(Nome) LIKE @Q
-              ORDER BY Nome`);
-    res.json(result.recordset.map(r => r.Nome));
+      .query(`SELECT DISTINCT RTRIM(LTRIM(Nome)) AS Nome, RTRIM(LTRIM(Matricula)) AS Matricula
+          FROM V_PESSOAS
+          WHERE Nome IS NOT NULL AND Nome <> '' AND UPPER(Nome) LIKE @Q
+          ORDER BY Nome`);
+    res.json(result.recordset.map(r => ({ id: r.Matricula || r.Nome, text: r.Nome })));
   } catch (err) {
     console.error('Erro ao buscar pessoas:', err);
     res.json([]);

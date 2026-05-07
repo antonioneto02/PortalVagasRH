@@ -214,12 +214,21 @@ $(document).ready(function () {
         dropdownParent: $('#modalNovaVaga'),
         ajax: { url:'/api/pessoas', dataType:'json', delay:250,
           data: p => ({ q: p.term||'' }),
-          processResults: d => ({ results: d.map(p=>({id:p,text:p})) }), cache:true }
+          // API now returns objects {id,text}
+          processResults: d => ({ results: d }), cache:true }
       });
     }
   }
 
   $('#modalNovaVaga').on('shown.bs.modal', initSelect2);
+
+  // Apply Select2 to the static 'Setor' select so it has the same searchable behavior
+  if (!$('select[name="setor"]').hasClass('select2-hidden-accessible')) {
+    $('select[name="setor"]').select2({
+      placeholder: 'Selecione ou digite...', allowClear: true,
+      dropdownParent: $('#modalNovaVaga')
+    });
+  }
 
   $('#funcaoSelect').on('change', function() {
     const funcao = $(this).val();
