@@ -3,10 +3,11 @@ const router = express.Router();
 const { requireAuth } = require('../controllers/loginController');
 const {
   listarVagas, cadastrarVaga,
-  getFuncoes, getPessoas,
+  getFuncoes, getPessoas, getEmpresas,
   renderCadSla, listarSlaApi, slaByFuncao,
   salvarSla, atualizarSla, deletarSla,
   renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
+  fecharVaga,
 } = require('../controllers/vagasController');
 
 router.get('/vagas', requireAuth, listarVagas);
