@@ -24,6 +24,42 @@
               <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
                 <strong>Este nome de usuário já está em uso.</strong>
               </div>
+            <% } else if (error === 'email_invalido') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Informe um e-mail válido.</strong>
+              </div>
+            <% } else if (error === 'email_obrigatorio') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Informe um e-mail para receber o código de verificação.</strong>
+              </div>
+            <% } else if (error === 'senha_fraca') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Senha fraca. Revise os critérios de segurança.</strong>
+              </div>
+            <% } else if (error === 'usuario_invalido') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Usuário inválido.</strong> Use apenas letras, números, ponto, hífen ou sublinhado (3 a 100 caracteres).
+              </div>
+            <% } else if (error === 'too_many_attempts') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Muitas tentativas de cadastro.</strong> Aguarde alguns minutos e tente novamente.
+              </div>
+            <% } else if (error === 'sessao_invalida') { %>
+              <div id="errorAlert" class="alert alert-warning mt-2" role="alert" style="border-left: 4px solid #ffc107;">
+                <strong>Sessão de segurança expirada.</strong> Recarregue a página e tente novamente.
+              </div>
+            <% } else if (error === 'erro_envio_otp') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Não foi possível enviar o código de verificação por e-mail.</strong> Verifique as configurações de SMTP.
+              </div>
+            <% } else if (error === 'otp_expirado') { %>
+              <div id="errorAlert" class="alert alert-warning mt-2" role="alert" style="border-left: 4px solid #ffc107;">
+                <strong>Seu processo de verificação expirou.</strong> Inicie o cadastro novamente.
+              </div>
+            <% } else if (error === 'otp_tentativas_excedidas') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Tentativas excedidas.</strong> Inicie o cadastro novamente.
+              </div>
             <% } else if (error === 'erro_interno') { %>
               <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
                 <strong>Erro interno. Tente novamente.</strong>
@@ -33,11 +69,12 @@
 
           <div class="card-body">
             <form method="POST" action="/register">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <div class="form-group mb-3">
                 <label for="username">Usuário <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="username" name="username"
-                       value="<%= username %>" required>
-                <small class="text-muted">Use o mesmo usuário que tentou fazer login.</small>
+                       value="<%= username %>" required minlength="3" maxlength="100" autocomplete="username">
+                <div id="usernameFeedback" class="mt-1" style="font-size:0.85rem;"></div>
               </div>
 
               <div class="form-group mb-3">
@@ -46,22 +83,30 @@
               </div>
 
               <div class="form-group mb-3">
-                <label for="email">E-mail</label>
-                <input type="email" class="form-control" id="email" name="email">
+                <label for="email">E-mail <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" id="email" name="email" autocomplete="email" maxlength="200" required>
+                <div id="emailFeedback" class="text-danger mt-1" style="display:none; font-size:0.85rem;">Informe um e-mail válido.</div>
               </div>
 
               <div class="form-group mb-3">
                 <label for="telefone">Telefone</label>
-                <input type="text" class="form-control" id="telefone" name="telefone" placeholder="(00) 00000-0000">
+                <input type="text" class="form-control" id="telefone" name="telefone" placeholder="(00) 00000-0000" autocomplete="tel" inputmode="numeric" maxlength="15">
               </div>
 
               <div class="form-group mb-3">
                 <label for="password">Senha <span class="text-danger">*</span></label>
                 <div style="position: relative;">
-                  <input type="password" class="form-control" id="password" name="password" required style="padding-right: 45px;">
+                  <input type="password" class="form-control" id="password" name="password" required style="padding-right: 45px;" autocomplete="new-password" minlength="8">
                   <button class="btn" type="button" id="togglePw" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 10; border: none; background: none; padding: 0; color: #6c757d;">
                     <i class="fas fa-eye" id="togglePwIcon"></i>
                   </button>
+                </div>
+                <div id="pwRules" class="mt-2" style="font-size:0.85rem; line-height:1.4;">
+                  <div id="ruleLen" class="text-danger">Pelo menos 8 caracteres</div>
+                  <div id="ruleUpper" class="text-danger">Uma letra maiúscula</div>
+                  <div id="ruleLower" class="text-danger">Uma letra minúscula</div>
+                  <div id="ruleNumber" class="text-danger">Um número</div>
+                  <div id="ruleSpecial" class="text-danger">Um caractere especial</div>
                 </div>
               </div>
 
@@ -71,11 +116,6 @@
                 <div id="pwMismatch" class="text-danger mt-1" style="display:none; font-size:0.85rem;">
                   As senhas não coincidem.
                 </div>
-              </div>
-
-              <div class="alert alert-info" style="border-left: 4px solid #17a2b8; font-size: 0.875rem;">
-                <i class="fas fa-info-circle me-1"></i>
-                Usuários externos visualizam apenas <strong>vagas externas</strong>.
               </div>
 
               <div class="text-center mt-3">
@@ -96,6 +136,14 @@
   </div>
 
   <script>
+    const usernameField = document.getElementById('username');
+    const usernameFeedback = document.getElementById('usernameFeedback');
+    const emailField = document.getElementById('email');
+    const emailFeedback = document.getElementById('emailFeedback');
+    const telefoneField = document.getElementById('telefone');
+    const passwordField = document.getElementById('password');
+    const submitBtn = document.getElementById('submitBtn');
+
     document.getElementById('togglePw').addEventListener('click', function() {
       const pw = document.getElementById('password');
       const icon = document.getElementById('togglePwIcon');
@@ -103,12 +151,155 @@
       else { pw.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
     });
 
+    const passwordRules = {
+      len: document.getElementById('ruleLen'),
+      upper: document.getElementById('ruleUpper'),
+      lower: document.getElementById('ruleLower'),
+      number: document.getElementById('ruleNumber'),
+      special: document.getElementById('ruleSpecial'),
+    };
+
+    function setRuleState(el, ok) {
+      el.classList.toggle('text-success', ok);
+      el.classList.toggle('text-danger', !ok);
+    }
+
+    function getPasswordChecks(value) {
+      return {
+        len: value.length >= 8,
+        upper: /[A-Z]/.test(value),
+        lower: /[a-z]/.test(value),
+        number: /\d/.test(value),
+        special: /[^A-Za-z\d]/.test(value),
+      };
+    }
+
+    function isPasswordStrong(value) {
+      const checks = getPasswordChecks(value);
+      return checks.len && checks.upper && checks.lower && checks.number && checks.special;
+    }
+
+    function validateEmailField() {
+      const email = emailField.value.trim();
+      if (!email) {
+        emailFeedback.style.display = 'none';
+        emailField.setCustomValidity('');
+        return true;
+      }
+      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      emailFeedback.style.display = ok ? 'none' : 'block';
+      emailField.setCustomValidity(ok ? '' : 'Informe um e-mail válido.');
+      return ok;
+    }
+
+    function applyPhoneMask(value) {
+      const digits = value.replace(/\D/g, '').slice(0, 11);
+      if (digits.length <= 10) {
+        return digits
+          .replace(/(\d{2})(\d)/, '($1) $2')
+          .replace(/(\d{4})(\d)/, '$1-$2');
+      }
+      return digits
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{5})(\d)/, '$1-$2');
+    }
+
+    function validateUsernameAvailability() {
+      const value = usernameField.value.trim();
+      if (value.length < 3) {
+        usernameFeedback.className = 'mt-1 text-danger';
+        usernameFeedback.textContent = 'O usuário deve ter ao menos 3 caracteres.';
+        usernameField.dataset.available = 'false';
+        return;
+      }
+
+      if (!/^[A-Za-z0-9._-]{3,100}$/.test(value)) {
+        usernameFeedback.className = 'mt-1 text-danger';
+        usernameFeedback.textContent = 'Use apenas letras, números, ponto, hífen ou sublinhado.';
+        usernameField.dataset.available = 'false';
+        return;
+      }
+
+      usernameFeedback.className = 'mt-1 text-muted';
+      usernameFeedback.textContent = 'Verificando disponibilidade...';
+
+      fetch('/register/check-username?username=' + encodeURIComponent(value))
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.available) {
+            usernameFeedback.className = 'mt-1 text-success';
+            usernameFeedback.textContent = 'Usuário disponível.';
+            usernameField.dataset.available = 'true';
+          } else {
+            usernameFeedback.className = 'mt-1 text-danger';
+            usernameFeedback.textContent = 'Este nome de usuário já está em uso.';
+            usernameField.dataset.available = 'false';
+          }
+        })
+        .catch(() => {
+          usernameFeedback.className = 'mt-1 text-danger';
+          usernameFeedback.textContent = 'Não foi possível validar o usuário agora.';
+          usernameField.dataset.available = 'false';
+        });
+    }
+
+    passwordField.addEventListener('input', function() {
+      const checks = getPasswordChecks(this.value);
+      setRuleState(passwordRules.len, checks.len);
+      setRuleState(passwordRules.upper, checks.upper);
+      setRuleState(passwordRules.lower, checks.lower);
+      setRuleState(passwordRules.number, checks.number);
+      setRuleState(passwordRules.special, checks.special);
+    });
+
+    emailField.addEventListener('input', validateEmailField);
+
+    telefoneField.addEventListener('input', function() {
+      this.value = applyPhoneMask(this.value);
+    });
+
+    let usernameTimer;
+    usernameField.addEventListener('input', function() {
+      usernameField.dataset.available = 'false';
+      clearTimeout(usernameTimer);
+      usernameTimer = setTimeout(validateUsernameAvailability, 300);
+    });
+
+    if (usernameField.value.trim().length >= 3) {
+      validateUsernameAvailability();
+    }
+
     document.querySelector('form').addEventListener('submit', function(e) {
-      const pw = document.getElementById('password').value;
+      const pw = passwordField.value;
       const confirm = document.getElementById('confirmPassword').value;
+      const usernameAvailable = usernameField.dataset.available === 'true';
+      const strongPw = isPasswordStrong(pw);
+      const validEmail = validateEmailField();
+
+      if (!usernameAvailable) {
+        e.preventDefault();
+        usernameFeedback.className = 'mt-1 text-danger';
+        usernameFeedback.textContent = 'Escolha um usuário disponível antes de continuar.';
+        usernameField.focus();
+        return;
+      }
+
+      if (!strongPw) {
+        e.preventDefault();
+        passwordField.focus();
+        return;
+      }
+
+      if (!validEmail) {
+        e.preventDefault();
+        emailField.focus();
+        return;
+      }
+
       if (pw !== confirm) {
         e.preventDefault();
         document.getElementById('pwMismatch').style.display = 'block';
+        submitBtn.disabled = false;
       }
     });
 

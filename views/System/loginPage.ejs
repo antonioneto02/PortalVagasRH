@@ -32,11 +32,20 @@
                   </div>
                 </div>
               </div>
+            <% } else if (error === 'too_many_attempts') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Muitas tentativas de login.</strong> Aguarde alguns minutos e tente novamente.
+              </div>
+            <% } else if (error === 'sessao_invalida') { %>
+              <div id="errorAlert" class="alert alert-warning mt-2" role="alert" style="border-left: 4px solid #ffc107;">
+                <strong>Sessão de segurança expirada.</strong> Recarregue a página e tente novamente.
+              </div>
             <% } %>
           </div>
 
           <div class="card-body">
             <form id="loginForm" method="POST" action="/login">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <div class="form-group mb-3">
                 <label for="username">Usuário:</label>
                 <input type="text" class="form-control" id="username" name="username" required autofocus>

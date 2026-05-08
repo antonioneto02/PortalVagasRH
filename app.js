@@ -5,12 +5,21 @@ const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const https = require('https');
 const fs = require('fs');
+const helmet = require('helmet');
+const hpp = require('hpp');
+const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3020;
 const host = process.env.HOST;
+const sessionSecret = process.env.SESSION_SECRET;
+const secureCookies = true;
+
+if (!sessionSecret) {
+  console.warn('SESSION_SECRET não definido. Defina uma chave forte no ambiente de produção.');
+}
 
 const options = {
   key: fs.readFileSync('cini.key'),
@@ -19,17 +28,34 @@ const options = {
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
+app.disable('x-powered-by');
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(hpp());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 app.use(cookieParser());
 
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 800,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(globalLimiter);
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'vagas-rh-secret',
-  resave: true,
+  name: 'portal_vagas_sid',
+  secret: sessionSecret || 'vagas-rh-secret-change-this',
+  resave: false,
   saveUninitialized: false,
+  rolling: true,
   cookie: {
-    secure: false,
+    httpOnly: true,
+    secure: secureCookies,
     sameSite: 'lax',
     maxAge: 7200000,
   },

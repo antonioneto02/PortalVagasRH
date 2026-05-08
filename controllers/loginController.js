@@ -1,14 +1,105 @@
 const axios = require('axios');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const sql = require('mssql');
 const dotenv = require('dotenv');
 const dbConfig = require('../database/dbConfig');
+const notificacaoModel = require('../models/notificacaoModel');
 
 dotenv.config();
 
 const PROTHEUS_SERVER = process.env.PROTHEUS_SERVER;
 const TIMEOUT_MS = 120 * 60 * 1000;
 const PROTHEUS_ADMIN_FIXO_ID = '000460';
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+const USERNAME_REGEX = /^[A-Za-z0-9._-]{3,100}$/;
+const OTP_CODE_REGEX = /^\d{6}$/;
+const COOKIE_COMMON = {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'lax',
+};
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_MAX_RESENDS = 3;
+const OTP_SECRET = process.env.OTP_SECRET || 'portal-vagas-otp-secret-change-this';
+
+function normalizeUsername(username) {
+  return String(username || '').trim();
+}
+
+function isValidUsername(username) {
+  return USERNAME_REGEX.test(normalizeUsername(username));
+}
+
+function isValidEmail(email) {
+  return EMAIL_REGEX.test(String(email || '').trim());
+}
+
+function isStrongPassword(password) {
+  return PASSWORD_REGEX.test(String(password || ''));
+}
+
+function normalizeTelefone(telefone) {
+  const digits = String(telefone || '').replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.length < 10 || digits.length > 11) return null;
+  return digits;
+}
+
+function generateOtpCode() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
+function hashOtp(code, email) {
+  return crypto.createHash('sha256').update(`${code}:${String(email || '').toLowerCase()}:${OTP_SECRET}`).digest('hex');
+}
+
+function maskEmail(email) {
+  const value = String(email || '').trim();
+  const [name, domain] = value.split('@');
+  if (!name || !domain) return value;
+  if (name.length <= 2) return `${name[0] || '*'}*@${domain}`;
+  return `${name.slice(0, 2)}***@${domain}`;
+}
+
+async function sendOtpByEmail(email, nome, otpCode) {
+  const mensagem = `Olá ${String(nome || 'candidato(a)')},\n\nSeu código de verificação do Portal Vagas RH é: ${otpCode}.\nO código expira em 10 minutos.\n\nSe você não solicitou este cadastro, ignore este e-mail.`;
+
+  await notificacaoModel.enqueue({
+    tipo: 'EMAIL',
+    destinatario: email,
+    mensagem,
+    template_name: 'OTP_CADASTRO_PORTAL_RH',
+    template_params: JSON.stringify({
+      nome: String(nome || ''),
+      otp: otpCode,
+      ttl_minutos: 10,
+    }),
+    metadados: JSON.stringify({
+      sistema: 'portal-vagas-rh',
+      fluxo: 'cadastro_otp',
+      destinatario: email,
+    }),
+  });
+}
+
+async function isUsernameAvailable(username) {
+  const normalized = normalizeUsername(username);
+  if (!isValidUsername(normalized)) return false;
+
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request()
+      .input('USERNAME', sql.VarChar(100), normalized)
+      .query(`SELECT TOP 1 ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME`);
+    return result.recordset.length === 0;
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
 
 async function getLocalUser(username) {
   let pool = null;
@@ -63,8 +154,8 @@ async function _tryRefreshToken(refreshToken, req, res) {
     { params: { grant_type: 'refresh_token', refresh_token: refreshToken }, timeout: 6000 }
   );
   const { access_token, refresh_token: newRefresh } = refreshResp.data;
-  res.cookie('token', access_token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 3600000 });
-  res.cookie('refresh_token', newRefresh, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 43200000 });
+  res.cookie('token', access_token, { ...COOKIE_COMMON, maxAge: 3600000 });
+  res.cookie('refresh_token', newRefresh, { ...COOKIE_COMMON, maxAge: 43200000 });
   await _restoreSessionFromToken(access_token, req, res);
 }
 
@@ -106,9 +197,10 @@ async function requireAuth(req, res, next) {
 }
 
 async function validaLogin(req, res) {
-  const { username, authData } = req.body;
+  const username = normalizeUsername(req.body.username);
+  const { authData } = req.body;
 
-  if (!username || !authData) {
+  if (!username || !authData || !isValidUsername(username)) {
     return res.redirect('/login?error=invalid_credentials');
   }
 
@@ -142,9 +234,9 @@ async function validaLogin(req, res) {
     const userID = userIDResp.data.userID;
     const vinculado = await getUserByProtheusId(userID);
 
-    res.cookie('token', access_token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 3600000 });
-    res.cookie('refresh_token', refresh_token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 43200000 });
-    res.cookie('username', username, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 43200000 });
+    res.cookie('token', access_token, { ...COOKIE_COMMON, maxAge: 3600000 });
+    res.cookie('refresh_token', refresh_token, { ...COOKIE_COMMON, maxAge: 43200000 });
+    res.cookie('username', username, { ...COOKIE_COMMON, maxAge: 43200000 });
 
     req.session.userId = userID;
     req.session.username = vinculado?.NOME || username;
@@ -191,53 +283,196 @@ async function validaLogin(req, res) {
 }
 
 async function cadastrarUsuario(req, res) {
-  const { username, password, nome, email, telefone } = req.body;
+  const username = normalizeUsername(req.body.username);
+  const password = String(req.body.password || '');
+  const nome = String(req.body.nome || '').trim();
+  const email = String(req.body.email || '').trim();
+  const telefone = normalizeTelefone(req.body.telefone);
 
   if (!username || !password || !nome) {
     return res.redirect('/register?error=campos_obrigatorios');
   }
 
-  let pool = null;
+  if (!isValidUsername(username)) {
+    return res.redirect('/register?error=usuario_invalido');
+  }
+
+  if (!email) {
+    return res.redirect('/register?error=email_obrigatorio');
+  }
+
+  if (email && !isValidEmail(email)) {
+    return res.redirect('/register?error=email_invalido');
+  }
+
+  if (!isStrongPassword(password)) {
+    return res.redirect('/register?error=senha_fraca');
+  }
+
   try {
     const passwordHash = await bcrypt.hash(password, 10);
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const existing = await pool.request()
-      .input('USERNAME', sql.VarChar(100), username)
-      .query(`SELECT ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME`);
 
-    if (existing.recordset.length > 0) {
+    const usernameLivre = await isUsernameAvailable(username);
+    if (!usernameLivre) {
       return res.redirect('/register?error=usuario_ja_existe');
     }
 
+    const otpCode = generateOtpCode();
+    req.session.pendingRegistration = {
+      username,
+      passwordHash,
+      nome,
+      email,
+      telefone,
+      otpHash: hashOtp(otpCode, email),
+      otpExpiresAt: Date.now() + OTP_TTL_MS,
+      otpAttempts: 0,
+      otpResendCount: 0,
+      createdAt: Date.now(),
+    };
+
+    await sendOtpByEmail(email, nome, otpCode);
+
+    return req.session.save((err) => {
+      if (err) console.error('Session save error:', err);
+      return res.redirect('/register/verify');
+    });
+  } catch (err) {
+    console.error('Erro ao iniciar cadastro com OTP:', err);
+    return res.redirect('/register?error=erro_envio_otp');
+  }
+}
+
+async function renderVerificarCadastro(req, res) {
+  const pending = req.session.pendingRegistration;
+  if (!pending || !pending.email) {
+    return res.redirect('/register?error=otp_expirado');
+  }
+
+  const expiresInMs = Number(pending.otpExpiresAt || 0) - Date.now();
+  if (expiresInMs <= 0) {
+    req.session.pendingRegistration = null;
+    return req.session.save(() => res.redirect('/register?error=otp_expirado'));
+  }
+
+  return res.render('System/registerVerifyPage', {
+    error: req.query.error || null,
+    sent: req.query.sent === '1',
+    csrfToken: req.csrfToken,
+    maskedEmail: maskEmail(pending.email),
+  });
+}
+
+async function verificarOtpCadastro(req, res) {
+  const pending = req.session.pendingRegistration;
+  const otp = String(req.body.otp || '').trim();
+
+  if (!pending || !pending.email) {
+    return res.redirect('/register?error=otp_expirado');
+  }
+
+  if (!OTP_CODE_REGEX.test(otp)) {
+    return res.redirect('/register/verify?error=otp_invalido');
+  }
+
+  if (Date.now() > Number(pending.otpExpiresAt || 0)) {
+    req.session.pendingRegistration = null;
+    return req.session.save(() => res.redirect('/register?error=otp_expirado'));
+  }
+
+  if (Number(pending.otpAttempts || 0) >= OTP_MAX_ATTEMPTS) {
+    req.session.pendingRegistration = null;
+    return req.session.save(() => res.redirect('/register?error=otp_tentativas_excedidas'));
+  }
+
+  const valid = hashOtp(otp, pending.email) === pending.otpHash;
+  if (!valid) {
+    pending.otpAttempts = Number(pending.otpAttempts || 0) + 1;
+    req.session.pendingRegistration = pending;
+    return req.session.save(() => res.redirect('/register/verify?error=otp_invalido'));
+  }
+
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+
+    const existing = await pool.request()
+      .input('USERNAME', sql.VarChar(100), pending.username)
+      .query(`SELECT ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME`);
+
+    if (existing.recordset.length > 0) {
+      req.session.pendingRegistration = null;
+      return req.session.save(() => res.redirect('/register?error=usuario_ja_existe'));
+    }
+
     await pool.request()
-      .input('USERNAME', sql.VarChar(100), username)
-      .input('PASSWORD_HASH', sql.VarChar(255), passwordHash)
-      .input('NOME', sql.VarChar(200), nome)
-      .input('EMAIL', sql.VarChar(200), email || null)
-      .input('TELEFONE', sql.VarChar(20), telefone || null)
+      .input('USERNAME', sql.VarChar(100), pending.username)
+      .input('PASSWORD_HASH', sql.VarChar(255), pending.passwordHash)
+      .input('NOME', sql.VarChar(200), pending.nome)
+      .input('EMAIL', sql.VarChar(200), pending.email || null)
+      .input('TELEFONE', sql.VarChar(20), pending.telefone || null)
       .query(`INSERT INTO [portal_rh].[dbo].[RH_USUARIOS] (USERNAME, PASSWORD_HASH, NOME, EMAIL, TELEFONE, ADM, ATIVO)
               VALUES (@USERNAME, @PASSWORD_HASH, @NOME, @EMAIL, @TELEFONE, 0, 1)`);
 
     const newUser = await pool.request()
-      .input('USERNAME2', sql.VarChar(100), username)
+      .input('USERNAME2', sql.VarChar(100), pending.username)
       .query(`SELECT ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME2`);
 
+    req.session.pendingRegistration = null;
     req.session.userId = 'LOCAL_' + newUser.recordset[0].ID;
     req.session.localUserId = newUser.recordset[0].ID;
-    req.session.username = nome;
+    req.session.username = pending.nome;
     req.session.isProtheus = false;
     req.session.isAdmin = false;
     req.session.lastActivity = Date.now();
 
-    return req.session.save(err => {
+    return req.session.save((err) => {
       if (err) console.error('Session save error:', err);
       return res.redirect('/vagas');
     });
   } catch (err) {
-    console.error('Erro ao cadastrar usuário:', err);
-    return res.redirect('/register?error=erro_interno');
+    console.error('Erro ao validar OTP do cadastro:', err);
+    return res.redirect('/register/verify?error=erro_interno_otp');
   } finally {
     if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+async function reenviarOtpCadastro(req, res) {
+  const pending = req.session.pendingRegistration;
+  if (!pending || !pending.email) {
+    return res.redirect('/register?error=otp_expirado');
+  }
+
+  if (Number(pending.otpResendCount || 0) >= OTP_MAX_RESENDS) {
+    return res.redirect('/register/verify?error=otp_limite_reenvio');
+  }
+
+  try {
+    const otpCode = generateOtpCode();
+    pending.otpHash = hashOtp(otpCode, pending.email);
+    pending.otpExpiresAt = Date.now() + OTP_TTL_MS;
+    pending.otpAttempts = 0;
+    pending.otpResendCount = Number(pending.otpResendCount || 0) + 1;
+    req.session.pendingRegistration = pending;
+
+    await sendOtpByEmail(pending.email, pending.nome, otpCode);
+    return req.session.save(() => res.redirect('/register/verify?sent=1'));
+  } catch (err) {
+    console.error('Erro ao reenviar OTP:', err);
+    return res.redirect('/register/verify?error=erro_envio_otp');
+  }
+}
+
+async function verificarDisponibilidadeUsuario(req, res) {
+  try {
+    const username = normalizeUsername(req.query.username);
+    if (!isValidUsername(username)) return res.status(400).json({ available: false, message: 'Usuário inválido.' });
+    const available = await isUsernameAvailable(username);
+    return res.json({ available });
+  } catch (err) {
+    console.error('Erro ao verificar disponibilidade do usuário:', err);
+    return res.status(500).json({ available: false, message: 'Erro interno.' });
   }
 }
 
@@ -247,4 +482,13 @@ function requireAdmin(req, res, next) {
   return res.status(403).send('Acesso restrito a administradores.');
 }
 
-module.exports = { validaLogin, cadastrarUsuario, requireAuth, requireAdmin };
+module.exports = {
+  validaLogin,
+  cadastrarUsuario,
+  renderVerificarCadastro,
+  verificarOtpCadastro,
+  reenviarOtpCadastro,
+  verificarDisponibilidadeUsuario,
+  requireAuth,
+  requireAdmin,
+};

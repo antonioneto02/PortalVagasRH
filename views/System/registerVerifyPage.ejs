@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Verificar E-mail - Portal Vagas RH</title>
+  <%- include('headIncludes.ejs') %>
+</head>
+<body class="d-flex align-items-center min-vh-100" style="background-image: url('/css/Background.png'); background-size: cover; background-position: center; background-repeat: no-repeat; padding-top: 6vh; padding-bottom: 4vh;">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header text-center" style="background: linear-gradient(135deg, #2B286F 100%); border: none;">
+            <div class="d-flex align-items-center justify-content-center mb-2">
+              <img src="/css/logo-cini.png" alt="Cini" style="height: 40px; margin-right: 15px;">
+              <h2 class="text-white mb-0">Verificação de E-mail</h2>
+            </div>
+            <h6 class="text-white mb-0">Enviamos um código para <%= maskedEmail %></h6>
+
+            <% if (sent) { %>
+              <div class="alert alert-success mt-2" role="alert" style="border-left: 4px solid #198754;">
+                <strong>Novo código enviado com sucesso.</strong>
+              </div>
+            <% } %>
+
+            <% if (error === 'otp_invalido') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Código inválido.</strong> Verifique e tente novamente.
+              </div>
+            <% } else if (error === 'otp_expirado') { %>
+              <div id="errorAlert" class="alert alert-warning mt-2" role="alert" style="border-left: 4px solid #ffc107;">
+                <strong>Código expirado.</strong> Solicite um novo código.
+              </div>
+            <% } else if (error === 'otp_limite_reenvio') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Limite de reenvio atingido.</strong>
+              </div>
+            <% } else if (error === 'otp_tentativas_excedidas') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Tentativas excedidas.</strong> Inicie o cadastro novamente.
+              </div>
+            <% } else if (error === 'erro_envio_otp') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Falha ao enviar e-mail.</strong> Tente novamente em instantes.
+              </div>
+            <% } else if (error === 'too_many_attempts') { %>
+              <div id="errorAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <strong>Muitas requisições.</strong> Aguarde alguns minutos.
+              </div>
+            <% } %>
+          </div>
+
+          <div class="card-body">
+            <form method="POST" action="/register/verify" id="otpForm">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="form-group mb-3">
+                <label for="otp">Código de Verificação</label>
+                <input type="text" class="form-control" id="otp" name="otp" maxlength="6" minlength="6" inputmode="numeric" pattern="[0-9]{6}" required placeholder="Digite os 6 dígitos">
+                <small class="text-muted">O código expira em 10 minutos.</small>
+              </div>
+
+              <div class="text-center mt-3">
+                <button type="submit" class="btn" style="background: linear-gradient(135deg, #2B286F 100%); border: none; color: white; padding: 10px 30px; font-weight: 600;">
+                  Confirmar Código
+                </button>
+              </div>
+            </form>
+
+            <form method="POST" action="/register/resend-otp" class="text-center mt-3">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="submit" class="btn btn-link" style="color:#2B286F; font-weight:600; text-decoration:none;">
+                Reenviar código
+              </button>
+            </form>
+
+            <div class="text-center mt-2">
+              <small class="text-muted">
+                E-mail incorreto? <a href="/register" style="color:#2B286F; font-weight:600;">Voltar ao cadastro</a>
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const otp = document.getElementById('otp');
+    otp.addEventListener('input', function() {
+      this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    });
+  </script>
+</body>
+</html>

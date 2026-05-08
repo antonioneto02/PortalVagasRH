@@ -3,8 +3,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const dbConfig = require('../database/dbConfig');
+const notificacaoModel = require('../models/notificacaoModel');
 
-// Configuração do multer para salvar currículos
+const CANDIDATURA_NOTIFY_EMAIL = process.env.CANDIDATURA_NOTIFY_EMAIL || 'ti02@cini';
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '..', 'public', 'curriculos');
@@ -27,10 +28,74 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 10 * 1024 * 1024 }, 
 });
 
 const uploadMiddleware = upload.single('curriculo');
+
+async function enviarEmailCandidatura({
+  idVaga,
+  vaga,
+  nome,
+  celular,
+  email,
+  linkedin,
+  apresentacao,
+  linkAdicional,
+  curriculoFile,
+}) {
+  const text = [
+    `Assunto: Nova candidatura - Vaga ${idVaga}${vaga?.FUNCAO ? ` - ${vaga.FUNCAO}` : ''}`,
+    'Nova candidatura recebida no Portal Vagas RH',
+    `ID da vaga: ${idVaga}`,
+    `Função: ${vaga?.FUNCAO || '-'}`,
+    `Tipo da vaga: ${vaga?.TIPO_VAGA || '-'}`,
+    `Nome: ${nome}`,
+    `Celular: ${celular}`,
+    `E-mail: ${email}`,
+    `LinkedIn: ${linkedin || '-'}`,
+    `Link adicional: ${linkAdicional || '-'}`,
+    '---',
+    'Apresentação:',
+    apresentacao,
+    '---',
+    curriculoFile ? 'Currículo anexado.' : 'Sem currículo anexado.',
+  ].join('\n');
+
+  await notificacaoModel.enqueue({
+    tipo: 'EMAIL',
+    destinatario: CANDIDATURA_NOTIFY_EMAIL,
+    mensagem: text,
+    template_name: 'CANDIDATURA_PORTAL_RH',
+    template_params: JSON.stringify({
+      id_vaga: idVaga,
+      funcao: vaga?.FUNCAO || null,
+      tipo_vaga: vaga?.TIPO_VAGA || null,
+      nome,
+      celular,
+      email,
+      linkedin: linkedin || null,
+      apresentacao,
+      link_adicional: linkAdicional || null,
+      curriculo_nome: curriculoFile?.originalname || null,
+      curriculo_path: curriculoFile?.path || null,
+      curriculo_public_path: curriculoFile ? '/curriculos/' + curriculoFile.filename : null,
+      curriculo_mimetype: curriculoFile?.mimetype || null,
+    }),
+    metadados: JSON.stringify({
+      sistema: 'portal-vagas-rh',
+      fluxo: 'candidatura',
+      destinatario: CANDIDATURA_NOTIFY_EMAIL,
+      anexos: curriculoFile
+        ? [{
+            filename: curriculoFile.originalname,
+            path: curriculoFile.path,
+            mimetype: curriculoFile.mimetype,
+          }]
+        : [],
+    }),
+  });
+}
 
 async function salvarCandidatura(req, res) {
   uploadMiddleware(req, res, async (err) => {
@@ -45,7 +110,6 @@ async function salvarCandidatura(req, res) {
       return res.status(400).json({ error: 'Campos obrigatórios: Nome, Celular, Email e Apresentação.' });
     }
 
-    // Validação básica de e-mail
     if (!email.includes('@') || !email.includes('.')) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'E-mail inválido.' });
@@ -56,10 +120,9 @@ async function salvarCandidatura(req, res) {
     let pool = null;
     try {
       pool = await new sql.ConnectionPool(dbConfig).connect();
-
-      // Inserir candidatura
+      const idVagaNum = parseInt(id_vaga);
       await pool.request()
-        .input('ID_VAGA', sql.Int, parseInt(id_vaga))
+        .input('ID_VAGA', sql.Int, idVagaNum)
         .input('NOME', sql.VarChar(200), nome)
         .input('CELULAR', sql.VarChar(20), celular)
         .input('EMAIL', sql.VarChar(200), email)
@@ -70,17 +133,34 @@ async function salvarCandidatura(req, res) {
         .query(`INSERT INTO RH_CANDIDATURAS (ID_VAGA, NOME, CELULAR, EMAIL, LINKEDIN, APRESENTACAO, LINK_ADICIONAL, CURRICULO_PATH, DTINCLUSAO)
                 VALUES (@ID_VAGA, @NOME, @CELULAR, @EMAIL, @LINKEDIN, @APRESENTACAO, @LINK_ADICIONAL, @CURRICULO_PATH, GETDATE())`);
 
-      // Atualizar campo CANDIDATOS na vaga
       await pool.request()
-        .input('ID_VAGA', sql.Int, parseInt(id_vaga))
+        .input('ID_VAGA', sql.Int, idVagaNum)
         .query(`UPDATE RH_VAGAS SET CANDIDATOS = (
           SELECT COUNT(*) FROM RH_CANDIDATURAS WHERE ID_VAGA = @ID_VAGA
         ) WHERE ID = @ID_VAGA`);
 
-      // Registra na sessão que o usuário se candidatou a essa vaga
+      const vagaResult = await pool.request()
+        .input('ID_VAGA', sql.Int, idVagaNum)
+        .query(`SELECT TOP 1 ID, FUNCAO, TIPO_VAGA FROM RH_VAGAS WHERE ID = @ID_VAGA`);
+
+      try {
+        await enviarEmailCandidatura({
+          idVaga: idVagaNum,
+          vaga: vagaResult.recordset?.[0] || null,
+          nome,
+          celular,
+          email,
+          linkedin,
+          apresentacao,
+          linkAdicional: link_adicional,
+          curriculoFile: req.file || null,
+        });
+      } catch (mailErr) {
+        console.error('Erro ao enviar e-mail da candidatura:', mailErr);
+      }
+         
       if (req.session) {
         if (!Array.isArray(req.session.candidaturasFeitas)) req.session.candidaturasFeitas = [];
-        const idVagaNum = parseInt(id_vaga);
         if (!req.session.candidaturasFeitas.includes(idVagaNum)) {
           req.session.candidaturasFeitas.push(idVagaNum);
         }
