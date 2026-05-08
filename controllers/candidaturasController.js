@@ -179,4 +179,81 @@ async function salvarCandidatura(req, res) {
   });
 }
 
-module.exports = { salvarCandidatura };
+async function renderCandidaturasAdmin(req, res) {
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request().query(`
+      SELECT
+        c.ID,
+        c.ID_VAGA,
+        c.NOME,
+        c.CELULAR,
+        c.EMAIL,
+        c.LINKEDIN,
+        c.APRESENTACAO,
+        c.LINK_ADICIONAL,
+        c.CURRICULO_PATH,
+        CONVERT(VARCHAR, c.DTINCLUSAO, 103) + ' ' + CONVERT(VARCHAR(5), c.DTINCLUSAO, 108) AS DTINCLUSAO,
+        ISNULL(v.FUNCAO, '-') AS NOME_VAGA
+      FROM RH_CANDIDATURAS c
+      LEFT JOIN RH_VAGAS v ON v.ID = c.ID_VAGA
+      ORDER BY c.ID DESC
+    `);
+
+    res.render('Vagas/candidaturas', {
+      candidaturas: result.recordset,
+      username: req.session.username,
+      isProtheus: req.session.isProtheus,
+      isAdmin: req.session.isAdmin === true,
+      protheusId: req.session.protheusId || null,
+      currentPath: '/candidaturas',
+    });
+  } catch (err) {
+    console.error('Erro ao carregar candidaturas:', err);
+    res.status(500).send('Erro ao carregar candidaturas.');
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+async function listarCandidaturasPorVagaApi(req, res) {
+  const idVaga = parseInt(req.params.id, 10);
+  if (!Number.isInteger(idVaga) || idVaga <= 0) {
+    return res.status(400).json({ error: 'ID da vaga inválido.' });
+  }
+
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request()
+      .input('ID_VAGA', sql.Int, idVaga)
+      .query(`
+        SELECT
+          c.ID,
+          c.ID_VAGA,
+          c.NOME,
+          c.CELULAR,
+          c.EMAIL,
+          c.LINKEDIN,
+          c.APRESENTACAO,
+          c.LINK_ADICIONAL,
+          c.CURRICULO_PATH,
+          CONVERT(VARCHAR, c.DTINCLUSAO, 103) + ' ' + CONVERT(VARCHAR(5), c.DTINCLUSAO, 108) AS DTINCLUSAO,
+          ISNULL(v.FUNCAO, '-') AS NOME_VAGA
+        FROM RH_CANDIDATURAS c
+        LEFT JOIN RH_VAGAS v ON v.ID = c.ID_VAGA
+        WHERE c.ID_VAGA = @ID_VAGA
+        ORDER BY c.ID DESC
+      `);
+
+    return res.json(result.recordset || []);
+  } catch (err) {
+    console.error('Erro ao listar candidaturas por vaga:', err);
+    return res.status(500).json({ error: 'Erro ao buscar candidatos da vaga.' });
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+module.exports = { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi };

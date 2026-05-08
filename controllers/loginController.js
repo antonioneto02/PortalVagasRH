@@ -65,7 +65,26 @@ function maskEmail(email) {
 }
 
 async function sendOtpByEmail(email, nome, otpCode) {
-  const mensagem = `Olá ${String(nome || 'candidato(a)')},\n\nSeu código de verificação do Portal Vagas RH é: ${otpCode}.\nO código expira em 5 minutos.\n\nSe você não solicitou este cadastro, ignore este e-mail.`;
+  const nomeDestinatario = String(nome || 'candidato(a)');
+  const assunto = 'Codigo de verificacao - Portal Vagas RH';
+  const mensagem = [
+    `Ola ${nomeDestinatario},`,
+    '',
+    'Recebemos uma solicitacao para confirmar seu cadastro no Portal Vagas RH.',
+    `Seu codigo de verificacao e: ${otpCode}`,
+    'Esse codigo expira em 5 minutos.',
+    '',
+    'Se voce nao solicitou este cadastro, desconsidere este e-mail.',
+  ].join('\n');
+  const corpoHtml = [
+    '<html><body>',
+    `<p>Ola ${nomeDestinatario},</p>`,
+    '<p>Recebemos uma solicitacao para confirmar seu cadastro no Portal Vagas RH.</p>',
+    `<p>Seu codigo de verificacao e: <strong>${otpCode}</strong></p>`,
+    '<p>Esse codigo expira em 5 minutos.</p>',
+    '<p>Se voce nao solicitou este cadastro, desconsidere este e-mail.</p>',
+    '</body></html>',
+  ].join('');
 
   await notificacaoModel.enqueue({
     tipo: 'EMAIL',
@@ -77,6 +96,8 @@ async function sendOtpByEmail(email, nome, otpCode) {
       ttl_minutos: 5,
     }),
     metadados: JSON.stringify({
+      assunto,
+      corpo: corpoHtml,
       sistema: 'portal-vagas-rh',
       fluxo: 'cadastro_otp',
       destinatario: email,

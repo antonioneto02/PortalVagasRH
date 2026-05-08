@@ -122,6 +122,9 @@
         </div>
 
         <div class="card-body">
+          <div id="candSuccessAlert" class="alert alert-success" style="display:none;">
+            <i class="fas fa-check-circle me-1"></i>Candidatura enviada com sucesso!
+          </div>
           <% if (isAdmin) { %>
             <div class="table-responsive">
               <table id="tblVagas" class="display table table-striped table-hover" style="width:100%">
@@ -155,6 +158,7 @@
                           <% if (candidaturasFeitas.includes(v.ID)) { %>
                             <span class="badge" style="background:#17a2b8;color:white;font-size:.74rem;padding:4px 7px;"><i class="fas fa-check-circle me-1"></i>Candidatado</span>
                           <% } %>
+                          <button class="btn btn-sm btn-outline-info btn-listar-candidatos" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>" title="Listar candidatos" aria-label="Listar candidatos"><i class="fas fa-users"></i></button>
                           <% if (v.STATUS !== 'FECHADA') { %>
                             <button class="btn btn-sm btn-primary btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>" title="Candidatar-se" aria-label="Candidatura"><i class="fas fa-user-plus"></i></button>
                             <button class="btn btn-sm btn-success btn-fechar-vaga" data-id="<%= v.ID %>" title="Fechar Vaga" aria-label="Fechar Vaga"><i class="fas fa-check"></i></button>
@@ -299,6 +303,39 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="modalCandidatosVaga" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-users me-2"></i><span id="candidatosVagaTitulo">Candidatos da vaga</span></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div id="candidatosLoading" class="text-muted" style="display:none;">Carregando candidatos...</div>
+        <div class="table-responsive">
+          <table id="tblCandidatosVaga" class="display table table-striped table-hover" style="width:100%">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Celular</th>
+                <th>E-mail</th>
+                <th>LinkedIn</th>
+                <th>Data Inclusão</th>
+                <th>Apresentação</th>
+                <th>Currículo</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
 <% } %>
 
 <div class="modal fade" id="modalCandidatura" tabindex="-1" role="dialog" aria-hidden="true">
@@ -368,7 +405,100 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 $(document).ready(function () {
+  if (sessionStorage.getItem('candSuccess') === '1') {
+    sessionStorage.removeItem('candSuccess');
+    $('#candSuccessAlert').show();
+    $('html, body').animate({ scrollTop: $('#candSuccessAlert').offset().top - 90 }, 250);
+    setTimeout(function() { $('#candSuccessAlert').fadeOut(); }, 4000);
+  }
+
   <% if (isAdmin) { %>
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function initTabelaCandidatos() {
+    if ($.fn.DataTable.isDataTable('#tblCandidatosVaga')) {
+      $('#tblCandidatosVaga').DataTable().destroy();
+    }
+
+    $('#tblCandidatosVaga').DataTable({
+      language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+      pageLength: 10,
+      order: [[4, 'desc']],
+      initComplete: function() {
+        var api = this.api();
+        var cols = [
+          { idx: 0, label: 'Nome...', w: '170px' },
+          { idx: 2, label: 'E-mail...', w: '190px' },
+          { idx: 4, label: 'Data...', w: '130px' }
+        ];
+        var filterDiv = $('#tblCandidatosVaga_filter').css({ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '.3rem' });
+        filterDiv.find('label').css({ marginBottom: 0, marginRight: '.25rem', whiteSpace: 'nowrap' });
+        cols.forEach(function(c) {
+          var col = api.column(c.idx);
+          var sel = $('<select class="form-control form-control-sm" style="width:' + c.w + ';min-width:' + c.w + ';font-size:.78rem;padding:2px 6px;height:calc(1.5em + .5rem + 2px);"><option value="">' + c.label + '</option></select>');
+          var vals = [];
+          col.nodes().each(function() {
+            var t = $(this).text().trim();
+            if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
+          });
+          vals.sort().forEach(function(v) { sel.append('<option value="' + v + '">' + v + '</option>'); });
+          filterDiv.append(sel);
+          sel.on('change', function() {
+            var v = $(this).val();
+            col.search(v ? '^' + $.fn.dataTable.util.escapeRegex(v) + '$' : '', true, false).draw();
+          });
+        });
+      }
+    });
+  }
+
+  function carregarCandidatosDaVaga(idVaga, funcaoVaga) {
+    $('#candidatosVagaTitulo').text('Candidatos da vaga #' + idVaga + ' - ' + (funcaoVaga || '-'));
+    $('#candidatosLoading').show();
+    $('#tblCandidatosVaga tbody').html('');
+    $('#modalCandidatosVaga').modal('show');
+
+    $.ajax({
+      url: '/api/vagas/' + idVaga + '/candidaturas',
+      method: 'GET',
+      success: function(rows) {
+        var html = '';
+        (rows || []).forEach(function(c) {
+          var curriculoBtn = c.CURRICULO_PATH
+            ? '<a href="' + encodeURI(c.CURRICULO_PATH) + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" title="Ver currículo"><i class="fas fa-file-pdf me-1"></i>Ver</a>'
+            : '<button class="btn btn-sm btn-outline-secondary" disabled>Sem arquivo</button>';
+          html += '<tr>' +
+            '<td><span class="clickable-cell" title="' + escapeHtml(c.NOME || '-') + '" data-toggle="tooltip">' + escapeHtml(c.NOME || '-') + '</span></td>' +
+            '<td><span class="clickable-cell" title="' + escapeHtml(c.CELULAR || '-') + '" data-toggle="tooltip">' + escapeHtml(c.CELULAR || '-') + '</span></td>' +
+            '<td><span class="clickable-cell" title="' + escapeHtml(c.EMAIL || '-') + '" data-toggle="tooltip">' + escapeHtml(c.EMAIL || '-') + '</span></td>' +
+            '<td><span class="clickable-cell" title="' + escapeHtml(c.LINKEDIN || '-') + '" data-toggle="tooltip">' + escapeHtml(c.LINKEDIN || '-') + '</span></td>' +
+            '<td><span class="clickable-cell" title="' + escapeHtml(c.DTINCLUSAO || '-') + '" data-toggle="tooltip">' + escapeHtml(c.DTINCLUSAO || '-') + '</span></td>' +
+            '<td><span class="clickable-cell" title="' + escapeHtml(c.APRESENTACAO || '-') + '" data-toggle="tooltip">' + escapeHtml(c.APRESENTACAO || '-') + '</span></td>' +
+            '<td class="text-center">' + curriculoBtn + '</td>' +
+          '</tr>';
+        });
+        if (!html) {
+          html = '<tr><td colspan="7" class="text-center text-muted">Nenhum candidato para esta vaga.</td></tr>';
+        }
+        $('#tblCandidatosVaga tbody').html(html);
+        initTabelaCandidatos();
+        $('#candidatosLoading').hide();
+        $('body').tooltip({ selector: '[data-toggle="tooltip"]', container: 'body' });
+      },
+      error: function(xhr) {
+        $('#candidatosLoading').hide();
+        $('#tblCandidatosVaga tbody').html('<tr><td colspan="7" class="text-center text-danger">' + escapeHtml(xhr.responseJSON?.error || 'Erro ao carregar candidatos.') + '</td></tr>');
+      }
+    });
+  }
+
   $('#tblVagas').DataTable({
     language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
     dom: 'Bfrtip',
@@ -519,6 +649,19 @@ $(document).ready(function () {
       error: function(xhr) { alert(xhr.responseJSON?.error || 'Erro ao fechar vaga.'); }
     });
   });
+
+  $(document).on('click', '.btn-listar-candidatos', function() {
+    const id = $(this).data('id');
+    const funcao = $(this).data('funcao');
+    carregarCandidatosDaVaga(id, funcao);
+  });
+
+  $('#modalCandidatosVaga').on('hidden.bs.modal', function() {
+    if ($.fn.DataTable.isDataTable('#tblCandidatosVaga')) {
+      $('#tblCandidatosVaga').DataTable().destroy();
+    }
+    $('#tblCandidatosVaga tbody').empty();
+  });
   <% } %>
 
   $('body').tooltip({ selector: '[data-toggle="tooltip"]', container: 'body' });
@@ -610,7 +753,7 @@ $(document).ready(function () {
       contentType: false,
       success: function() {
         $('#modalCandidatura').modal('hide');
-        alert('Candidatura enviada com sucesso!');
+        sessionStorage.setItem('candSuccess', '1');
         location.reload();
       },
       error: function(xhr) {

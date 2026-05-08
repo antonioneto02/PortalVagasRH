@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <title>Candidaturas - Portal Vagas RH</title>
+  <%- include('../System/headIncludes.ejs') %>
+  <style>
+    #tblCandidaturas td, #tblCandidaturas th { vertical-align: middle; }
+    .clickable-cell {
+      cursor: pointer;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 240px;
+    }
+    .clickable-cell:hover {
+      background: rgba(0,0,0,0.05);
+      border-radius: 4px;
+    }
+    .dt-filters select {
+      font-size: .78rem;
+      height: calc(1.5em + .5rem + 2px);
+      display: inline-block;
+      width: auto;
+      min-width: 120px;
+      padding: 2px 6px;
+    }
+  </style>
+</head>
+<body>
+<div class="layout-container">
+  <%- include('../partials/sidebar') %>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1><i class="bi bi-file-earmark-person me-2"></i>Candidaturas</h1>
+      </div>
+      <div class="topbar-right">
+        <span><i class="bi bi-person-circle me-1"></i><%= username %></span>
+        <a href="/logout"><i class="bi bi-box-arrow-right me-1"></i>Sair</a>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4 class="mb-0"><i class="fas fa-list me-2"></i>Lista de Candidaturas</h4>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="tblCandidaturas" class="display table table-striped table-hover" style="width:100%">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ID Vaga</th>
+                  <th>Nome</th>
+                  <th>Celular</th>
+                  <th>E-mail</th>
+                  <th>LinkedIn</th>
+                  <th>Apresentação</th>
+                  <th>Link Adicional</th>
+                  <th>Data Inclusão</th>
+                  <th>Currículo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% candidaturas.forEach(c => { %>
+                  <tr>
+                    <td><span class="clickable-cell" title="<%= c.ID %>" data-toggle="tooltip" data-label="ID" data-full="<%= c.ID %>" data-vaga="<%= c.NOME_VAGA || '-' %>"><%= c.ID %></span></td>
+                    <td><span class="clickable-cell" title="<%= c.ID_VAGA %>" data-toggle="tooltip" data-label="ID da vaga" data-full="<%= c.ID_VAGA %>" data-vaga="<%= c.NOME_VAGA || '-' %>"><%= c.ID_VAGA %></span></td>
+                    <td><span class="clickable-cell" title="<%= c.NOME || '-' %>" data-toggle="tooltip" data-label="Nome" data-full="<%= c.NOME || '-' %>" data-vaga="<%= c.NOME_VAGA || '-' %>"><%= c.NOME || '-' %></span></td>
+                    <td><span class="clickable-cell" title="<%= c.CELULAR || '-' %>" data-toggle="tooltip" data-label="Celular" data-full="<%= c.CELULAR || '-' %>" data-vaga="<%= c.NOME_VAGA || '-' %>"><%= c.CELULAR || '-' %></span></td>
+                    <td><span class="clickable-cell" title="<%= c.EMAIL || '-' %>" data-toggle="tooltip" data-label="E-mail" data-full="<%= c.EMAIL || '-' %>" data-vaga="<%= c.NOME_VAGA || '-' %>"><%= c.EMAIL || '-' %></span></td>
+                    <td><span class="clickable-cell" title="<%= c.LINKEDIN || '-' %>" data-toggle="tooltip" data-label="LinkedIn" data-full="<%= c.LINKEDIN || '-' %>" data-vaga="<%= c.NOME_VAGA || '-' %>"><%= c.LINKEDIN || '-' %></span></td>
+                    <td><span class="clickable-cell" title="<%= c.APRESENTACAO || '-' %>" data-toggle="tooltip" data-label="Apresentação" data-full="<%= c.APRESENTACAO || '-' %>" data-vaga="<%= c.NOME_VAGA || '-' %>"><%= c.APRESENTACAO || '-' %></span></td>
+                    <td><span class="clickable-cell" title="<%= c.LINK_ADICIONAL || '-' %>" data-toggle="tooltip" data-label="Link adicional" data-full="<%= c.LINK_ADICIONAL || '-' %>" data-vaga="<%= c.NOME_VAGA || '-' %>"><%= c.LINK_ADICIONAL || '-' %></span></td>
+                    <td><span class="clickable-cell" title="<%= c.DTINCLUSAO || '-' %>" data-toggle="tooltip" data-label="Data inclusão" data-full="<%= c.DTINCLUSAO || '-' %>" data-vaga="<%= c.NOME_VAGA || '-' %>"><%= c.DTINCLUSAO || '-' %></span></td>
+                    <td class="text-center">
+                      <% if (c.CURRICULO_PATH) { %>
+                        <a href="<%= c.CURRICULO_PATH %>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" title="Ver currículo">
+                          <i class="fas fa-file-pdf me-1"></i>Ver
+                        </a>
+                      <% } else { %>
+                        <button class="btn btn-sm btn-outline-secondary" disabled>Sem arquivo</button>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalCellFull" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detalhes da Candidatura</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body"><pre id="modalCellFullContent" style="white-space:pre-wrap;word-wrap:break-word;margin:0;"></pre></div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function() {
+  var table = $('#tblCandidaturas').DataTable({
+    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+    dom: 'Bfrtip',
+    buttons: [{
+      extend: 'excelHtml5',
+      text: '<i class="fas fa-file-excel"></i> Excel',
+      className: 'btn btn-success btn-sm',
+      title: 'Candidaturas RH'
+    }],
+    pageLength: 25,
+    order: [[0, 'desc']],
+    initComplete: function() {
+      var api = this.api();
+      var cols = [
+        { idx: 1, label: 'ID vaga...', w: '110px' },
+        { idx: 2, label: 'Nome...', w: '170px' },
+        { idx: 4, label: 'E-mail...', w: '190px' },
+        { idx: 8, label: 'Data...', w: '130px' }
+      ];
+      var filterDiv = $('#tblCandidaturas_filter').addClass('dt-filters').css({
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: '.3rem'
+      });
+      filterDiv.find('label').css({ marginBottom: 0, marginRight: '.25rem', whiteSpace: 'nowrap' });
+
+      cols.forEach(function(c) {
+        var col = api.column(c.idx);
+        var sel = $('<select class="form-control form-control-sm" style="width:' + c.w + ';min-width:' + c.w + ';"><option value="">' + c.label + '</option></select>');
+        var vals = [];
+        col.nodes().each(function() {
+          var t = $(this).text().trim();
+          if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
+        });
+        vals.sort().forEach(function(v) { sel.append('<option value="' + v + '">' + v + '</option>'); });
+        filterDiv.append(sel);
+        sel.on('change', function() {
+          var v = $(this).val();
+          col.search(v ? '^' + $.fn.dataTable.util.escapeRegex(v) + '$' : '', true, false).draw();
+        });
+      });
+    }
+  });
+
+  $('body').tooltip({ selector: '[data-toggle="tooltip"]', container: 'body' });
+
+  $('#tblCandidaturas').on('click', '.clickable-cell', function() {
+    var label = $(this).data('label') || 'Campo';
+    var full = $(this).data('full') || '-';
+    var vaga = $(this).data('vaga') || '-';
+    $('#modalCellFullContent').text('Vaga: ' + vaga + '\n\n' + label + ':\n' + full);
+    $('#modalCellFull').modal('show');
+  });
+
+  $('#tblCandidaturas').on('click', 'a.btn', function(event) {
+    event.stopPropagation();
+  });
+
+  $('#modalCellFull').on('hidden.bs.modal', function() {
+    $('#modalCellFullContent').text('');
+  });
+});
+</script>
+</body>
+</html>
