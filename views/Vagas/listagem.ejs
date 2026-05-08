@@ -5,7 +5,7 @@
   <%- include('../System/headIncludes.ejs') %>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
-    .select2-container { width: 100% !important; }
+    .modal .select2-container { width: 100% !important; }
     .select2-container--default .select2-selection--single {
       height: calc(1.5em + 0.75rem + 2px);
       border: 1px solid #ced4da;
@@ -50,7 +50,10 @@
       flex-direction: column;
       gap: .55rem;
       min-height: 260px;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease;
     }
+    .vaga-card:hover { transform: translateY(-2px); box-shadow: 0 10px 18px rgba(43, 40, 111, 0.12); }
     .vaga-card .head {
       display: flex;
       align-items: flex-start;
@@ -168,7 +171,7 @@
           <% } else { %>
             <div class="vagas-grid">
               <% vagas.forEach(v => { %>
-                <div class="vaga-card">
+                <div class="vaga-card" data-fulltext="Função: <%= String(v.FUNCAO || '-').replace(/"/g, '&quot;') %>&#10;Status: <%= String(v.STATUS || '-').replace(/"/g, '&quot;') %>&#10;Tipo: <%= String(v.TIPO_VAGA || '-').replace(/"/g, '&quot;') %>&#10;Empresa: <%= String(v.EMPRESA || '-').replace(/"/g, '&quot;') %>&#10;Abertura: <%= String(v.DATA_ABERTURA || '-').replace(/"/g, '&quot;') %>&#10;SLA: <%= v.SLA_DIAS !== null ? String(v.SLA_DIAS) : '-' %> dias&#10;&#10;Requisitos:&#10;<%= String(v.REQUISITOS_VAGA || 'Sem requisitos informados.').replace(/"/g, '&quot;') %>">
                   <div class="head">
                     <h5><%= v.FUNCAO %></h5>
                     <span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;color:white;"><%= v.STATUS %></span>
@@ -189,8 +192,7 @@
                   <div class="mt-auto pt-2 d-flex flex-column align-items-center">
                     <% if (candidaturasFeitas.includes(v.ID)) { %>
                       <span style="font-size:.82rem;color:#17a2b8;font-weight:600;" class="mb-2"><i class="fas fa-check-circle me-1"></i>Já me candidatei</span>
-                    <% } %>
-                    <% if (v.STATUS !== 'FECHADA') { %>
+                    <% } else if (v.STATUS !== 'FECHADA') { %>
                       <button class="btn btn-primary btn-sm btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>">
                         <i class="fas fa-paper-plane me-1"></i>Candidatar-se
                       </button>
@@ -383,16 +385,15 @@ $(document).ready(function () {
         {idx:4, label:'Solicitante...', w:'160px'},
         {idx:9, label:'Abertura...', w:'130px'}
       ];
-      var filterDiv = $('#tblVagas_filter').css({display:'flex', flexWrap:'wrap', alignItems:'center', gap:'.4rem'});
-      filterDiv.find('label').css({marginBottom:0, marginRight:'.25rem'});
+      var filterDiv = $('#tblVagas_filter').css({display:'flex', flexWrap:'wrap', alignItems:'center', gap:'.3rem'});
+      filterDiv.find('label').css({marginBottom:0, marginRight:'.25rem', whiteSpace:'nowrap'});
       cols.forEach(function(c) {
         var col = api.column(c.idx);
-        var sel = $('<select style="min-width:'+c.w+';width:'+c.w+';"><option value="">'+c.label+'</option></select>');
+        var sel = $('<select class="form-control form-control-sm" style="width:'+c.w+';min-width:'+c.w+';font-size:.78rem;padding:2px 6px;height:calc(1.5em + .5rem + 2px);"><option value="">'+c.label+'</option></select>');
         var vals = [];
         col.nodes().each(function() { var t=$(this).text().trim(); if(t&&t!=='-'&&vals.indexOf(t)===-1) vals.push(t); });
         vals.sort().forEach(function(v){sel.append('<option value="'+v+'">'+v+'</option>');});
         filterDiv.append(sel);
-        sel.select2({allowClear:true, placeholder:c.label, width:c.w});
         sel.on('change',function(){var v=$(this).val();col.search(v?'^'+$.fn.dataTable.util.escapeRegex(v)+'$':'',true,false).draw();});
       });
     }
@@ -532,6 +533,17 @@ $(document).ready(function () {
   });
 
   $('#modalCellFull').on('hidden.bs.modal', function () { $('#modalCellFullContent').text(''); });
+
+  $(document).on('click', '.vaga-card', function() {
+    var fullText = $(this).attr('data-fulltext') || '';
+    if (!fullText.trim()) return;
+    $('#modalCellFullContent').text(fullText.replace(/&#10;/g, '\n'));
+    $('#modalCellFull').modal('show');
+  });
+
+  $(document).on('click', '.vaga-card .btn', function(event) {
+    event.stopPropagation();
+  });
 
   $(document).on('click', '.btn-candidatura', function() {
     const id = $(this).data('id');
