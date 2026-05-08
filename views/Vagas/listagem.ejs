@@ -89,6 +89,11 @@
     .me-1 { margin-right:.25rem!important; }
     .me-2 { margin-right:.5rem!important; }
     .dt-filtros select { font-size:.82rem; height:calc(1.5em + .5rem + 2px); display:inline-block; width:auto; min-width:110px; }
+    .curriculo-preview-card { gap: .5rem; }
+    .curriculo-preview-meta { min-width: 0; flex: 1; }
+    .curriculo-preview-meta #curriculoNome { word-break: break-word; line-height: 1.2; }
+    #removerCurriculo { flex-shrink: 0; margin-left: .5rem !important; }
+    .btn-curriculo-acao { min-width: 84px; }
   </style>
 </head>
 <body>
@@ -363,13 +368,13 @@
               <label>Currículo <small class="text-muted">(PDF, DOC, DOCX, PNG, JPG)</small></label>
               <input type="file" class="form-control" name="curriculo" id="candCurriculo" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
               <div id="curriculoPreview" class="mt-2" style="display:none;">
-                <div class="d-flex align-items-center p-2 border rounded" style="background:#f8f9fa;gap:.5rem;">
+                <div class="d-flex align-items-center p-2 border rounded curriculo-preview-card" style="background:#f8f9fa;">
                   <i class="fas fa-file-alt fa-2x text-primary"></i>
-                  <div>
+                  <div class="curriculo-preview-meta">
                     <div id="curriculoNome" style="font-weight:500;font-size:.85rem;"></div>
                     <div id="curriculoTamanho" style="font-size:.75rem;color:#6c757d;"></div>
                   </div>
-                  <button type="button" class="btn btn-sm btn-outline-danger ml-auto" id="removerCurriculo"><i class="fas fa-times"></i></button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" id="removerCurriculo"><i class="fas fa-times"></i></button>
                 </div>
               </div>
             </div>
@@ -472,7 +477,7 @@ $(document).ready(function () {
         var html = '';
         (rows || []).forEach(function(c) {
           var curriculoBtn = c.CURRICULO_PATH
-            ? '<a href="/api/candidaturas/' + c.ID + '/curriculo" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" title="Ver currículo"><i class="fas fa-file-pdf me-1"></i>Ver</a> <a href="/api/candidaturas/' + c.ID + '/curriculo?download=1" class="btn btn-sm btn-outline-secondary" title="Baixar currículo"><i class="fas fa-download"></i></a>'
+            ? '<div class="d-flex justify-content-center" style="gap:.25rem;"><a href="/api/candidaturas/' + c.ID + '/curriculo" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary btn-curriculo-acao" title="Ver currículo"><i class="fas fa-file-pdf me-1"></i>Ver</a><a href="/api/candidaturas/' + c.ID + '/curriculo?download=1" class="btn btn-sm btn-outline-secondary btn-curriculo-acao" title="Baixar currículo"><i class="fas fa-download me-1"></i>Baixar</a></div>'
             : '<button class="btn btn-sm btn-outline-secondary" disabled>Sem arquivo</button>';
           html += '<tr>' +
             '<td><span class="clickable-cell" title="' + escapeHtml(c.NOME || '-') + '" data-toggle="tooltip">' + escapeHtml(c.NOME || '-') + '</span></td>' +
