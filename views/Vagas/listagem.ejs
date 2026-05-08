@@ -472,7 +472,7 @@ $(document).ready(function () {
         var html = '';
         (rows || []).forEach(function(c) {
           var curriculoBtn = c.CURRICULO_PATH
-            ? '<a href="' + encodeURI(c.CURRICULO_PATH) + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" title="Ver currículo"><i class="fas fa-file-pdf me-1"></i>Ver</a>'
+            ? '<a href="/api/candidaturas/' + c.ID + '/curriculo" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" title="Ver currículo"><i class="fas fa-file-pdf me-1"></i>Ver</a> <a href="/api/candidaturas/' + c.ID + '/curriculo?download=1" class="btn btn-sm btn-outline-secondary" title="Baixar currículo"><i class="fas fa-download"></i></a>'
             : '<button class="btn btn-sm btn-outline-secondary" disabled>Sem arquivo</button>';
           html += '<tr>' +
             '<td><span class="clickable-cell" title="' + escapeHtml(c.NOME || '-') + '" data-toggle="tooltip">' + escapeHtml(c.NOME || '-') + '</span></td>' +

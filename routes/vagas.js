@@ -9,7 +9,7 @@ const {
   renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
   fecharVaga,
 } = require('../controllers/vagasController');
-const { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi } = require('../controllers/candidaturasController');
+const { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi, abrirCurriculoCandidatura } = require('../controllers/candidaturasController');
 const {
   renderUsuarios,
   atualizarAdmUsuario,
@@ -29,6 +29,7 @@ router.get('/api/pessoas', requireAuth, getPessoas);
 router.get('/api/empresas', requireAuth, getEmpresas);
 router.get('/api/matriculas', requireAuth, getMatriculas);
 router.get('/api/vagas/:id/candidaturas', requireAuth, requireAdmin, listarCandidaturasPorVagaApi);
+router.get('/api/candidaturas/:id/curriculo', requireAuth, requireAdmin, abrirCurriculoCandidatura);
 router.get('/api/sla/by-funcao', requireAuth, slaByFuncao);
 router.get('/api/sla', requireAuth, listarSlaApi);
 router.post('/api/sla', requireAuth, requireAdmin, salvarSla);

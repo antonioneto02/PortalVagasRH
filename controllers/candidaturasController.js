@@ -33,6 +33,29 @@ const upload = multer({
 
 const uploadMiddleware = upload.single('curriculo');
 
+function resolveCurriculoPath(curriculoPath) {
+  const raw = String(curriculoPath || '').trim();
+  if (!raw) return null;
+
+  if (path.isAbsolute(raw) && fs.existsSync(raw)) {
+    return raw;
+  }
+
+  const normalized = raw.replace(/\\/g, '/').replace(/^\/+/, '');
+  const inPublicFromPath = path.join(__dirname, '..', 'public', normalized);
+  if (fs.existsSync(inPublicFromPath)) {
+    return inPublicFromPath;
+  }
+
+  const fileName = path.basename(normalized);
+  const inCurriculosByName = path.join(__dirname, '..', 'public', 'curriculos', fileName);
+  if (fs.existsSync(inCurriculosByName)) {
+    return inCurriculosByName;
+  }
+
+  return null;
+}
+
 async function enviarEmailCandidatura({
   idVaga,
   vaga,
@@ -256,4 +279,46 @@ async function listarCandidaturasPorVagaApi(req, res) {
   }
 }
 
-module.exports = { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi };
+async function abrirCurriculoCandidatura(req, res) {
+  const candidaturaId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(candidaturaId) || candidaturaId <= 0) {
+    return res.status(400).send('ID da candidatura inválido.');
+  }
+
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request()
+      .input('ID', sql.Int, candidaturaId)
+      .query(`SELECT TOP 1 CURRICULO_PATH FROM RH_CANDIDATURAS WHERE ID = @ID`);
+
+    if (!result.recordset.length) {
+      return res.status(404).send('Candidatura não encontrada.');
+    }
+
+    const curriculoPath = result.recordset[0].CURRICULO_PATH;
+    const absoluteFilePath = resolveCurriculoPath(curriculoPath);
+
+    if (!absoluteFilePath) {
+      return res.status(404).send('Currículo não encontrado no servidor.');
+    }
+
+    const fileName = path.basename(absoluteFilePath);
+    const ext = path.extname(fileName).toLowerCase();
+    const inlineExtensions = new Set(['.pdf', '.png', '.jpg', '.jpeg']);
+    const forceDownload = String(req.query.download || '') === '1';
+
+    if (forceDownload || !inlineExtensions.has(ext)) {
+      return res.download(absoluteFilePath, fileName);
+    }
+
+    return res.sendFile(absoluteFilePath);
+  } catch (err) {
+    console.error('Erro ao abrir currículo da candidatura:', err);
+    return res.status(500).send('Erro ao abrir currículo.');
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+module.exports = { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi, abrirCurriculoCandidatura };
