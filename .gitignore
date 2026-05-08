@@ -4,3 +4,4 @@ package.json
 package-lock.json
 SQL/create_tables.sql
 public/curriculos/
+logs/sessions/
