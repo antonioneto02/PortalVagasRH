@@ -3,12 +3,19 @@ const path = require('path');
 const dotenv = require('dotenv');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+const https = require('https');
+const fs = require('fs');
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3020;
 const host = process.env.HOST;
+
+const options = {
+  key: fs.readFileSync('cini.key'),
+  cert: fs.readFileSync('cini.crt'),
+};
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -43,6 +50,6 @@ app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-app.listen(port, host, () => {
-  console.log(`Portal Vagas RH rodando em http://${host}:${port}`);
+https.createServer(options, app).listen(port, host || '0.0.0.0', () => {
+  console.log(`Portal Vagas RH rodando em https://${host || '0.0.0.0'}:${port}`);
 });
