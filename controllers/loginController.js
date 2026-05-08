@@ -16,8 +16,8 @@ async function getLocalUser(username) {
     pool = await new sql.ConnectionPool(dbConfig).connect();
     const result = await pool.request()
       .input('USERNAME', sql.VarChar(100), username)
-      .query(`SELECT ID, USERNAME, PASSWORD_HASH, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
-              FROM RH_USUARIOS
+            .query(`SELECT ID, USERNAME, PASSWORD_HASH, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
+              FROM [portal_rh].[dbo].[RH_USUARIOS]
               WHERE USERNAME = @USERNAME AND ATIVO = 1`);
     return result.recordset.length > 0 ? result.recordset[0] : null;
   } finally {
@@ -31,8 +31,8 @@ async function getUserByProtheusId(protheusId) {
     pool = await new sql.ConnectionPool(dbConfig).connect();
     const result = await pool.request()
       .input('ID_PROTHEUS', sql.VarChar(50), String(protheusId || '').trim())
-      .query(`SELECT TOP 1 ID, USERNAME, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
-              FROM RH_USUARIOS
+            .query(`SELECT TOP 1 ID, USERNAME, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
+              FROM [portal_rh].[dbo].[RH_USUARIOS]
               WHERE ID_PROTHEUS = @ID_PROTHEUS AND ATIVO = 1`);
     return result.recordset.length > 0 ? result.recordset[0] : null;
   } finally {
@@ -203,7 +203,7 @@ async function cadastrarUsuario(req, res) {
     pool = await new sql.ConnectionPool(dbConfig).connect();
     const existing = await pool.request()
       .input('USERNAME', sql.VarChar(100), username)
-      .query(`SELECT ID FROM RH_USUARIOS WHERE USERNAME = @USERNAME`);
+      .query(`SELECT ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME`);
 
     if (existing.recordset.length > 0) {
       return res.redirect('/register?error=usuario_ja_existe');
@@ -215,12 +215,12 @@ async function cadastrarUsuario(req, res) {
       .input('NOME', sql.VarChar(200), nome)
       .input('EMAIL', sql.VarChar(200), email || null)
       .input('TELEFONE', sql.VarChar(20), telefone || null)
-      .query(`INSERT INTO RH_USUARIOS (USERNAME, PASSWORD_HASH, NOME, EMAIL, TELEFONE, ADM, ATIVO)
+      .query(`INSERT INTO [portal_rh].[dbo].[RH_USUARIOS] (USERNAME, PASSWORD_HASH, NOME, EMAIL, TELEFONE, ADM, ATIVO)
               VALUES (@USERNAME, @PASSWORD_HASH, @NOME, @EMAIL, @TELEFONE, 0, 1)`);
 
     const newUser = await pool.request()
       .input('USERNAME2', sql.VarChar(100), username)
-      .query(`SELECT ID FROM RH_USUARIOS WHERE USERNAME = @USERNAME2`);
+      .query(`SELECT ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME2`);
 
     req.session.userId = 'LOCAL_' + newUser.recordset[0].ID;
     req.session.localUserId = newUser.recordset[0].ID;

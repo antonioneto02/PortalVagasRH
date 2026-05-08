@@ -43,7 +43,7 @@ async function atualizarAdmUsuario(req, res) {
     await pool.request()
       .input('ID', sql.Int, id)
       .input('ADM', sql.Int, adm)
-      .query('UPDATE RH_USUARIOS SET ADM=@ADM WHERE ID=@ID');
+      .query('UPDATE [portal_rh].[dbo].[RH_USUARIOS] SET ADM=@ADM WHERE ID=@ID');
     return res.json({ success: true });
   } catch (err) {
     console.error('Erro ao atualizar ADM:', err);
@@ -68,7 +68,7 @@ async function criarUsuario(req, res) {
 
     const existing = await pool.request()
       .input('USERNAME', sql.VarChar(100), username)
-      .query('SELECT TOP 1 ID FROM RH_USUARIOS WHERE USERNAME = @USERNAME');
+      .query('SELECT TOP 1 ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME');
 
     if (existing.recordset.length > 0) {
       return res.status(409).json({ error: 'Usuário já existe.' });
@@ -82,7 +82,7 @@ async function criarUsuario(req, res) {
       .input('TELEFONE', sql.VarChar(20), telefone || null)
       .input('ADM', sql.Int, admFlag)
       .query(`
-        INSERT INTO RH_USUARIOS (USERNAME, PASSWORD_HASH, NOME, EMAIL, TELEFONE, ADM, ATIVO)
+        INSERT INTO [portal_rh].[dbo].[RH_USUARIOS] (USERNAME, PASSWORD_HASH, NOME, EMAIL, TELEFONE, ADM, ATIVO)
         VALUES (@USERNAME, @PASSWORD_HASH, @NOME, @EMAIL, @TELEFONE, @ADM, 1)
       `);
 
@@ -145,7 +145,7 @@ async function incluirUsuarioProtheus(req, res) {
 
     const existing = await pool.request()
       .input('ID_PROTHEUS', sql.VarChar(50), idProtheus)
-      .query('SELECT TOP 1 ID FROM RH_USUARIOS WHERE ID_PROTHEUS = @ID_PROTHEUS');
+      .query('SELECT TOP 1 ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE ID_PROTHEUS = @ID_PROTHEUS');
 
     if (existing.recordset.length > 0) {
       return res.status(409).json({ error: 'Usuário Protheus já cadastrado.' });
@@ -161,7 +161,7 @@ async function incluirUsuarioProtheus(req, res) {
       .input('ADM', sql.Int, adm)
       .input('ID_PROTHEUS', sql.VarChar(50), idProtheus)
       .query(`
-        INSERT INTO RH_USUARIOS (USERNAME, PASSWORD_HASH, NOME, ADM, ID_PROTHEUS, ATIVO)
+        INSERT INTO [portal_rh].[dbo].[RH_USUARIOS] (USERNAME, PASSWORD_HASH, NOME, ADM, ID_PROTHEUS, ATIVO)
         VALUES (@USERNAME, @PASSWORD_HASH, @NOME, @ADM, @ID_PROTHEUS, 1)
       `);
 
