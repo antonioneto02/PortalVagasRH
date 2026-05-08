@@ -44,8 +44,8 @@ async function enviarEmailCandidatura({
   linkAdicional,
   curriculoFile,
 }) {
+  const assunto = `Nova candidatura - Vaga ${idVaga}${vaga?.FUNCAO ? ` - ${vaga.FUNCAO}` : ''}`;
   const text = [
-    `Assunto: Nova candidatura - Vaga ${idVaga}${vaga?.FUNCAO ? ` - ${vaga.FUNCAO}` : ''}`,
     'Nova candidatura recebida no Portal Vagas RH',
     `ID da vaga: ${idVaga}`,
     `Função: ${vaga?.FUNCAO || '-'}`,
@@ -55,44 +55,46 @@ async function enviarEmailCandidatura({
     `E-mail: ${email}`,
     `LinkedIn: ${linkedin || '-'}`,
     `Link adicional: ${linkAdicional || '-'}`,
-    '---',
+    '',
     'Apresentação:',
     apresentacao,
-    '---',
+    '',
     curriculoFile ? 'Currículo anexado.' : 'Sem currículo anexado.',
   ].join('\n');
+  const corpoHtml = [
+    '<html><body>',
+    '<p><strong>Nova candidatura recebida no Portal Vagas RH</strong></p>',
+    '<ul>',
+    `<li><strong>ID da vaga:</strong> ${idVaga}</li>`,
+    `<li><strong>Função:</strong> ${vaga?.FUNCAO || '-'}</li>`,
+    `<li><strong>Tipo da vaga:</strong> ${vaga?.TIPO_VAGA || '-'}</li>`,
+    `<li><strong>Nome:</strong> ${nome}</li>`,
+    `<li><strong>Celular:</strong> ${celular}</li>`,
+    `<li><strong>E-mail:</strong> ${email}</li>`,
+    `<li><strong>LinkedIn:</strong> ${linkedin || '-'}</li>`,
+    `<li><strong>Link adicional:</strong> ${linkAdicional || '-'}</li>`,
+    '</ul>',
+    '<p><strong>Apresentação:</strong></p>',
+    `<p>${String(apresentacao || '').replace(/\n/g, '<br>')}</p>`,
+    `<p><strong>${curriculoFile ? 'Currículo anexado.' : 'Sem currículo anexado.'}</strong></p>`,
+    '</body></html>',
+  ].join('');
+  const attachmentB64 = curriculoFile ? fs.readFileSync(curriculoFile.path).toString('base64') : null;
 
   await notificacaoModel.enqueue({
     tipo: 'EMAIL',
     destinatario: CANDIDATURA_NOTIFY_EMAIL,
     mensagem: text,
-    template_name: 'CANDIDATURA_PORTAL_RH',
-    template_params: JSON.stringify({
-      id_vaga: idVaga,
-      funcao: vaga?.FUNCAO || null,
-      tipo_vaga: vaga?.TIPO_VAGA || null,
-      nome,
-      celular,
-      email,
-      linkedin: linkedin || null,
-      apresentacao,
-      link_adicional: linkAdicional || null,
-      curriculo_nome: curriculoFile?.originalname || null,
-      curriculo_path: curriculoFile?.path || null,
-      curriculo_public_path: curriculoFile ? '/curriculos/' + curriculoFile.filename : null,
-      curriculo_mimetype: curriculoFile?.mimetype || null,
-    }),
     metadados: JSON.stringify({
+      assunto,
+      corpo: corpoHtml,
       sistema: 'portal-vagas-rh',
       fluxo: 'candidatura',
       destinatario: CANDIDATURA_NOTIFY_EMAIL,
-      anexos: curriculoFile
-        ? [{
-            filename: curriculoFile.originalname,
-            path: curriculoFile.path,
-            mimetype: curriculoFile.mimetype,
-          }]
-        : [],
+      attachment_path: curriculoFile?.path || null,
+      attachment_name: curriculoFile?.originalname || null,
+      attachment_b64: attachmentB64,
+      attachment_mimetype: curriculoFile?.mimetype || null,
     }),
   });
 }
