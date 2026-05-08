@@ -55,6 +55,7 @@ router.get('/login', (req, res) => {
   const csrfToken = generateCsrfToken(req);
   res.render('System/loginPage', {
     error: req.query.error || null,
+    username: req.query.username || '',
     timeout: req.query.timeout === 'true',
     csrfToken,
   });

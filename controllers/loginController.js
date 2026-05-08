@@ -20,7 +20,7 @@ const COOKIE_COMMON = {
   secure: true,
   sameSite: 'lax',
 };
-const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const OTP_MAX_RESENDS = 3;
 const OTP_SECRET = process.env.OTP_SECRET || 'portal-vagas-otp-secret-change-this';
@@ -65,17 +65,16 @@ function maskEmail(email) {
 }
 
 async function sendOtpByEmail(email, nome, otpCode) {
-  const mensagem = `Olá ${String(nome || 'candidato(a)')},\n\nSeu código de verificação do Portal Vagas RH é: ${otpCode}.\nO código expira em 10 minutos.\n\nSe você não solicitou este cadastro, ignore este e-mail.`;
+  const mensagem = `Olá ${String(nome || 'candidato(a)')},\n\nSeu código de verificação do Portal Vagas RH é: ${otpCode}.\nO código expira em 5 minutos.\n\nSe você não solicitou este cadastro, ignore este e-mail.`;
 
   await notificacaoModel.enqueue({
     tipo: 'EMAIL',
     destinatario: email,
     mensagem,
-    template_name: 'OTP_CADASTRO_PORTAL_RH',
     template_params: JSON.stringify({
       nome: String(nome || ''),
       otp: otpCode,
-      ttl_minutos: 10,
+      ttl_minutos: 5,
     }),
     metadados: JSON.stringify({
       sistema: 'portal-vagas-rh',
@@ -314,7 +313,7 @@ async function cadastrarUsuario(req, res) {
 
     const usernameLivre = await isUsernameAvailable(username);
     if (!usernameLivre) {
-      return res.redirect('/register?error=usuario_ja_existe');
+      return res.redirect('/login?error=already_registered&username=' + encodeURIComponent(username));
     }
 
     const otpCode = generateOtpCode();
@@ -402,7 +401,7 @@ async function verificarOtpCadastro(req, res) {
 
     if (existing.recordset.length > 0) {
       req.session.pendingRegistration = null;
-      return req.session.save(() => res.redirect('/register?error=usuario_ja_existe'));
+      return req.session.save(() => res.redirect('/login?error=already_registered&username=' + encodeURIComponent(pending.username)));
     }
 
     await pool.request()

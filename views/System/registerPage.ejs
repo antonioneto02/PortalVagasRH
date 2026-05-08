@@ -101,7 +101,7 @@
                     <i class="fas fa-eye" id="togglePwIcon"></i>
                   </button>
                 </div>
-                <div id="pwRules" class="mt-2" style="font-size:0.85rem; line-height:1.4;">
+                <div id="pwRules" class="mt-2" style="font-size:0.85rem; line-height:1.4; display:none;">
                   <div id="ruleLen" class="text-danger">Pelo menos 8 caracteres</div>
                   <div id="ruleUpper" class="text-danger">Uma letra maiúscula</div>
                   <div id="ruleLower" class="text-danger">Uma letra minúscula</div>
@@ -142,6 +142,7 @@
     const emailFeedback = document.getElementById('emailFeedback');
     const telefoneField = document.getElementById('telefone');
     const passwordField = document.getElementById('password');
+    const pwRulesBox = document.getElementById('pwRules');
     const submitBtn = document.getElementById('submitBtn');
 
     document.getElementById('togglePw').addEventListener('click', function() {
@@ -252,6 +253,14 @@
       setRuleState(passwordRules.special, checks.special);
     });
 
+    passwordField.addEventListener('focus', function() {
+      pwRulesBox.style.display = 'block';
+    });
+
+    passwordField.addEventListener('blur', function() {
+      pwRulesBox.style.display = 'none';
+    });
+
     emailField.addEventListener('input', validateEmailField);
 
     telefoneField.addEventListener('input', function() {
@@ -278,9 +287,7 @@
 
       if (!usernameAvailable) {
         e.preventDefault();
-        usernameFeedback.className = 'mt-1 text-danger';
-        usernameFeedback.textContent = 'Escolha um usuário disponível antes de continuar.';
-        usernameField.focus();
+        window.location.href = '/login?error=already_registered&username=' + encodeURIComponent(usernameField.value.trim());
         return;
       }
 
