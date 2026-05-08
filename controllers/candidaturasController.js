@@ -5,7 +5,7 @@ const fs = require('fs');
 const dbConfig = require('../database/dbConfig');
 const notificacaoModel = require('../models/notificacaoModel');
 
-const CANDIDATURA_NOTIFY_EMAIL = process.env.CANDIDATURA_NOTIFY_EMAIL || 'ti02@cini';
+const CANDIDATURA_NOTIFY_EMAIL = process.env.CANDIDATURA_NOTIFY_EMAIL || 'ti02@cini.com.br';
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '..', 'public', 'curriculos');
