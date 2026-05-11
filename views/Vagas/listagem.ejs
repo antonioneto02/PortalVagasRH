@@ -449,8 +449,8 @@ $(document).ready(function () {
           var col = api.column(c.idx);
           var sel = $('<select class="form-control form-control-sm" style="width:' + c.w + ';min-width:' + c.w + ';font-size:.78rem;padding:2px 6px;height:calc(1.5em + .5rem + 2px);"><option value="">' + c.label + '</option></select>');
           var vals = [];
-          col.nodes().each(function() {
-            var t = $(this).text().trim();
+          col.data().each(function(d) {
+            var t = $('<div>').html(String(d || '')).text().trim();
             if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
           });
           vals.sort().forEach(function(v) { sel.append('<option value="' + v + '">' + v + '</option>'); });
@@ -526,7 +526,7 @@ $(document).ready(function () {
         var col = api.column(c.idx);
         var sel = $('<select class="form-control form-control-sm" style="width:'+c.w+';min-width:'+c.w+';font-size:.78rem;padding:2px 6px;height:calc(1.5em + .5rem + 2px);"><option value="">'+c.label+'</option></select>');
         var vals = [];
-        col.nodes().each(function() { var t=$(this).text().trim(); if(t&&t!=='-'&&vals.indexOf(t)===-1) vals.push(t); });
+        col.data().each(function(d) { var t=$('<div>').html(String(d||'')).text().trim(); if(t&&t!=='-'&&vals.indexOf(t)===-1) vals.push(t); });
         vals.sort().forEach(function(v){sel.append('<option value="'+v+'">'+v+'</option>');});
         filterDiv.append(sel);
         sel.on('change',function(){var v=$(this).val();col.search(v?'^'+$.fn.dataTable.util.escapeRegex(v)+'$':'',true,false).draw();});

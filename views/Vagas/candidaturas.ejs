@@ -146,8 +146,8 @@ $(document).ready(function() {
         var col = api.column(c.idx);
         var sel = $('<select class="form-control form-control-sm" style="width:' + c.w + ';min-width:' + c.w + ';"><option value="">' + c.label + '</option></select>');
         var vals = [];
-        col.nodes().each(function() {
-          var t = $(this).text().trim();
+        col.data().each(function(d) {
+          var t = $('<div>').html(String(d || '')).text().trim();
           if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
         });
         vals.sort().forEach(function(v) { sel.append('<option value="' + v + '">' + v + '</option>'); });

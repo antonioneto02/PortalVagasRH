@@ -110,7 +110,7 @@ $(document).ready(function () {
         var col = api.column(c.idx);
         var sel = $('<select style="min-width:'+c.w+';width:'+c.w+';"><option value="">'+c.label+'</option></select>');
         var vals = [];
-        col.nodes().each(function() { var t=$(this).text().trim(); if(t&&t!=='-'&&vals.indexOf(t)===-1) vals.push(t); });
+        col.data().each(function(d) { var t=$('<div>').html(String(d||'')).text().trim(); if(t&&t!=='-'&&vals.indexOf(t)===-1) vals.push(t); });
         vals.sort().forEach(function(v){sel.append('<option value="'+v+'">'+v+'</option>');});
         filterDiv.append(sel);
         sel.select2({allowClear:true, placeholder:c.label, width:c.w});
