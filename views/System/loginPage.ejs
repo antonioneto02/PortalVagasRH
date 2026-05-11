@@ -4,10 +4,10 @@
   <title>Login - Portal Vagas RH</title>
   <%- include('headIncludes.ejs') %>
 </head>
-<body class="d-flex align-items-center min-vh-100" style="background-image: url('/css/Background.png'); background-size: cover; background-position: center; background-repeat: no-repeat; padding-top: 8vh;">
-  <div class="container">
+<body class="d-flex align-items-center justify-content-center min-vh-100" style="background-image: url('/css/Background.png'); background-size: cover; background-position: center; background-repeat: no-repeat; padding: 16px;">
+  <div class="container" style="max-width:560px;">
     <div class="row justify-content-center">
-      <div class="col-md-6">
+      <div class="col-12 col-sm-10 col-md-12">
         <div class="card">
           <div class="card-header text-center" style="background: linear-gradient(135deg, #2B286F 100%); border: none;">
             <div class="d-flex align-items-center justify-content-center mb-2">
@@ -89,6 +89,14 @@
   <style>
     #togglePassword:hover, #togglePassword:focus, #togglePassword:active {
       background: none !important; color: #6c757d !important; border: none !important; box-shadow: none !important; outline: none !important;
+    }
+    @media (max-width: 575px) {
+      body { padding: 12px !important; }
+      .card { box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
+      .card-header { padding: 1rem; }
+      .card-header h2 { font-size: 1.25rem; }
+      .card-body { padding: 1rem; }
+      .container { padding: 0 !important; }
     }
   </style>
 

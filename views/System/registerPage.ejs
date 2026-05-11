@@ -4,10 +4,10 @@
   <title>Cadastro - Portal Vagas RH</title>
   <%- include('headIncludes.ejs') %>
 </head>
-<body class="d-flex align-items-center min-vh-100" style="background-image: url('/css/Background.png'); background-size: cover; background-position: center; background-repeat: no-repeat; padding-top: 6vh; padding-bottom: 4vh;">
-  <div class="container">
+<body class="d-flex align-items-center justify-content-center min-vh-100" style="background-image: url('/css/Background.png'); background-size: cover; background-position: center; background-repeat: no-repeat; padding: 16px 16px;">
+  <div class="container" style="max-width:560px;">
     <div class="row justify-content-center">
-      <div class="col-md-6">
+      <div class="col-12 col-sm-10 col-md-12">
         <div class="card">
           <div class="card-header text-center" style="background: linear-gradient(135deg, #2B286F 100%); border: none;">
             <div class="d-flex align-items-center justify-content-center mb-2">
@@ -135,6 +135,16 @@
     </div>
   </div>
 
+  <style>
+    @media (max-width: 575px) {
+      body { padding: 12px !important; }
+      .card { box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
+      .card-header { padding: 1rem; }
+      .card-header h2 { font-size: 1.25rem; }
+      .card-body { padding: 1rem; }
+      .container { padding: 0 !important; }
+    }
+  </style>
   <script>
     const usernameField = document.getElementById('username');
     const usernameFeedback = document.getElementById('usernameFeedback');
