@@ -46,6 +46,7 @@ app.disable('x-powered-by');
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
+  hsts: false,
 }));
 app.use(hpp());
 app.use(express.static(path.join(__dirname, 'public')));
