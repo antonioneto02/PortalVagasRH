@@ -127,36 +127,12 @@ $(document).ready(function() {
     pageLength: 25,
     order: [[0, 'desc']],
     initComplete: function() {
-      var api = this.api();
-      var cols = [
+      dtBuildFilters(this.api(), 'tblCandidaturas_filter', [
         { idx: 1, label: 'ID vaga...', w: '110px' },
         { idx: 2, label: 'Nome...', w: '170px' },
         { idx: 4, label: 'E-mail...', w: '190px' },
         { idx: 8, label: 'Data...', w: '130px' }
-      ];
-      var filterDiv = $('#tblCandidaturas_filter').addClass('dt-filters').css({
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '.3rem'
-      });
-      filterDiv.find('label').css({ marginBottom: 0, marginRight: '.25rem', whiteSpace: 'nowrap' });
-
-      cols.forEach(function(c) {
-        var col = api.column(c.idx);
-        var sel = $('<select class="form-control form-control-sm" style="width:' + c.w + ';min-width:' + c.w + ';"><option value="">' + c.label + '</option></select>');
-        var vals = [];
-        col.data().each(function(d) {
-          var t = $('<div>').html(String(d || '')).text().trim();
-          if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
-        });
-        vals.sort().forEach(function(v) { sel.append('<option value="' + v + '">' + v + '</option>'); });
-        filterDiv.append(sel);
-        sel.on('change', function() {
-          var v = $(this).val();
-          col.search(v ? '^' + $.fn.dataTable.util.escapeRegex(v) + '$' : '', true, false).draw();
-        });
-      });
+      ]);
     }
   });
 

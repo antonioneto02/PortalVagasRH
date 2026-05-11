@@ -437,29 +437,11 @@ $(document).ready(function () {
       pageLength: 10,
       order: [[4, 'desc']],
       initComplete: function() {
-        var api = this.api();
-        var cols = [
+        dtBuildFilters(this.api(), 'tblCandidatosVaga_filter', [
           { idx: 0, label: 'Nome...', w: '170px' },
           { idx: 2, label: 'E-mail...', w: '190px' },
           { idx: 4, label: 'Data...', w: '130px' }
-        ];
-        var filterDiv = $('#tblCandidatosVaga_filter').css({ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '.3rem' });
-        filterDiv.find('label').css({ marginBottom: 0, marginRight: '.25rem', whiteSpace: 'nowrap' });
-        cols.forEach(function(c) {
-          var col = api.column(c.idx);
-          var sel = $('<select class="form-control form-control-sm" style="width:' + c.w + ';min-width:' + c.w + ';font-size:.78rem;padding:2px 6px;height:calc(1.5em + .5rem + 2px);"><option value="">' + c.label + '</option></select>');
-          var vals = [];
-          col.data().each(function(d) {
-            var t = $('<div>').html(String(d || '')).text().trim();
-            if (t && t !== '-' && vals.indexOf(t) === -1) vals.push(t);
-          });
-          vals.sort().forEach(function(v) { sel.append('<option value="' + v + '">' + v + '</option>'); });
-          filterDiv.append(sel);
-          sel.on('change', function() {
-            var v = $(this).val();
-            col.search(v ? '^' + $.fn.dataTable.util.escapeRegex(v) + '$' : '', true, false).draw();
-          });
-        });
+        ]);
       }
     });
   }
@@ -512,25 +494,14 @@ $(document).ready(function () {
     order: [[9,'desc']],
     columnDefs: [{ targets:[15], orderable:false }],
     initComplete: function() {
-      var api = this.api();
-      var cols = [
+      dtBuildFilters(this.api(), 'tblVagas_filter', [
         {idx:0, label:'Função...', w:'160px'},
         {idx:1, label:'Tipo...', w:'110px'},
+        {idx:2, label:'Status...', w:'110px'},
         {idx:3, label:'Setor...', w:'120px'},
         {idx:4, label:'Solicitante...', w:'160px'},
         {idx:9, label:'Abertura...', w:'130px'}
-      ];
-      var filterDiv = $('#tblVagas_filter').css({display:'flex', flexWrap:'wrap', alignItems:'center', gap:'.3rem'});
-      filterDiv.find('label').css({marginBottom:0, marginRight:'.25rem', whiteSpace:'nowrap'});
-      cols.forEach(function(c) {
-        var col = api.column(c.idx);
-        var sel = $('<select class="form-control form-control-sm" style="width:'+c.w+';min-width:'+c.w+';font-size:.78rem;padding:2px 6px;height:calc(1.5em + .5rem + 2px);"><option value="">'+c.label+'</option></select>');
-        var vals = [];
-        col.data().each(function(d) { var t=$('<div>').html(String(d||'')).text().trim(); if(t&&t!=='-'&&vals.indexOf(t)===-1) vals.push(t); });
-        vals.sort().forEach(function(v){sel.append('<option value="'+v+'">'+v+'</option>');});
-        filterDiv.append(sel);
-        sel.on('change',function(){var v=$(this).val();col.search(v?'^'+$.fn.dataTable.util.escapeRegex(v)+'$':'',true,false).draw();});
-      });
+      ]);
     }
   });
 

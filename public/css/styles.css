@@ -508,3 +508,29 @@ table.dataTable thead th {
   .sidebar { display: none; }
   .main-content { margin-left: 0 !important; }
 }
+
+/* ===== DataTables column filters ===== */
+.dropdown-menu.searchable-column {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  border-radius: 6px;
+  border: 1px solid #e6e6e6 !important;
+  padding: 6px 0;
+  margin: 0 !important;
+  transform: none !important;
+  box-sizing: border-box;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.dropdown-menu.searchable-column .dropdown-item {
+  font-size: .8rem;
+  padding: 7px 12px;
+  line-height: 1.2;
+  white-space: normal;
+  color: #222;
+  border-bottom: 1px solid #f1f1f1;
+  cursor: pointer;
+}
+.dropdown-menu.searchable-column .dropdown-item:last-child { border-bottom: none; }
+.dropdown-menu.searchable-column .dropdown-item:hover { background: #f5f7fa; color: #000; }
+.dropdown-menu.searchable-column::-webkit-scrollbar { width: 8px; }
+.dropdown-menu.searchable-column::-webkit-scrollbar-thumb { background: #cfcfcf; border-radius: 6px; }

@@ -175,26 +175,13 @@ $(document).ready(function() {
     pageLength: 25,
     order: [[0, 'desc']],
     initComplete: function() {
-      var api = this.api();
-      var cols = [
+      dtBuildFilters(this.api(), 'tblUsuarios_filter', [
         {idx:1, label:'Username...', w:'150px'},
         {idx:3, label:'Nome...', w:'160px'},
         {idx:6, label:'Dt Cadastro...', w:'150px'},
         {idx:8, label:'ADM...', w:'100px'},
         {idx:9, label:'ID Protheus...', w:'150px'}
-      ];
-      var filterDiv = $('#tblUsuarios_filter').css({display:'flex', flexWrap:'wrap', alignItems:'center', gap:'.4rem'});
-      filterDiv.find('label').css({marginBottom:0, marginRight:'.25rem'});
-      cols.forEach(function(c) {
-        var col = api.column(c.idx);
-        var sel = $('<select style="min-width:'+c.w+';width:'+c.w+';"><option value="">'+c.label+'</option></select>');
-        var vals = [];
-        col.data().each(function(d) { var t=$('<div>').html(String(d||'')).text().trim(); if(t&&t!=='-'&&vals.indexOf(t)===-1) vals.push(t); });
-        vals.sort().forEach(function(v){sel.append('<option value="'+v+'">'+v+'</option>');});
-        filterDiv.append(sel);
-        sel.select2({allowClear:true, placeholder:c.label, width:c.w});
-        sel.on('change',function(){var v=$(this).val();col.search(v?'^'+$.fn.dataTable.util.escapeRegex(v)+'$':'',true,false).draw();});
-      });
+      ]);
     }
   });
 

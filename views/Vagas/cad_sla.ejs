@@ -3,7 +3,6 @@
 <head>
   <title>CAD SLA - Portal Vagas RH</title>
   <%- include('../System/headIncludes.ejs') %>
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>#tblSla td{vertical-align:middle;}.badge-alta{background:#e74c3c;color:white;padding:3px 8px;border-radius:4px;font-size:.74rem;}.badge-media{background:#f39c12;color:white;padding:3px 8px;border-radius:4px;font-size:.74rem;}.badge-baixa{background:#27ae60;color:white;padding:3px 8px;border-radius:4px;font-size:.74rem;}.me-1{margin-right:.25rem!important;}.me-2{margin-right:.5rem!important;}
   .dt-filtros select{font-size:.82rem;height:calc(1.5em + .5rem + 2px);display:inline-block;width:auto;min-width:110px;}</style>
 </head>
@@ -89,7 +88,6 @@
 </div>
 <% } %>
 
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 $(document).ready(function () {
@@ -98,24 +96,11 @@ $(document).ready(function () {
     dom:'Bfrtip', buttons:[{extend:'excelHtml5',text:'<i class="fas fa-file-excel"></i> Excel',className:'btn btn-success btn-sm',title:'CAD SLA'}],
     pageLength:50, order:[[0,'asc']],
     initComplete: function() {
-      var api = this.api();
-      var cols = [
+      dtBuildFilters(this.api(), 'tblSla_filter', [
         {idx:0, label:'Função...', w:'160px'},
         {idx:1, label:'SLA...', w:'100px'},
         {idx:2, label:'Classificação...', w:'140px'}
-      ];
-      var filterDiv = $('#tblSla_filter').css({display:'flex', flexWrap:'wrap', alignItems:'center', gap:'.4rem'});
-      filterDiv.find('label').css({marginBottom:0, marginRight:'.25rem'});
-      cols.forEach(function(c) {
-        var col = api.column(c.idx);
-        var sel = $('<select style="min-width:'+c.w+';width:'+c.w+';"><option value="">'+c.label+'</option></select>');
-        var vals = [];
-        col.data().each(function(d) { var t=$('<div>').html(String(d||'')).text().trim(); if(t&&t!=='-'&&vals.indexOf(t)===-1) vals.push(t); });
-        vals.sort().forEach(function(v){sel.append('<option value="'+v+'">'+v+'</option>');});
-        filterDiv.append(sel);
-        sel.select2({allowClear:true, placeholder:c.label, width:c.w});
-        sel.on('change',function(){var v=$(this).val();col.search(v?'^'+$.fn.dataTable.util.escapeRegex(v)+'$':'',true,false).draw();});
-      });
+      ]);
     }
   });
   <% if (podeCadastrar) { %>
