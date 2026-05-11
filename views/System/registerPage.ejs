@@ -5,7 +5,7 @@
   <%- include('headIncludes.ejs') %>
 </head>
 <body style="min-height:100vh; display:flex; align-items:center; justify-content:center; background-image:url('/css/Background.png'); background-size:cover; background-position:center; background-repeat:no-repeat; padding:16px; box-sizing:border-box;">
-  <div class="login-wrapper" style="width:100%; max-width:480px;">
+  <div style="width:100%; max-width:480px;">
         <div class="card">
           <div class="card-header text-center" style="background: linear-gradient(135deg, #2B286F 100%); border: none;">
             <div class="d-flex align-items-center justify-content-center mb-2">
@@ -132,42 +132,13 @@
   </div>
 
   <style>
-    @media (max-width: 767px) {
-      body {
-        padding: 0 !important;
-        background-image: none !important;
-        background: linear-gradient(160deg, #2B286F 0%, #1a1a5e 60%, #D11F3F 100%) !important;
-        align-items: stretch !important;
-        justify-content: flex-start !important;
-      }
-      .login-wrapper {
-        max-width: 100% !important;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding: 0;
-      }
-      .card {
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        border: none !important;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-      .card-header {
-        border-radius: 0 !important;
-        padding: 2rem 1.25rem 1.25rem;
-      }
-      .card-body {
-        padding: 1.5rem 1.25rem;
-        flex: 1;
-        overflow-y: auto;
-      }
-      .card-header h2 { font-size: 1.4rem; }
-      .form-control { font-size: 1rem; padding: .6rem .75rem; }
-      #submitBtn { width: 100%; padding: 12px; font-size: 1rem; }
+    @media (max-width: 575px) {
+      body { padding: 12px !important; }
+      .card { box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
+      .card-header { padding: 1rem; }
+      .card-header h2 { font-size: 1.25rem; }
+      .card-body { padding: 1rem; }
+      .container { padding: 0 !important; }
     }
   </style>
   <script>
