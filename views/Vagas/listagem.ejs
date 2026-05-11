@@ -37,7 +37,7 @@
 
     .vagas-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1rem;
     }
     .vaga-card {
@@ -230,13 +230,13 @@
       <div class="modal-body">
         <form id="formNovaVaga">
           <div class="row">
-            <div class="col-md-3 mb-3"><label>Empresa</label><select id="empresaSelect" name="empresa" class="form-control"></select></div>
-            <div class="col-md-6 mb-3"><label>Função <span class="text-danger">*</span></label><select id="funcaoSelect" name="funcao" class="form-control" required></select></div>
-            <div class="col-md-3 mb-3"><label>Data Abertura <span class="text-danger">*</span></label><input type="date" class="form-control" name="data_abertura" required></div>
+            <div class="col-12 col-md-3 mb-3"><label>Empresa</label><select id="empresaSelect" name="empresa" class="form-control"></select></div>
+            <div class="col-12 col-md-6 mb-3"><label>Função <span class="text-danger">*</span></label><select id="funcaoSelect" name="funcao" class="form-control" required></select></div>
+            <div class="col-12 col-md-3 mb-3"><label>Data Abertura <span class="text-danger">*</span></label><input type="date" class="form-control" name="data_abertura" required></div>
           </div>
           <div class="row">
-            <div class="col-md-4 mb-3"><label>Solicitante</label><select id="solicitanteSelect" name="solicitante" class="form-control"></select></div>
-            <div class="col-md-4 mb-3">
+            <div class="col-12 col-md-4 mb-3"><label>Solicitante</label><select id="solicitanteSelect" name="solicitante" class="form-control"></select></div>
+            <div class="col-12 col-md-4 mb-3">
               <label>Setor</label>
               <select class="form-control" name="setor">
                 <option value="">Selecione...</option>
@@ -246,7 +246,7 @@
                 <option>PRODUCAO</option><option>FROTA</option><option>ALMOXARIFADO</option><option>ETA</option><option>ETE</option>
               </select>
             </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-12 col-md-4 mb-3">
               <label>Tipo de Vaga <span class="text-danger">*</span></label>
               <select class="form-control" name="tipo_vaga" required>
                 <option value="">Selecione...</option>
@@ -256,18 +256,18 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-md-3 mb-3"><label>Notebook</label><select class="form-control" name="notebook"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
-            <div class="col-md-3 mb-3"><label>Celular</label><select class="form-control" name="celular"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
-            <div class="col-md-3 mb-3"><label>SLA (dias)</label><input type="number" class="form-control" name="sla_dias" id="sla_dias" min="1" readonly style="background:#e9ecef;cursor:not-allowed;"></div>
-            <div class="col-md-3 mb-3"><label>Classificação</label><input type="text" class="form-control" name="classificacao" id="classificacao" readonly style="background:#e9ecef;cursor:not-allowed;"></div>
+            <div class="col-12 col-md-3 mb-3"><label>Notebook</label><select class="form-control" name="notebook"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
+            <div class="col-12 col-md-3 mb-3"><label>Celular</label><select class="form-control" name="celular"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
+            <div class="col-12 col-md-3 mb-3"><label>SLA (dias)</label><input type="number" class="form-control" name="sla_dias" id="sla_dias" min="1" readonly style="background:#e9ecef;cursor:not-allowed;"></div>
+            <div class="col-12 col-md-3 mb-3"><label>Classificação</label><input type="text" class="form-control" name="classificacao" id="classificacao" readonly style="background:#e9ecef;cursor:not-allowed;"></div>
           </div>
           <div class="mb-3">
             <label>Requisitos da Vaga</label>
             <textarea class="form-control requisitos-textarea" name="requisitos_vaga" rows="3" style="max-height:120px;overflow:auto;resize:vertical;" placeholder="ANALISTA ADM - JR | 1 A 2 ANOS DE EXPERIENCIA - ENSINO SUPERIOR CURSANDO OU COMPLETO - EXCEL INTERMEDIARIO - ROTINAS ADMINISTRATIVAS - ORGANIZACAO E ATENCAO A DETALHES - TRABALHO EM EQUIPE - DISPONIBILIDADE IMEDIATA"></textarea>
           </div>
           <div class="row">
-            <div class="col-md-6 mb-3"><label>Prazo Contratação</label><input type="date" class="form-control" name="prazo_contratacao"></div>
-            <div class="col-md-6 mb-3">
+            <div class="col-12 col-md-6 mb-3"><label>Prazo Contratação</label><input type="date" class="form-control" name="prazo_contratacao"></div>
+            <div class="col-12 col-md-6 mb-3">
               <label>Status</label>
               <select class="form-control" name="status">
                 <option value="ABERTA">ABERTA</option><option value="FECHADA">FECHADA</option><option value="ATRASADA">ATRASADA</option>
@@ -354,17 +354,17 @@
         <form id="formCandidatura" enctype="multipart/form-data">
           <input type="hidden" id="candidaturaIdVaga" name="id_vaga">
           <div class="row">
-            <div class="col-md-6 mb-3"><label>Nome completo <span class="text-danger">*</span></label><input type="text" class="form-control" name="nome" id="candNome" required></div>
-            <div class="col-md-6 mb-3"><label>Celular <span class="text-danger">*</span></label><input type="tel" class="form-control" name="celular" id="candCelular" maxlength="15" required></div>
+            <div class="col-12 col-md-6 mb-3"><label>Nome completo <span class="text-danger">*</span></label><input type="text" class="form-control" name="nome" id="candNome" required></div>
+            <div class="col-12 col-md-6 mb-3"><label>Celular <span class="text-danger">*</span></label><input type="tel" class="form-control" name="celular" id="candCelular" maxlength="15" required></div>
           </div>
           <div class="row">
-            <div class="col-md-6 mb-3"><label>E-mail <span class="text-danger">*</span></label><input type="email" class="form-control" name="email" id="candEmail" required></div>
-            <div class="col-md-6 mb-3"><label>LinkedIn <small class="text-muted">(opcional)</small></label><input type="url" class="form-control" name="linkedin" id="candLinkedin"></div>
+            <div class="col-12 col-md-6 mb-3"><label>E-mail <span class="text-danger">*</span></label><input type="email" class="form-control" name="email" id="candEmail" required></div>
+            <div class="col-12 col-md-6 mb-3"><label>LinkedIn <small class="text-muted">(opcional)</small></label><input type="url" class="form-control" name="linkedin" id="candLinkedin"></div>
           </div>
           <div class="mb-3"><label>Apresentação breve <span class="text-danger">*</span></label><textarea class="form-control" name="apresentacao" id="candApresentacao" rows="4" required></textarea></div>
           <div class="row">
-            <div class="col-md-6 mb-3"><label>Link adicional <small class="text-muted">(opcional)</small></label><input type="url" class="form-control" name="link_adicional" id="candLinkAdicional"></div>
-            <div class="col-md-6 mb-3">
+            <div class="col-12 col-md-6 mb-3"><label>Link adicional <small class="text-muted">(opcional)</small></label><input type="url" class="form-control" name="link_adicional" id="candLinkAdicional"></div>
+            <div class="col-12 col-md-6 mb-3">
               <label>Currículo <small class="text-muted">(PDF, DOC, DOCX, PNG, JPG)</small></label>
               <input type="file" class="form-control" name="curriculo" id="candCurriculo" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
               <div id="curriculoPreview" class="mt-2" style="display:none;">

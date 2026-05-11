@@ -33,6 +33,7 @@
           <% } %>
         </div>
         <div class="card-body">
+          <div class="table-responsive">
           <table id="tblMercado" class="display table table-striped table-hover" style="width:100%">
             <thead>
               <tr>
@@ -71,6 +72,7 @@
               <% }); %>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
@@ -88,11 +90,11 @@
       <div class="modal-body">
         <input type="hidden" id="mId">
         <div class="row">
-          <div class="col-md-6 mb-3"><label>Função <span class="text-danger">*</span></label><input type="text" class="form-control" id="mFuncao"></div>
-          <div class="col-md-6 mb-3"><label>Cargo Mercado</label><input type="text" class="form-control" id="mCargo"></div>
+          <div class="col-12 col-md-6 mb-3"><label>Função <span class="text-danger">*</span></label><input type="text" class="form-control" id="mFuncao"></div>
+          <div class="col-12 col-md-6 mb-3"><label>Cargo Mercado</label><input type="text" class="form-control" id="mCargo"></div>
         </div>
         <div class="row">
-          <div class="col-md-4 mb-3">
+          <div class="col-12 col-md-4 mb-3">
             <label>Nível Hierárquico</label>
             <select class="form-control" id="mNivel">
               <option value="">Selecione...</option>
@@ -101,12 +103,12 @@
               <option>Diretoria</option><option>Comercial</option><option>Estágio/Aprendiz</option>
             </select>
           </div>
-          <div class="col-md-4 mb-3"><label>Média PR (R$)</label><input type="number" class="form-control" id="mPR" min="0" step="0.01"></div>
-          <div class="col-md-4 mb-3"><label>Média Sul (R$)</label><input type="number" class="form-control" id="mSUL" min="0" step="0.01"></div>
+          <div class="col-12 col-md-4 mb-3"><label>Média PR (R$)</label><input type="number" class="form-control" id="mPR" min="0" step="0.01"></div>
+          <div class="col-12 col-md-4 mb-3"><label>Média Sul (R$)</label><input type="number" class="form-control" id="mSUL" min="0" step="0.01"></div>
         </div>
         <div class="row">
-          <div class="col-md-6 mb-3"><label>Faixa Mín (R$)</label><input type="number" class="form-control" id="mMIN" min="0" step="0.01"></div>
-          <div class="col-md-6 mb-3"><label>Faixa Máx (R$)</label><input type="number" class="form-control" id="mMAX" min="0" step="0.01"></div>
+          <div class="col-12 col-md-6 mb-3"><label>Faixa Mín (R$)</label><input type="number" class="form-control" id="mMIN" min="0" step="0.01"></div>
+          <div class="col-12 col-md-6 mb-3"><label>Faixa Máx (R$)</label><input type="number" class="form-control" id="mMAX" min="0" step="0.01"></div>
         </div>
         <div id="mError" class="alert alert-danger" style="display:none;"></div>
       </div>

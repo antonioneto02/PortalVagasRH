@@ -28,9 +28,9 @@
 
     <div class="content">
       <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap" style="row-gap:.5rem;">
           <h4 class="mb-0"><i class="fas fa-users me-2"></i>Cadastro de Usuários</h4>
-          <div class="d-flex" style="gap:.5rem;">
+          <div class="d-flex flex-wrap" style="gap:.5rem;">
             <button class="btn btn-sm" id="btnNovoUsuario" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.4);color:white;">
               <i class="fas fa-user-plus me-1"></i>Novo Usuário
             </button>
@@ -40,6 +40,7 @@
           </div>
         </div>
         <div class="card-body">
+          <div class="table-responsive">
           <table id="tblUsuarios" class="display table table-striped table-hover" style="width:100%">
             <thead>
               <tr>
@@ -78,6 +79,7 @@
               <% }); %>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
