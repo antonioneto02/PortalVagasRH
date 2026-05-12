@@ -27,6 +27,18 @@
     </div>
 
     <div class="content">
+      <%
+        const uTotal    = usuarios.length;
+        const uAdms     = usuarios.filter(function(u){ return Number(u.ADM) === 1; }).length;
+        const uAtivos   = usuarios.filter(function(u){ return Number(u.ATIVO) === 1; }).length;
+        const uInativos = uTotal - uAtivos;
+      %>
+      <div class="indicators-bar">
+        <div class="indicator-card" style="background:#2B286F;"><div class="indicator-val"><%= uTotal %></div><div class="indicator-lbl">Total Usuários</div></div>
+        <div class="indicator-card" style="background:#D11F3F;"><div class="indicator-val"><%= uAdms %></div><div class="indicator-lbl">Administradores</div></div>
+        <div class="indicator-card" style="background:#27ae60;"><div class="indicator-val"><%= uAtivos %></div><div class="indicator-lbl">Ativos</div></div>
+        <div class="indicator-card" style="background:#6c757d;"><div class="indicator-val"><%= uInativos %></div><div class="indicator-lbl">Inativos</div></div>
+      </div>
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap" style="row-gap:.5rem;">
           <h4 class="mb-0"><i class="fas fa-users me-2"></i>Cadastro de Usuários</h4>

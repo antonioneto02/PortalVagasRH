@@ -14,10 +14,7 @@
     .badge-pendente{background:#f39c12;}
     .badge-atendido{background:#27ae60;}
     .badge-cancelado{background:#6c757d;}
-    .summary-card{border-radius:10px;padding:14px 18px;color:white;min-width:110px;text-align:center;}
-    .summary-val{font-size:1.8rem;font-weight:700;line-height:1;}
-    .summary-lbl{font-size:.78rem;opacity:.9;margin-top:4px;}
-    .nav-tabs .nav-link{color:#2B286F;font-weight:500;}
+.nav-tabs .nav-link{color:#2B286F;font-weight:500;}
     .nav-tabs .nav-link.active{color:#D11F3F;border-color:#dee2e6 #dee2e6 #fff;font-weight:700;}
     .dt-filtros select{font-size:.82rem;height:calc(1.5em + .5rem + 2px);display:inline-block;width:auto;min-width:110px;}
   </style>
@@ -47,12 +44,12 @@
         const countPedPend = pedidos.filter(p => p.STATUS === 'PENDENTE').length;
       %>
 
-      <div class="d-flex flex-wrap gap-2 mb-3" style="gap:.75rem;">
-        <div class="summary-card" style="background:#27ae60;"><div class="summary-val"><%= countDisp %></div><div class="summary-lbl">Disponível</div></div>
-        <div class="summary-card" style="background:#2B286F;"><div class="summary-val"><%= countRes %></div><div class="summary-lbl">Reservado</div></div>
-        <div class="summary-card" style="background:#17a2b8;"><div class="summary-val"><%= countUso %></div><div class="summary-lbl">Em Uso</div></div>
-        <div class="summary-card" style="background:#e67e22;"><div class="summary-val"><%= countMan %></div><div class="summary-lbl">Manutenção</div></div>
-        <div class="summary-card" style="background:#f39c12;"><div class="summary-val"><%= countPedPend %></div><div class="summary-lbl">Pedidos Pend.</div></div>
+      <div class="indicators-bar">
+        <div class="indicator-card" style="background:#27ae60;"><div class="indicator-val"><%= countDisp %></div><div class="indicator-lbl">Disponível</div></div>
+        <div class="indicator-card" style="background:#2B286F;"><div class="indicator-val"><%= countRes %></div><div class="indicator-lbl">Reservado</div></div>
+        <div class="indicator-card" style="background:#17a2b8;"><div class="indicator-val"><%= countUso %></div><div class="indicator-lbl">Em Uso</div></div>
+        <div class="indicator-card" style="background:#e67e22;"><div class="indicator-val"><%= countMan %></div><div class="indicator-lbl">Manutenção</div></div>
+        <div class="indicator-card" style="background:#f39c12;"><div class="indicator-val"><%= countPedPend %></div><div class="indicator-lbl">Pedidos Pend.</div></div>
       </div>
 
       <div class="card">

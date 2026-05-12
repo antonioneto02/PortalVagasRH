@@ -22,6 +22,18 @@
     </div>
 
     <div class="content">
+      <%
+        const sTotal = slaConfig.length;
+        const sAlta  = slaConfig.filter(function(s){ return s.CLASSIFICACAO === 'ALTA'; }).length;
+        const sMedia = slaConfig.filter(function(s){ return s.CLASSIFICACAO === 'MEDIA'; }).length;
+        const sBaixa = slaConfig.filter(function(s){ return s.CLASSIFICACAO === 'BAIXA'; }).length;
+      %>
+      <div class="indicators-bar">
+        <div class="indicator-card" style="background:#2B286F;"><div class="indicator-val"><%= sTotal %></div><div class="indicator-lbl">Total Funções</div></div>
+        <div class="indicator-card" style="background:#e74c3c;"><div class="indicator-val"><%= sAlta %></div><div class="indicator-lbl">Alta Prioridade</div></div>
+        <div class="indicator-card" style="background:#f39c12;"><div class="indicator-val"><%= sMedia %></div><div class="indicator-lbl">Média Prioridade</div></div>
+        <div class="indicator-card" style="background:#27ae60;"><div class="indicator-val"><%= sBaixa %></div><div class="indicator-lbl">Baixa Prioridade</div></div>
+      </div>
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h4 class="mb-0"><i class="fas fa-stopwatch me-2"></i>Configuração de SLA</h4>

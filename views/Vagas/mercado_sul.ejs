@@ -23,6 +23,18 @@
     </div>
 
     <div class="content">
+      <%
+        const mTotal    = mercado.length;
+        const mComPR    = mercado.filter(function(m){ return m.MEDIA_SALARIAL_PR && Number(m.MEDIA_SALARIAL_PR) > 0; }).length;
+        const mComSul   = mercado.filter(function(m){ return m.MEDIA_SALARIAL_SUL && Number(m.MEDIA_SALARIAL_SUL) > 0; }).length;
+        const mNiveis   = new Set(mercado.map(function(m){ return m.NIVEL_HIERARQUICO; }).filter(Boolean)).size;
+      %>
+      <div class="indicators-bar">
+        <div class="indicator-card" style="background:#2B286F;"><div class="indicator-val"><%= mTotal %></div><div class="indicator-lbl">Total Funções</div></div>
+        <div class="indicator-card" style="background:#27ae60;"><div class="indicator-val"><%= mComPR %></div><div class="indicator-lbl">Com Média PR</div></div>
+        <div class="indicator-card" style="background:#17a2b8;"><div class="indicator-val"><%= mComSul %></div><div class="indicator-lbl">Com Média Sul</div></div>
+        <div class="indicator-card" style="background:#e67e22;"><div class="indicator-val"><%= mNiveis %></div><div class="indicator-lbl">Níveis Hierárq.</div></div>
+      </div>
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Pesquisa Salarial — Sul</h4>

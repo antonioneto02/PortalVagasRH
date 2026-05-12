@@ -116,6 +116,37 @@
     </div>
 
     <div class="content">
+      <% if (isAdmin) { %>
+      <%
+        const vAbertas   = vagas.filter(function(v){ return v.STATUS === 'ABERTA'; }).length;
+        const vAtrasadas = vagas.filter(function(v){ return v.STATUS === 'ATRASADA'; }).length;
+        const vFechadas  = vagas.filter(function(v){ return v.STATUS === 'FECHADA'; }).length;
+        const vCandidatos = vagas.reduce(function(s,v){ return s + (v.CANDIDATOS||0); }, 0);
+        const vSemEstoque = vagas.filter(function(v){
+          return (v.NOTEBOOK==='SIM'||v.CELULAR==='SIM') && v.ITENS_RESERVADOS===0 && v.STATUS!=='FECHADA';
+        }).length;
+      %>
+      <div class="indicators-bar">
+        <div class="indicator-card" style="background:#27ae60;"><div class="indicator-val"><%= vAbertas %></div><div class="indicator-lbl">Abertas</div></div>
+        <div class="indicator-card" style="background:#e67e22;"><div class="indicator-val"><%= vAtrasadas %></div><div class="indicator-lbl">Atrasadas</div></div>
+        <div class="indicator-card" style="background:#6c757d;"><div class="indicator-val"><%= vFechadas %></div><div class="indicator-lbl">Fechadas</div></div>
+        <div class="indicator-card" style="background:#17a2b8;"><div class="indicator-val"><%= vCandidatos %></div><div class="indicator-lbl">Candidatos</div></div>
+        <% if (vSemEstoque > 0) { %>
+        <div class="indicator-card" style="background:#e74c3c;"><div class="indicator-val"><%= vSemEstoque %></div><div class="indicator-lbl">Sem Estoque TI</div></div>
+        <% } %>
+      </div>
+      <% } else { %>
+      <%
+        const totalVagasAbertas = vagas.reduce(function(s,v){ return s + (v.TOTAL_VAGAS||1); }, 0);
+        const totalFuncoes = vagas.length;
+        const totalCandidatosExt = vagas.reduce(function(s,v){ return s + (v.CANDIDATOS||0); }, 0);
+      %>
+      <div class="indicators-bar">
+        <div class="indicator-card" style="background:#27ae60;"><div class="indicator-val"><%= totalVagasAbertas %></div><div class="indicator-lbl">Vagas Abertas</div></div>
+        <div class="indicator-card" style="background:#2B286F;"><div class="indicator-val"><%= totalFuncoes %></div><div class="indicator-lbl">Funções Disponíveis</div></div>
+        <div class="indicator-card" style="background:#17a2b8;"><div class="indicator-val"><%= totalCandidatosExt %></div><div class="indicator-lbl">Candidatos</div></div>
+      </div>
+      <% } %>
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h4 class="mb-0"><i class="fas fa-briefcase me-2"></i>Vagas</h4>
@@ -305,11 +336,12 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-12 col-md-3 mb-3"><label>Notebook</label><select class="form-control" name="notebook"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
-            <div class="col-12 col-md-3 mb-3"><label>Celular</label><select class="form-control" name="celular"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
+            <div class="col-12 col-md-3 mb-3"><label>Notebook</label><select class="form-control" name="notebook" id="notebookSelect"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
+            <div class="col-12 col-md-3 mb-3"><label>Celular</label><select class="form-control" name="celular" id="celularSelect"><option value="NAO">NÃO</option><option value="SIM">SIM</option></select></div>
             <div class="col-12 col-md-3 mb-3"><label>SLA (dias)</label><input type="number" class="form-control" name="sla_dias" id="sla_dias" min="1" readonly style="background:#e9ecef;cursor:not-allowed;"></div>
             <div class="col-12 col-md-3 mb-3"><label>Classificação</label><input type="text" class="form-control" name="classificacao" id="classificacao" readonly style="background:#e9ecef;cursor:not-allowed;"></div>
           </div>
+          <div id="estoqueInfoModal" style="display:none;margin-bottom:.75rem;padding:10px 14px;border-radius:8px;border:1px solid #dee2e6;background:#f8f9fa;"></div>
           <div class="mb-3">
             <label>Requisitos da Vaga</label>
             <textarea class="form-control requisitos-textarea" name="requisitos_vaga" rows="3" style="max-height:120px;overflow:auto;resize:vertical;" placeholder="ANALISTA ADM - JR | 1 A 2 ANOS DE EXPERIENCIA - ENSINO SUPERIOR CURSANDO OU COMPLETO - EXCEL INTERMEDIARIO - ROTINAS ADMINISTRATIVAS - ORGANIZACAO E ATENCAO A DETALHES - TRABALHO EM EQUIPE - DISPONIBILIDADE IMEDIATA"></textarea>
@@ -613,6 +645,60 @@ $(document).ready(function () {
 
   $('#modalNovaVaga').on('shown.bs.modal', initSelect2);
 
+  function verificarEstoqueModal() {
+    var needsNb  = $('#notebookSelect').val() === 'SIM' ? 1 : 0;
+    var needsCel = $('#celularSelect').val() === 'SIM' ? 1 : 0;
+
+    if (!needsNb && !needsCel) {
+      $('#estoqueInfoModal').hide().html('');
+      return;
+    }
+
+    $.ajax({
+      url: '/api/estoque/verificar',
+      method: 'GET',
+      data: { notebook: needsNb, celular: needsCel },
+      success: function(r) {
+        var html = '<div class="d-flex flex-wrap align-items-center" style="gap:.5rem;">';
+
+        if (needsNb) {
+          if (r.faltaNb === 0) {
+            html += '<span style="background:#27ae60;color:white;padding:4px 10px;border-radius:6px;font-size:.82rem;">' +
+              '<i class="fas fa-check me-1"></i>Notebook: <strong>' + r.dispNb + '</strong> disponível(is)</span>';
+          } else {
+            html += '<span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:6px;font-size:.82rem;">' +
+              '<i class="fas fa-exclamation-triangle me-1"></i>Notebook: sem estoque</span>';
+          }
+        }
+
+        if (needsCel) {
+          if (r.faltaCel === 0) {
+            html += '<span style="background:#27ae60;color:white;padding:4px 10px;border-radius:6px;font-size:.82rem;">' +
+              '<i class="fas fa-check me-1"></i>Celular: <strong>' + r.dispCel + '</strong> disponível(is)</span>';
+          } else {
+            html += '<span style="background:#e74c3c;color:white;padding:4px 10px;border-radius:6px;font-size:.82rem;">' +
+              '<i class="fas fa-exclamation-triangle me-1"></i>Celular: sem estoque</span>';
+          }
+        }
+
+        if (!r.disponivel) {
+          html += '<span style="font-size:.80rem;color:#6c757d;margin-left:.25rem;">' +
+            '<i class="fas fa-info-circle me-1 text-warning"></i>Ao salvar, você poderá solicitar o pedido de compra ao TI.</span>';
+        }
+
+        html += '</div>';
+        $('#estoqueInfoModal').html(html).show();
+      },
+      error: function() { $('#estoqueInfoModal').hide(); }
+    });
+  }
+
+  $('#notebookSelect, #celularSelect').on('change', verificarEstoqueModal);
+
+  $('#modalNovaVaga').on('hidden.bs.modal', function() {
+    $('#estoqueInfoModal').hide().html('');
+  });
+
   if (!$('#empresaSelect').hasClass('select2-hidden-accessible')) {
     $('#empresaSelect').select2({
       placeholder: 'Selecione ou digite...', allowClear: true,
@@ -656,8 +742,9 @@ $(document).ready(function () {
     $('#empresaSelect').val(null).trigger('change');
     $('[name="data_abertura"]').val(new Date().toISOString().split('T')[0]);
     $('[name="tipo_vaga"]').val('EXTERNA');
-    $('[name="notebook"]').val('NAO');
-    $('[name="celular"]').val('NAO');
+    $('#notebookSelect').val('NAO');
+    $('#celularSelect').val('NAO');
+    $('#estoqueInfoModal').hide().html('');
     $('#modalNovaVaga').modal('show');
   });
 
