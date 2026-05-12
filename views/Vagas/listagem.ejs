@@ -592,7 +592,9 @@ $(document).ready(function () {
           '</tr>';
         });
         if (!html) {
-          html = '<tr><td colspan="7" class="text-center text-muted">Nenhum candidato para esta vaga.</td></tr>';
+          $('#tblCandidatosVaga tbody').html('<tr><td colspan="7" class="text-center text-muted py-3"><i class="fas fa-inbox me-2"></i>Nenhum candidato para esta vaga.</td></tr>');
+          $('#candidatosLoading').hide();
+          return;
         }
         $('#tblCandidatosVaga tbody').html(html);
         initTabelaCandidatos();
