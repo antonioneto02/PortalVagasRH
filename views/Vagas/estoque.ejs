@@ -332,7 +332,7 @@ $(document).ready(function () {
               '<td>' + r.ID + '</td>' +
               '<td><strong>#' + r.ID_VAGA + '</strong>' + (r.VAGA_FUNCAO ? ' — ' + r.VAGA_FUNCAO : '') + '</td>' +
               '<td>' + (r.MATRICULA || '<span class="text-muted">—</span>') + '</td>' +
-              '<td>' + (r.USUARIO || '<span class="text-muted">—</span>') + '</td>' +
+              '<td>' + (r.USUARIO ? '<span style="text-transform:lowercase">' + r.USUARIO + '</span>' : '<span class="text-muted">—</span>') + '</td>' +
               '<td>' + (r.AREA || '<span class="text-muted">—</span>') + '</td>' +
               '<td><span class="status-badge" style="background:' + st.bg + ';display:inline-block;padding:2px 8px;border-radius:4px;font-size:.72rem;color:white;font-weight:600;">' + st.label + '</span></td>' +
               '<td>' + (r.DTALOCACAO || '—') + '</td>' +
