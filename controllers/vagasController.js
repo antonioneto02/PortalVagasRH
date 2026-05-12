@@ -289,7 +289,7 @@ async function fecharVaga(req, res) {
       .input('MATRICULA', sql.VarChar(50), matricula || null)
       .input('ENTREVISTAS', sql.Int, entrevistas ? parseInt(entrevistas) : null)
       .input('DT_CONTRATACAO', sql.Date, dt_contratacao ? new Date(dt_contratacao) : null)
-      .query(`UPDATE RH_VAGAS SET MATRICULA=@MATRICULA, ENTREVISTAS=ISNULL(@ENTREVISTAS, ENTREVISTAS), DT_CONTRATACAO=@DT_CONTRATACAO, STATUS='FECHADA' WHERE ID=@ID`);
+      .query(`UPDATE RH_VAGAS SET MATRICULA=@MATRICULA, ENTREVISTAS=@ENTREVISTAS, DT_CONTRATACAO=@DT_CONTRATACAO, STATUS='FECHADA' WHERE ID=@ID`);
     try {
       const areaLabel = [setor, funcao].filter(Boolean).join(' - ') || null;
       const vagaId = parseInt(id);
