@@ -292,26 +292,37 @@ async function fecharVaga(req, res) {
       .input('ENTREVISTAS', sql.Int, entrevistas ? parseInt(entrevistas) : null)
       .input('DT_CONTRATACAO', sql.Date, dt_contratacao ? new Date(dt_contratacao) : null)
       .query(`UPDATE RH_VAGAS SET MATRICULA=@MATRICULA, ENTREVISTAS=@ENTREVISTAS, DT_CONTRATACAO=@DT_CONTRATACAO, STATUS='FECHADA' WHERE ID=@ID`);
-
-    // Decrementar QUANTIDADE do estoque para cada equipamento utilizado na vaga
     try {
       const areaLabel = [setor, funcao].filter(Boolean).join(' - ') || null;
-      if (notebook === 'SIM') {
-        await pool.request()
-          .input('AREA', sql.VarChar(200), areaLabel)
+      const vagaId = parseInt(id);
+      const matriculaUsada = matricula || null;
+      const usuarioFechamento = req.session.protheusId || req.session.username || 'ADMIN';
+
+      for (const tipo of ['NOTEBOOK', 'CELULAR']) {
+        const precisaTipo = tipo === 'NOTEBOOK' ? notebook === 'SIM' : celular === 'SIM';
+        if (!precisaTipo) continue;
+
+        const updResult = await pool.request()
+          .input('TIPO', sql.VarChar(50), tipo)
           .query(`UPDATE TOP (1) RH_ESTOQUE_TI
-                  SET QUANTIDADE = QUANTIDADE - 1, AREA = @AREA, DTALTERACAO = GETDATE()
-                  WHERE TIPO_PRODUTO = 'NOTEBOOK' AND STATUS = 'DISPONIVEL' AND ISNULL(QUANTIDADE, 0) > 0`);
-      }
-      if (celular === 'SIM') {
-        await pool.request()
-          .input('AREA', sql.VarChar(200), areaLabel)
-          .query(`UPDATE TOP (1) RH_ESTOQUE_TI
-                  SET QUANTIDADE = QUANTIDADE - 1, AREA = @AREA, DTALTERACAO = GETDATE()
-                  WHERE TIPO_PRODUTO = 'CELULAR' AND STATUS = 'DISPONIVEL' AND ISNULL(QUANTIDADE, 0) > 0`);
+                  SET QUANTIDADE = QUANTIDADE - 1, DTALTERACAO = GETDATE()
+                  OUTPUT INSERTED.ID
+                  WHERE TIPO_PRODUTO = @TIPO AND STATUS = 'DISPONIVEL' AND ISNULL(QUANTIDADE, 0) > 0`);
+
+        const estoqueId = updResult.recordset[0]?.ID;
+        if (estoqueId) {
+          await pool.request()
+            .input('ID_ESTOQUE', sql.Int, estoqueId)
+            .input('ID_VAGA', sql.Int, vagaId)
+            .input('MATRICULA', sql.VarChar(50), matriculaUsada)
+            .input('AREA', sql.VarChar(200), areaLabel)
+            .input('USUARIO', sql.VarChar(50), usuarioFechamento)
+            .query(`INSERT INTO RH_ESTOQUE_ITENS (ID_ESTOQUE, ID_VAGA, MATRICULA, AREA, USUARIO)
+                    VALUES (@ID_ESTOQUE, @ID_VAGA, @MATRICULA, @AREA, @USUARIO)`);
+        }
       }
     } catch (estoqueErr) {
-      console.error('Aviso: não foi possível decrementar estoque:', estoqueErr.message);
+      console.error('Aviso: não foi possível decrementar/registrar item de estoque:', estoqueErr.message);
     }
 
     res.json({ success: true });

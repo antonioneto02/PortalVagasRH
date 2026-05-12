@@ -19,7 +19,7 @@ const {
 } = require('../controllers/usuariosController');
 const {
   renderEstoque, listarEstoque, cadastrarItem, editarItem, excluirItem,
-  verificarDisponibilidade, criarPedidoCompra, listarPedidos, atualizarStatusPedido,
+  verificarDisponibilidade, criarPedidoCompra, listarPedidos, atualizarStatusPedido, listarItens,
 } = require('../controllers/estoqueController');
 
 router.get('/vagas', requireAuth, listarVagas);
@@ -56,6 +56,7 @@ router.get('/api/estoque', requireAuth, requireAdmin, listarEstoque);
 router.post('/api/estoque', requireAuth, requireAdmin, cadastrarItem);
 router.put('/api/estoque/:id', requireAuth, requireAdmin, editarItem);
 router.delete('/api/estoque/:id', requireAuth, requireAdmin, excluirItem);
+router.get('/api/estoque/:id/alocacoes', requireAuth, requireAdmin, listarItens);
 router.get('/api/estoque/verificar', requireAuth, requireAdmin, verificarDisponibilidade);
 router.post('/api/estoque/pedido', requireAuth, requireAdmin, criarPedidoCompra);
 router.get('/api/estoque/pedidos', requireAuth, requireAdmin, listarPedidos);

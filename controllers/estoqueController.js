@@ -56,12 +56,10 @@ async function renderEstoque(req, res) {
       pool.request().query(`
         SELECT e.ID, e.TIPO_PRODUTO, e.DESCRICAO, e.MODELO,
                ISNULL(e.QUANTIDADE, 1) AS QUANTIDADE,
-               e.STATUS, e.ID_VAGA, e.AREA,
+               e.STATUS,
                CONVERT(VARCHAR, e.DTINCLUSAO, 103) AS DTINCLUSAO,
-               e.USUARIO_CADASTRO,
-               v.FUNCAO AS VAGA_FUNCAO, v.SETOR AS VAGA_SETOR
+               (SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = e.ID) AS TOTAL_ALOCACOES
         FROM RH_ESTOQUE_TI e
-        LEFT JOIN RH_VAGAS v ON v.ID = e.ID_VAGA
         ORDER BY e.TIPO_PRODUTO, e.DTINCLUSAO DESC
       `),
       pool.request().query(`
@@ -101,12 +99,10 @@ async function listarEstoque(req, res) {
     const result = await pool.request().query(`
       SELECT e.ID, e.TIPO_PRODUTO, e.DESCRICAO, e.MODELO,
              ISNULL(e.QUANTIDADE, 1) AS QUANTIDADE,
-             e.STATUS, e.ID_VAGA, e.AREA,
+             e.STATUS,
              CONVERT(VARCHAR, e.DTINCLUSAO, 103) AS DTINCLUSAO,
-             e.USUARIO_CADASTRO,
-             v.FUNCAO AS VAGA_FUNCAO
+             (SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = e.ID) AS TOTAL_ALOCACOES
       FROM RH_ESTOQUE_TI e
-      LEFT JOIN RH_VAGAS v ON v.ID = e.ID_VAGA
       ORDER BY e.TIPO_PRODUTO, e.DTINCLUSAO DESC
     `);
     res.json(result.recordset);
@@ -120,7 +116,6 @@ async function listarEstoque(req, res) {
 
 async function cadastrarItem(req, res) {
   const { tipo_produto, descricao, modelo, status, quantidade } = req.body;
-  const usuario = req.session.protheusId || req.session.username || 'ADMIN';
 
   if (!tipo_produto) return res.status(400).json({ error: 'Tipo de produto é obrigatório.' });
 
@@ -137,9 +132,8 @@ async function cadastrarItem(req, res) {
       .input('MODELO', sql.VarChar(200), modelo || null)
       .input('STATUS', sql.VarChar(20), statusValido)
       .input('QTD', sql.Int, qtd)
-      .input('USUARIO', sql.VarChar(50), usuario)
-      .query(`INSERT INTO RH_ESTOQUE_TI (TIPO_PRODUTO, DESCRICAO, MODELO, STATUS, QUANTIDADE, USUARIO_CADASTRO)
-              VALUES (@TIPO, @DESC, @MODELO, @STATUS, @QTD, @USUARIO)`);
+      .query(`INSERT INTO RH_ESTOQUE_TI (TIPO_PRODUTO, DESCRICAO, MODELO, STATUS, QUANTIDADE)
+              VALUES (@TIPO, @DESC, @MODELO, @STATUS, @QTD)`);
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao cadastrar item:', err);
@@ -333,6 +327,31 @@ async function atualizarStatusPedido(req, res) {
   }
 }
 
+async function listarItens(req, res) {
+  const { id } = req.params;
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request()
+      .input('ID_ESTOQUE', sql.Int, parseInt(id))
+      .query(`
+        SELECT a.ID, a.ID_VAGA, a.MATRICULA, a.AREA, a.USUARIO,
+               CONVERT(VARCHAR, a.DTALOCACAO, 103) + ' ' + CONVERT(VARCHAR(5), a.DTALOCACAO, 108) AS DTALOCACAO,
+               v.FUNCAO AS VAGA_FUNCAO, v.SETOR AS VAGA_SETOR
+        FROM RH_ESTOQUE_ITENS a
+        LEFT JOIN RH_VAGAS v ON v.ID = a.ID_VAGA
+        WHERE a.ID_ESTOQUE = @ID_ESTOQUE
+        ORDER BY a.DTALOCACAO DESC
+      `);
+    res.json(result.recordset || []);
+  } catch (err) {
+    console.error('Erro ao listar alocações:', err);
+    res.status(500).json({ error: 'Erro ao listar alocações.' });
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
 module.exports = {
   renderEstoque,
   listarEstoque,
@@ -343,4 +362,5 @@ module.exports = {
   criarPedidoCompra,
   listarPedidos,
   atualizarStatusPedido,
+  listarItens,
 };

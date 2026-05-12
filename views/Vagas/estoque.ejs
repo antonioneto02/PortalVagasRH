@@ -72,7 +72,7 @@
                   <thead>
                     <tr>
                       <th>ID</th><th>Tipo</th><th>Descrição</th><th>Modelo</th><th class="text-center">Qtd.</th>
-                      <th>Status</th><th>Vaga Vinculada</th><th>Área</th><th>Cadastrado</th><th>Ações</th>
+                      <th>Status</th><th>Cadastrado</th><th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -98,20 +98,23 @@
                         <td><%= item.MODELO || '-' %></td>
                         <td class="text-center"><strong style="font-size:1rem;color:<%= (item.QUANTIDADE||1) > 0 ? '#27ae60' : '#e74c3c' %>"><%= item.QUANTIDADE || 1 %></strong></td>
                         <td><span class="status-badge badge-<%= statusClass %>"><%= statusLabel %></span></td>
-                        <td>
-                          <% if (item.ID_VAGA) { %>
-                            <small><strong>#<%= item.ID_VAGA %></strong> <%= item.VAGA_FUNCAO ? '- ' + item.VAGA_FUNCAO : '' %></small>
-                          <% } else { %>-<% } %>
-                        </td>
-                        <td><%= item.AREA || '-' %></td>
                         <td><%= item.DTINCLUSAO || '-' %></td>
                         <td>
-                          <div class="d-flex" style="gap:.25rem;">
+                          <div class="d-flex flex-wrap" style="gap:.25rem;">
                             <button class="btn btn-sm btn-outline-primary btn-editar-item" style="padding:2px 7px;"
                               data-id="<%= item.ID %>" data-tipo="<%= item.TIPO_PRODUTO %>"
                               data-desc="<%= item.DESCRICAO||'' %>" data-modelo="<%= item.MODELO||'' %>"
                               data-quantidade="<%= item.QUANTIDADE||1 %>" data-status="<%= item.STATUS %>"
                               title="Editar"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline-info btn-ver-itens" style="padding:2px 7px;position:relative;"
+                              data-id="<%= item.ID %>"
+                              data-desc="<%= (item.DESCRICAO||item.TIPO_PRODUTO) + (item.MODELO ? ' - '+item.MODELO : '') %>"
+                              title="Ver alocações">
+                              <i class="fas fa-users"></i>
+                              <% if ((item.TOTAL_ALOCACOES||0) > 0) { %>
+                                <span style="position:absolute;top:-5px;right:-6px;background:#D11F3F;color:white;border-radius:50%;font-size:.6rem;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-weight:700;"><%= item.TOTAL_ALOCACOES %></span>
+                              <% } %>
+                            </button>
                             <% if (item.STATUS === 'DISPONIVEL') { %>
                               <button class="btn btn-sm btn-outline-danger btn-excluir-item" style="padding:2px 7px;"
                                 data-id="<%= item.ID %>" title="Excluir"><i class="fas fa-trash"></i></button>
@@ -175,6 +178,38 @@
   </div>
 </div>
 
+<div class="modal fade" id="modalItens" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-users me-2"></i>Item — <span id="itensTitulo"></span></h5>
+        <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div id="itensLoading" class="text-muted mb-2" style="display:none;"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</div>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-hover" style="width:100%">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Vaga</th>
+                <th>Matrícula</th>
+                <th>Usuário</th>
+                <th>Área / Setor</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody id="tblItensBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="modalItem" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -226,7 +261,7 @@ $(document).ready(function () {
     dom: 'Bfrtip',
     buttons: [{ extend:'excelHtml5', text:'<i class="fas fa-file-excel"></i> Excel', className:'btn btn-success btn-sm', title:'Estoque TI' }],
     pageLength: 25, order: [[0,'desc']],
-    columnDefs: [{ targets: [9], orderable: false }],
+    columnDefs: [{ targets: [7], orderable: false }],
     initComplete: function() {
       dtBuildFilters(this.api(), 'tblEstoque_filter', [
         { idx: 1, label: 'Tipo...', w: '120px' },
@@ -289,6 +324,43 @@ $(document).ready(function () {
       data: JSON.stringify(data),
       success: function() { location.reload(); },
       error: function(xhr) { $('#itemError').text(xhr.responseJSON?.error || 'Erro ao salvar.').show(); }
+    });
+  });
+
+  $(document).on('click', '.btn-ver-itens', function() {
+    var id   = $(this).data('id');
+    var desc = $(this).data('desc') || 'Item #' + id;
+    $('#itensTitulo').text(desc);
+    $('#tblItensBody').html('');
+    $('#itensLoading').show();
+    $('#modalItens').modal('show');
+
+    $.ajax({
+      url: '/api/estoque/' + id + '/itens',
+      method: 'GET',
+      success: function(rows) {
+        $('#itensLoading').hide();
+        if (!rows || !rows.length) {
+          $('#tblItensBody').html('<tr><td colspan="5" class="text-center text-muted py-3"><i class="fas fa-inbox me-2"></i>Nenhuma alocação registrada para este item.</td></tr>');
+          return;
+        }
+        var html = '';
+        rows.forEach(function(r) {
+          html += '<tr>' +
+            '<td>' + r.ID + '</td>' +
+            '<td><strong>#' + r.ID_VAGA + '</strong>' + (r.VAGA_FUNCAO ? ' — ' + r.VAGA_FUNCAO : '') + '</td>' +
+            '<td>' + (r.MATRICULA || '<span class="text-muted">—</span>') + '</td>' +
+            '<td>' + (r.USUARIO || '<span class="text-muted">—</span>') + '</td>' +
+            '<td>' + (r.AREA || '<span class="text-muted">—</span>') + '</td>' +
+            '<td>' + (r.DTALOCACAO || '—') + '</td>' +
+            '</tr>';
+        });
+        $('#tblItensBody').html(html);
+      },
+      error: function() {
+        $('#itensLoading').hide();
+        $('#tblItensBody').html('<tr><td colspan="5" class="text-center text-danger">Erro ao carregar alocações.</td></tr>');
+      }
     });
   });
 
