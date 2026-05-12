@@ -150,10 +150,9 @@ async function cadastrarVaga(req, res) {
     if (newId && notebookFinal === 'SIM') {
       try {
         await pool.request()
-          .input('ID_VAGA', sql.Int, newId)
           .query(`
             WITH CTE AS (SELECT TOP (1) ID FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO = 'NOTEBOOK' AND STATUS = 'DISPONIVEL' ORDER BY ID)
-            UPDATE RH_ESTOQUE_TI SET STATUS = 'RESERVADO', ID_VAGA = @ID_VAGA, DTALTERACAO = GETDATE()
+            UPDATE RH_ESTOQUE_TI SET STATUS = 'RESERVADO', DTALTERACAO = GETDATE()
             WHERE ID IN (SELECT ID FROM CTE)
           `);
       } catch (estoqueErr) {
@@ -164,10 +163,9 @@ async function cadastrarVaga(req, res) {
     if (newId && celularFinal === 'SIM') {
       try {
         await pool.request()
-          .input('ID_VAGA', sql.Int, newId)
           .query(`
             WITH CTE AS (SELECT TOP (1) ID FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO = 'CELULAR' AND STATUS = 'DISPONIVEL' ORDER BY ID)
-            UPDATE RH_ESTOQUE_TI SET STATUS = 'RESERVADO', ID_VAGA = @ID_VAGA, DTALTERACAO = GETDATE()
+            UPDATE RH_ESTOQUE_TI SET STATUS = 'RESERVADO', DTALTERACAO = GETDATE()
             WHERE ID IN (SELECT ID FROM CTE)
           `);
       } catch (estoqueErr) {
