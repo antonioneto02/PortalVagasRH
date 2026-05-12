@@ -114,6 +114,9 @@
                               <% if ((item.TOTAL_ALOCACOES||0) > 0) { %>
                                 <span style="position:absolute;top:-5px;right:-6px;background:#D11F3F;color:white;border-radius:50%;font-size:.6rem;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-weight:700;"><%= item.TOTAL_ALOCACOES %></span>
                               <% } %>
+                              <% if ((item.QUANTIDADE||1) === 0) { %>
+                                <span style="position:absolute;bottom:-5px;right:-6px;background:#e67e22;color:white;border-radius:3px;font-size:.55rem;padding:0 3px;font-weight:700;">ESGOTADO</span>
+                              <% } %>
                             </button>
                             <% if (item.STATUS === 'DISPONIVEL') { %>
                               <button class="btn btn-sm btn-outline-danger btn-excluir-item" style="padding:2px 7px;"
@@ -179,7 +182,7 @@
 </div>
 
 <div class="modal fade" id="modalItens" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
+  <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title"><i class="fas fa-users me-2"></i>Item — <span id="itensTitulo"></span></h5>
@@ -188,7 +191,7 @@
       <div class="modal-body">
         <div id="itensLoading" class="text-muted mb-2" style="display:none;"><i class="fas fa-spinner fa-spin me-1"></i>Carregando...</div>
         <div class="table-responsive">
-          <table class="table table-sm table-striped table-hover" style="width:100%">
+          <table class="table table-sm table-striped table-hover" style="width:100%;white-space:nowrap;">
             <thead>
               <tr>
                 <th>#</th>
@@ -341,7 +344,7 @@ $(document).ready(function () {
       success: function(rows) {
         $('#itensLoading').hide();
         if (!rows || !rows.length) {
-          $('#tblItensBody').html('<tr><td colspan="5" class="text-center text-muted py-3"><i class="fas fa-inbox me-2"></i>Nenhum item registrado.</td></tr>');
+          $('#tblItensBody').html('<tr><td colspan="6" class="text-center text-muted py-3"><i class="fas fa-inbox me-2"></i>Nenhum item registrado.</td></tr>');
           return;
         }
         var html = '';
@@ -359,7 +362,7 @@ $(document).ready(function () {
       },
       error: function() {
         $('#itensLoading').hide();
-        $('#tblItensBody').html('<tr><td colspan="5" class="text-center text-danger">Erro ao carregar itens.</td></tr>');
+        $('#tblItensBody').html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar itens.</td></tr>');
       }
     });
   });
