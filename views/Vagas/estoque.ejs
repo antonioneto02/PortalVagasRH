@@ -341,7 +341,7 @@ $(document).ready(function () {
       success: function(rows) {
         $('#itensLoading').hide();
         if (!rows || !rows.length) {
-          $('#tblItensBody').html('<tr><td colspan="5" class="text-center text-muted py-3"><i class="fas fa-inbox me-2"></i>Nenhuma alocação registrada para este item.</td></tr>');
+          $('#tblItensBody').html('<tr><td colspan="5" class="text-center text-muted py-3"><i class="fas fa-inbox me-2"></i>Nenhum item registrado.</td></tr>');
           return;
         }
         var html = '';
@@ -359,7 +359,7 @@ $(document).ready(function () {
       },
       error: function() {
         $('#itensLoading').hide();
-        $('#tblItensBody').html('<tr><td colspan="5" class="text-center text-danger">Erro ao carregar alocações.</td></tr>');
+        $('#tblItensBody').html('<tr><td colspan="5" class="text-center text-danger">Erro ao carregar itens.</td></tr>');
       }
     });
   });

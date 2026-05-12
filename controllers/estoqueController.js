@@ -345,8 +345,13 @@ async function listarItens(req, res) {
       `);
     res.json(result.recordset || []);
   } catch (err) {
-    console.error('Erro ao listar alocações:', err);
-    res.status(500).json({ error: 'Erro ao listar alocações.' });
+    // Erro 208 = invalid object name (tabela ainda não existe)
+    if (err.number === 208 || (err.message && err.message.includes('RH_ESTOQUE_ITENS'))) {
+      console.warn('Aviso: tabela RH_ESTOQUE_ITENS não encontrada, retornando lista vazia.');
+      return res.json([]);
+    }
+    console.error('Erro ao listar itens:', err);
+    res.status(500).json({ error: 'Erro ao listar itens.' });
   } finally {
     if (pool) try { await pool.close(); } catch {}
   }
