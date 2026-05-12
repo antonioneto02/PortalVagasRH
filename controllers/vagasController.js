@@ -16,25 +16,47 @@ async function listarVagas(req, res) {
     pool = await new sql.ConnectionPool(dbConfig).connect();
 
     let query = `
-      SELECT ID, FUNCAO, CONVERT(VARCHAR, DATA_ABERTURA, 103) AS DATA_ABERTURA,
-             TIPO_VAGA, SOLICITANTE, SETOR, NOTEBOOK, CELULAR,
-             REQUISITOS_VAGA, SLA_DIAS, CLASSIFICACAO, CANDIDATOS,
-             ENTREVISTAS, CONVERT(VARCHAR, PRAZO_CONTRATACAO, 103) AS PRAZO_CONTRATACAO,
-             CONVERT(VARCHAR, DT_CONTRATACAO, 103) AS DT_CONTRATACAO,
-             MATRICULA, STATUS, EMPRESA, USUARIO_CADASTRO,
-             CONVERT(VARCHAR, DTINCLUSAO, 103) AS DTINCLUSAO
-      FROM RH_VAGAS
+      SELECT v.ID, v.FUNCAO, CONVERT(VARCHAR, v.DATA_ABERTURA, 103) AS DATA_ABERTURA,
+             v.TIPO_VAGA, v.SOLICITANTE, v.SETOR, v.NOTEBOOK, v.CELULAR,
+             v.REQUISITOS_VAGA, v.SLA_DIAS, v.CLASSIFICACAO, v.CANDIDATOS,
+             v.ENTREVISTAS, CONVERT(VARCHAR, v.PRAZO_CONTRATACAO, 103) AS PRAZO_CONTRATACAO,
+             CONVERT(VARCHAR, v.DT_CONTRATACAO, 103) AS DT_CONTRATACAO,
+             v.MATRICULA, v.STATUS, v.EMPRESA, v.USUARIO_CADASTRO,
+             CONVERT(VARCHAR, v.DTINCLUSAO, 103) AS DTINCLUSAO,
+             (SELECT COUNT(*) FROM RH_ESTOQUE_TI WHERE ID_VAGA = v.ID AND STATUS = 'RESERVADO') AS ITENS_RESERVADOS,
+             (SELECT COUNT(*) FROM RH_PEDIDOS_COMPRA_TI WHERE ID_VAGA = v.ID AND STATUS = 'PENDENTE') AS PEDIDOS_PENDENTES
+      FROM RH_VAGAS v
       WHERE 1=1
     `;
 
     if (!isAdmin) {
-      query += ` AND TIPO_VAGA = 'EXTERNA'`;
+      query += ` AND v.TIPO_VAGA = 'EXTERNA' AND v.STATUS != 'FECHADA'`;
     }
 
-    query += ` ORDER BY DTINCLUSAO DESC`;
+    query += ` ORDER BY v.DTINCLUSAO DESC`;
     const result = await pool.request().query(query);
+    let vagasFinal = result.recordset;
+    
+    if (!isAdmin) {
+      const groupMap = new Map();
+      for (const row of result.recordset) {
+        const key = String(row.FUNCAO || '').trim().toUpperCase();
+        if (!groupMap.has(key)) {
+          groupMap.set(key, { ...row, TOTAL_VAGAS: 1, ALL_IDS: [row.ID] });
+        } else {
+          const g = groupMap.get(key);
+          g.TOTAL_VAGAS++;
+          g.ALL_IDS.push(row.ID);
+          g.CANDIDATOS = (g.CANDIDATOS || 0) + (row.CANDIDATOS || 0);
+          if (row.NOTEBOOK === 'SIM') g.NOTEBOOK = 'SIM';
+          if (row.CELULAR === 'SIM') g.CELULAR = 'SIM';
+        }
+      }
+      vagasFinal = [...groupMap.values()];
+    }
+
     res.render('Vagas/listagem', {
-      vagas: result.recordset,
+      vagas: vagasFinal,
       isProtheus,
       isAdmin,
       podeCadastrar,
@@ -68,6 +90,9 @@ async function cadastrarVaga(req, res) {
     return res.status(400).json({ error: 'Campos obrigatórios: Função, Data Abertura, Tipo Vaga.' });
   }
 
+  const notebookFinal = notebook === 'SIM' ? 'SIM' : 'NAO';
+  const celularFinal  = celular === 'SIM' ? 'SIM' : 'NAO';
+
   let sla_dias_final = sla_dias ? parseInt(sla_dias) : null;
   let classificacao_final = classificacao || null;
 
@@ -87,14 +112,14 @@ async function cadastrarVaga(req, res) {
       } catch {}
     }
 
-    await pool.request()
+    const insertResult = await pool.request()
       .input('FUNCAO', sql.VarChar(200), funcao)
       .input('DATA_ABERTURA', sql.Date, new Date(data_abertura))
       .input('TIPO_VAGA', sql.VarChar(20), tipo_vaga)
       .input('SOLICITANTE', sql.VarChar(200), solicitante || null)
       .input('SETOR', sql.VarChar(200), setor || null)
-      .input('NOTEBOOK', sql.Char(3), notebook === 'SIM' ? 'SIM' : 'NAO')
-      .input('CELULAR', sql.Char(3), celular === 'SIM' ? 'SIM' : 'NAO')
+      .input('NOTEBOOK', sql.Char(3), notebookFinal)
+      .input('CELULAR', sql.Char(3), celularFinal)
       .input('REQUISITOS_VAGA', sql.VarChar(sql.MAX), requisitos_vaga || null)
       .input('SLA_DIAS', sql.Int, sla_dias_final)
       .input('CLASSIFICACAO', sql.VarChar(20), classificacao_final)
@@ -110,12 +135,42 @@ async function cadastrarVaga(req, res) {
         (FUNCAO, DATA_ABERTURA, TIPO_VAGA, SOLICITANTE, SETOR, NOTEBOOK, CELULAR,
          REQUISITOS_VAGA, SLA_DIAS, CLASSIFICACAO, CANDIDATOS, ENTREVISTAS,
          PRAZO_CONTRATACAO, DT_CONTRATACAO, MATRICULA, STATUS, EMPRESA, USUARIO_CADASTRO)
+        OUTPUT INSERTED.ID
         VALUES
         (@FUNCAO, @DATA_ABERTURA, @TIPO_VAGA, @SOLICITANTE, @SETOR, @NOTEBOOK, @CELULAR,
          @REQUISITOS_VAGA, @SLA_DIAS, @CLASSIFICACAO, @CANDIDATOS, @ENTREVISTAS,
          @PRAZO_CONTRATACAO, @DT_CONTRATACAO, @MATRICULA, @STATUS, @EMPRESA, @USUARIO_CADASTRO)`);
 
-    return res.json({ success: true });
+    const newId = insertResult.recordset[0]?.ID;
+    if (newId && notebookFinal === 'SIM') {
+      try {
+        await pool.request()
+          .input('ID_VAGA', sql.Int, newId)
+          .query(`
+            WITH CTE AS (SELECT TOP (1) ID FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO = 'NOTEBOOK' AND STATUS = 'DISPONIVEL' ORDER BY ID)
+            UPDATE RH_ESTOQUE_TI SET STATUS = 'RESERVADO', ID_VAGA = @ID_VAGA, DTALTERACAO = GETDATE()
+            WHERE ID IN (SELECT ID FROM CTE)
+          `);
+      } catch (estoqueErr) {
+        console.error('Aviso: não foi possível reservar notebook:', estoqueErr.message);
+      }
+    }
+
+    if (newId && celularFinal === 'SIM') {
+      try {
+        await pool.request()
+          .input('ID_VAGA', sql.Int, newId)
+          .query(`
+            WITH CTE AS (SELECT TOP (1) ID FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO = 'CELULAR' AND STATUS = 'DISPONIVEL' ORDER BY ID)
+            UPDATE RH_ESTOQUE_TI SET STATUS = 'RESERVADO', ID_VAGA = @ID_VAGA, DTALTERACAO = GETDATE()
+            WHERE ID IN (SELECT ID FROM CTE)
+          `);
+      } catch (estoqueErr) {
+        console.error('Aviso: não foi possível reservar celular:', estoqueErr.message);
+      }
+    }
+
+    return res.json({ success: true, id: newId });
   } catch (err) {
     console.error('Erro ao cadastrar vaga:', err);
     return res.status(500).json({ error: 'Erro interno ao cadastrar vaga.' });
@@ -220,12 +275,30 @@ async function fecharVaga(req, res) {
   let pool = null;
   try {
     pool = await new sql.ConnectionPool(dbConfig).connect();
+    const vagaInfo = await pool.request()
+      .input('ID', sql.Int, parseInt(id))
+      .query(`SELECT SETOR, FUNCAO FROM RH_VAGAS WHERE ID = @ID`);
+
+    const setor = vagaInfo.recordset[0]?.SETOR || null;
+    const funcao = vagaInfo.recordset[0]?.FUNCAO || null;
+
     await pool.request()
       .input('ID', sql.Int, parseInt(id))
       .input('MATRICULA', sql.VarChar(50), matricula || null)
-      .input('ENTREVISTAS', sql.Int, entrevistas?parseInt(entrevistas):null)
-      .input('DT_CONTRATACAO', sql.Date, dt_contratacao?new Date(dt_contratacao):null)
+      .input('ENTREVISTAS', sql.Int, entrevistas ? parseInt(entrevistas) : null)
+      .input('DT_CONTRATACAO', sql.Date, dt_contratacao ? new Date(dt_contratacao) : null)
       .query(`UPDATE RH_VAGAS SET MATRICULA=@MATRICULA, ENTREVISTAS=@ENTREVISTAS, DT_CONTRATACAO=@DT_CONTRATACAO, STATUS='FECHADA' WHERE ID=@ID`);
+    try {
+      const areaLabel = [setor, funcao].filter(Boolean).join(' - ');
+      await pool.request()
+        .input('ID_VAGA', sql.Int, parseInt(id))
+        .input('AREA', sql.VarChar(200), areaLabel || null)
+        .query(`UPDATE RH_ESTOQUE_TI SET STATUS = 'EM_USO', AREA = @AREA, DTALTERACAO = GETDATE()
+                WHERE ID_VAGA = @ID_VAGA AND STATUS = 'RESERVADO'`);
+    } catch (estoqueErr) {
+      console.error('Aviso: não foi possível liberar itens de estoque:', estoqueErr.message);
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao fechar vaga:', err);

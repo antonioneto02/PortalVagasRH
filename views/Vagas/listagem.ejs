@@ -155,11 +155,27 @@
                       <td title="<%= v.DATA_ABERTURA||'-' %>" data-toggle="tooltip"><%= v.DATA_ABERTURA||'-' %></td>
                       <td title="<%= v.PRAZO_CONTRATACAO||'-' %>" data-toggle="tooltip"><%= v.PRAZO_CONTRATACAO||'-' %></td>
                       <td class="text-center"><div class="cell-inner clickable-cell text-center" title="<%= v.EMPRESA||'-' %>" data-toggle="tooltip"><%= v.EMPRESA||'-' %></div></td>
-                      <td class="text-center"><span style="color:<%= v.NOTEBOOK==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.NOTEBOOK==='SIM'?'check':'times' %>"></i></span></td>
-                      <td class="text-center"><span style="color:<%= v.CELULAR==='SIM'?'#27ae60':'#e74c3c' %>"><i class="fas fa-<%= v.CELULAR==='SIM'?'check':'times' %>"></i></span></td>
+                      <td class="text-center">
+                        <% if (v.NOTEBOOK === 'SIM') { %>
+                          <span style="color:<%= v.ITENS_RESERVADOS > 0 ? '#27ae60' : '#e74c3c' %>;" title="<%= v.ITENS_RESERVADOS > 0 ? 'Notebook reservado no estoque' : 'Notebook sem reserva' %>">
+                            <i class="fas fa-laptop"></i>
+                          </span>
+                        <% } else { %>
+                          <span style="color:#adb5bd;"><i class="fas fa-times"></i></span>
+                        <% } %>
+                      </td>
+                      <td class="text-center">
+                        <% if (v.CELULAR === 'SIM') { %>
+                          <span style="color:<%= v.ITENS_RESERVADOS > 0 ? '#27ae60' : '#e74c3c' %>;" title="<%= v.ITENS_RESERVADOS > 0 ? 'Celular reservado no estoque' : 'Celular sem reserva' %>">
+                            <i class="fas fa-mobile-alt"></i>
+                          </span>
+                        <% } else { %>
+                          <span style="color:#adb5bd;"><i class="fas fa-times"></i></span>
+                        <% } %>
+                      </td>
                       <td class="req-cell"><div class="cell-inner clickable-cell" title="<%= v.REQUISITOS_VAGA||'-' %>" data-toggle="tooltip"><%= v.REQUISITOS_VAGA||'-' %></div></td>
                       <td>
-                        <div class="d-flex justify-content-center" style="gap:.25rem;">
+                        <div class="d-flex justify-content-center flex-wrap" style="gap:.25rem;">
                           <% if (candidaturasFeitas.includes(v.ID)) { %>
                             <span class="badge" style="background:#17a2b8;color:white;font-size:.74rem;padding:4px 7px;"><i class="fas fa-check-circle me-1"></i>Candidatado</span>
                           <% } %>
@@ -169,6 +185,33 @@
                             <button class="btn btn-sm btn-success btn-fechar-vaga" data-id="<%= v.ID %>" title="Fechar Vaga" aria-label="Fechar Vaga"><i class="fas fa-check"></i></button>
                           <% } else { %>
                             <span class="text-muted">-</span>
+                          <% } %>
+                          <%
+                            const precisaEquip = (v.NOTEBOOK === 'SIM' || v.CELULAR === 'SIM');
+                            const semReserva = v.ITENS_RESERVADOS === 0;
+                            const pedidoPendente = v.PEDIDOS_PENDENTES > 0;
+                          %>
+                          <% if (precisaEquip && semReserva && v.STATUS !== 'FECHADA') { %>
+                            <% if (pedidoPendente) { %>
+                              <span class="badge" style="background:#f39c12;color:white;font-size:.72rem;padding:3px 6px;" title="Pedido de compra TI pendente">
+                                <i class="fas fa-clock me-1"></i>Pedido TI
+                              </span>
+                            <% } else { %>
+                              <span class="badge" style="background:#e74c3c;color:white;font-size:.72rem;padding:3px 6px;" title="Itens TI necessários sem estoque">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Sem Estoque TI
+                              </span>
+                              <button class="btn btn-sm btn-warning btn-fazer-pedido" style="padding:2px 6px;font-size:.72rem;"
+                                data-id="<%= v.ID %>"
+                                data-funcao="<%= v.FUNCAO %>"
+                                data-setor="<%= v.SETOR||'' %>"
+                                data-prazo="<%= v.PRAZO_CONTRATACAO||'' %>"
+                                data-solicitante="<%= v.SOLICITANTE||'' %>"
+                                data-qtd-notebook="<%= v.NOTEBOOK==='SIM' ? 1 : 0 %>"
+                                data-qtd-celular="<%= v.CELULAR==='SIM' ? 1 : 0 %>"
+                                title="Fazer pedido de compra TI">
+                                <i class="fas fa-shopping-cart"></i>
+                              </button>
+                            <% } %>
                           <% } %>
                         </div>
                       </td>
@@ -180,16 +223,24 @@
           <% } else { %>
             <div class="vagas-grid">
               <% vagas.forEach(v => { %>
-                <div class="vaga-card" data-fulltext="Função: <%= String(v.FUNCAO || '-').replace(/"/g, '&quot;') %>&#10;Status: <%= String(v.STATUS || '-').replace(/"/g, '&quot;') %>&#10;Tipo: <%= String(v.TIPO_VAGA || '-').replace(/"/g, '&quot;') %>&#10;Empresa: <%= String(v.EMPRESA || '-').replace(/"/g, '&quot;') %>&#10;Abertura: <%= String(v.DATA_ABERTURA || '-').replace(/"/g, '&quot;') %>&#10;SLA: <%= v.SLA_DIAS !== null ? String(v.SLA_DIAS) : '-' %> dias&#10;&#10;Requisitos:&#10;<%= String(v.REQUISITOS_VAGA || 'Sem requisitos informados.').replace(/"/g, '&quot;') %>">
+                <%
+                  const jaCandidatou = (v.ALL_IDS || [v.ID]).some(function(aid) {
+                    return candidaturasFeitas.includes(aid);
+                  });
+                  const totalVagas = v.TOTAL_VAGAS || 1;
+                %>
+                <div class="vaga-card" data-fulltext="Função: <%= String(v.FUNCAO || '-').replace(/"/g, '&quot;') %>&#10;Vagas abertas: <%= totalVagas %>&#10;Tipo: <%= String(v.TIPO_VAGA || '-').replace(/"/g, '&quot;') %>&#10;Empresa: <%= String(v.EMPRESA || '-').replace(/"/g, '&quot;') %>&#10;Abertura: <%= String(v.DATA_ABERTURA || '-').replace(/"/g, '&quot;') %>&#10;SLA: <%= v.SLA_DIAS !== null ? String(v.SLA_DIAS) : '-' %> dias&#10;&#10;Requisitos:&#10;<%= String(v.REQUISITOS_VAGA || 'Sem requisitos informados.').replace(/"/g, '&quot;') %>">
                   <div class="head">
                     <h5><%= v.FUNCAO %></h5>
-                    <span class="badge" style="background:<%= v.STATUS==='ABERTA'?'#27ae60':v.STATUS==='FECHADA'?'#6c757d':'#e67e22' %>;color:white;"><%= v.STATUS %></span>
+                    <div class="d-flex flex-column align-items-end" style="gap:.25rem;">
+                      <span class="badge" style="background:#27ae60;color:white;font-size:.78rem;"><%= totalVagas %> vaga<%= totalVagas > 1 ? 's' : '' %></span>
+                      <% if(v.CLASSIFICACAO){ %>
+                        <span class="badge" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;color:white;font-size:.72rem;"><%= v.CLASSIFICACAO %></span>
+                      <% } %>
+                    </div>
                   </div>
                   <div>
                     <span class="badge" style="background:<%= v.TIPO_VAGA==='INTERNA'?'#2B286F':'#D11F3F' %>;color:white;"><%= v.TIPO_VAGA %></span>
-                    <% if(v.CLASSIFICACAO){ %>
-                      <span class="badge" style="background:<%= v.CLASSIFICACAO==='ALTA'?'#e74c3c':v.CLASSIFICACAO==='MEDIA'?'#f39c12':'#27ae60' %>;color:white;"><%= v.CLASSIFICACAO %></span>
-                    <% } %>
                   </div>
                   <div class="vaga-meta">
                     <span><i class="fas fa-building me-1"></i><%= v.EMPRESA || '-' %></span>
@@ -199,14 +250,12 @@
                   </div>
                   <div class="vaga-requisitos" title="<%= v.REQUISITOS_VAGA || '-' %>"><%= v.REQUISITOS_VAGA || 'Sem requisitos informados.' %></div>
                   <div class="mt-auto pt-2 d-flex flex-column align-items-center">
-                    <% if (candidaturasFeitas.includes(v.ID)) { %>
+                    <% if (jaCandidatou) { %>
                       <span style="font-size:.82rem;color:#17a2b8;font-weight:600;" class="mb-2"><i class="fas fa-check-circle me-1"></i>Já me candidatei</span>
-                    <% } else if (v.STATUS !== 'FECHADA') { %>
+                    <% } else { %>
                       <button class="btn btn-primary btn-sm btn-candidatura" data-id="<%= v.ID %>" data-funcao="<%= v.FUNCAO %>">
                         <i class="fas fa-paper-plane me-1"></i>Candidatar-se
                       </button>
-                    <% } else { %>
-                      <button class="btn btn-secondary btn-sm" disabled>Vaga Fechada</button>
                     <% } %>
                   </div>
                 </div>
@@ -304,6 +353,33 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
         <button type="button" class="btn btn-success" id="btnFecharVaga">Fechar Vaga</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalPedidoCompra" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#e67e22,#D11F3F);">
+        <h5 class="modal-title" style="color:white;"><i class="fas fa-exclamation-triangle me-2"></i>Estoque TI Insuficiente</h5>
+        <button type="button" class="close" id="btnFecharModalPedido" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning" style="font-size:.9rem;">
+          <i class="fas fa-warehouse me-2"></i>Não há itens suficientes no estoque para cobrir esta vaga.
+        </div>
+        <div id="pedidoItensResumo" class="mb-3"></div>
+        <p class="mb-0" style="font-size:.92rem;">Deseja enviar um <strong>pedido de compra</strong> para os responsáveis (TI, Compras, RH)?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnSkipPedido">
+          <i class="fas fa-times me-1"></i>Não, criar vaga mesmo assim
+        </button>
+        <button type="button" class="btn btn-warning" id="btnConfirmarPedido">
+          <span id="pedidoSpinner" class="spinner-border spinner-border-sm me-1" style="display:none;"></span>
+          <i class="fas fa-envelope me-1" id="pedidoIcon"></i>Sim, enviar pedido de compra
+        </button>
       </div>
     </div>
   </div>
@@ -447,14 +523,15 @@ $(document).ready(function () {
   }
 
   function carregarCandidatosDaVaga(idVaga, funcaoVaga) {
-    $('#candidatosVagaTitulo').text('Candidatos da vaga #' + idVaga + ' - ' + (funcaoVaga || '-'));
+    $('#candidatosVagaTitulo').text('Candidatos - ' + (funcaoVaga || 'Vaga #' + idVaga));
     $('#candidatosLoading').show();
     $('#tblCandidatosVaga tbody').html('');
     $('#modalCandidatosVaga').modal('show');
 
     $.ajax({
-      url: '/api/vagas/' + idVaga + '/candidaturas',
+      url: '/api/candidaturas/por-funcao',
       method: 'GET',
+      data: { funcao: funcaoVaga || '' },
       success: function(rows) {
         var html = '';
         (rows || []).forEach(function(c) {
@@ -467,7 +544,15 @@ $(document).ready(function () {
             '<td><span class="clickable-cell" title="' + escapeHtml(c.EMAIL || '-') + '" data-toggle="tooltip">' + escapeHtml(c.EMAIL || '-') + '</span></td>' +
             '<td><span class="clickable-cell" title="' + escapeHtml(c.LINKEDIN || '-') + '" data-toggle="tooltip">' + escapeHtml(c.LINKEDIN || '-') + '</span></td>' +
             '<td><span class="clickable-cell" title="' + escapeHtml(c.DTINCLUSAO || '-') + '" data-toggle="tooltip">' + escapeHtml(c.DTINCLUSAO || '-') + '</span></td>' +
-            '<td><span class="clickable-cell" title="' + escapeHtml(c.APRESENTACAO || '-') + '" data-toggle="tooltip">' + escapeHtml(c.APRESENTACAO || '-') + '</span></td>' +
+            '<td style="max-width:200px;">' +
+              (function() {
+                var apres = c.APRESENTACAO || '-';
+                var apresShort = apres.length > 90 ? apres.substring(0, 90) + '…' : apres;
+                return '<span class="cand-apresentacao" style="cursor:pointer;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.82rem;line-height:1.3;" ' +
+                  'data-fulltext="' + escapeHtml(apres) + '" title="Clique para ver completo">' +
+                  escapeHtml(apresShort) + '</span>';
+              })() +
+            '</td>' +
             '<td class="text-center">' + curriculoBtn + '</td>' +
           '</tr>';
         });
@@ -561,6 +646,8 @@ $(document).ready(function () {
     });
   });
 
+  var _pedidoPendente = null; // armazena contexto do pedido durante o fluxo
+
   $('#btnNovaVaga').on('click', function() {
     $('#formNovaVaga')[0].reset();
     $('#formError').hide();
@@ -569,8 +656,47 @@ $(document).ready(function () {
     $('#empresaSelect').val(null).trigger('change');
     $('[name="data_abertura"]').val(new Date().toISOString().split('T')[0]);
     $('[name="tipo_vaga"]').val('EXTERNA');
+    $('[name="notebook"]').val('NAO');
+    $('[name="celular"]').val('NAO');
     $('#modalNovaVaga').modal('show');
   });
+
+  function salvarVagaComDados(data, fazerPedido) {
+    $('#savingSpinner').show();
+    $('#saveIcon').hide();
+    $('#btnSalvarVaga').prop('disabled', true);
+
+    $.ajax({
+      url: '/vagas', method: 'POST', contentType: 'application/json', data: JSON.stringify(data),
+      success: function(resp) {
+        var vagaId = resp.id;
+        if (fazerPedido && vagaId) {
+          var itens = [];
+          if (data.notebook === 'SIM') itens.push({ tipo: 'NOTEBOOK', qtd: 1 });
+          if (data.celular === 'SIM') itens.push({ tipo: 'CELULAR', qtd: 1 });
+          $('#pedidoSpinner').show(); $('#pedidoIcon').hide();
+          $.ajax({
+            url: '/api/estoque/pedido', method: 'POST', contentType: 'application/json',
+            data: JSON.stringify({
+              id_vaga: vagaId, itens: itens,
+              funcao: data.funcao, setor: data.setor,
+              prazo: data.prazo_contratacao, solicitante: data.solicitante
+            }),
+            complete: function() { location.reload(); }
+          });
+        } else {
+          location.reload();
+        }
+      },
+      error: function(xhr) {
+        $('#formError').text(xhr.responseJSON?.error || 'Erro ao salvar.').show();
+        $('#modalNovaVaga').modal('show');
+        $('#savingSpinner').hide();
+        $('#saveIcon').show();
+        $('#btnSalvarVaga').prop('disabled', false);
+      }
+    });
+  }
 
   $('#btnSalvarVaga').on('click', function() {
     if (!$('#funcaoSelect').val()) { $('#formError').text('Selecione a função.').show(); return; }
@@ -579,21 +705,108 @@ $(document).ready(function () {
 
     const data = {};
     $(form).serializeArray().forEach(function(f) { data[f.name] = f.value; });
+    const needsNb = data.notebook === 'SIM' ? 1 : 0;
+    const needsCel = data.celular === 'SIM' ? 1 : 0;
 
-    $('#savingSpinner').show();
-    $('#saveIcon').hide();
-    $('#btnSalvarVaga').prop('disabled', true);
+    if (needsNb > 0 || needsCel > 0) {
+      $.ajax({
+        url: '/api/estoque/verificar', method: 'GET', data: { notebook: needsNb, celular: needsCel },
+        success: function(result) {
+          if (result.disponivel) {
+            salvarVagaComDados(data, false);
+          } else {
+            _pedidoPendente = { vagaData: data, estoqueResult: result };
+            var html = '<ul style="margin:0;">';
+            if (result.faltaNb > 0) html += '<li><i class="fas fa-laptop me-1"></i><strong>Notebook:</strong> disponível ' + result.dispNb + ', falta <strong>1</strong></li>';
+            if (result.faltaCel > 0) html += '<li><i class="fas fa-mobile-alt me-1"></i><strong>Celular:</strong> disponível ' + result.dispCel + ', falta <strong>1</strong></li>';
+            html += '</ul>';
+            $('#pedidoItensResumo').html(html);
+            $('#btnConfirmarPedido').prop('disabled', false);
+            $('#pedidoSpinner').hide(); $('#pedidoIcon').show();
+            $('#modalNovaVaga').modal('hide');
+            $('#modalPedidoCompra').modal('show');
+          }
+        },
+        error: function() { salvarVagaComDados(data, false); }
+      });
+    } else {
+      salvarVagaComDados(data, false);
+    }
+  });
 
-    $.ajax({
-      url:'/vagas', method:'POST', contentType:'application/json', data:JSON.stringify(data),
-      success: function() { $('#modalNovaVaga').modal('hide'); location.reload(); },
-      error: function(xhr) {
-        $('#formError').text(xhr.responseJSON?.error || 'Erro ao salvar.').show();
-        $('#savingSpinner').hide();
-        $('#saveIcon').show();
-        $('#btnSalvarVaga').prop('disabled', false);
-      }
-    });
+  $('#btnSkipPedido').on('click', function() {
+    $('#modalPedidoCompra').modal('hide');
+    if (_pedidoPendente && _pedidoPendente.vagaData) {
+      salvarVagaComDados(_pedidoPendente.vagaData, false);
+      _pedidoPendente = null;
+    }
+  });
+
+  $('#btnFecharModalPedido').on('click', function() {
+    $('#modalPedidoCompra').modal('hide');
+    if (_pedidoPendente && _pedidoPendente.vagaData) {
+      $('#modalNovaVaga').modal('show');
+    }
+    if (_pedidoPendente && _pedidoPendente.vagaId) {
+      _pedidoPendente = null;
+    }
+  });
+
+  $('#btnConfirmarPedido').on('click', function() {
+    if (!_pedidoPendente) return;
+    $('#btnConfirmarPedido').prop('disabled', true);
+    $('#pedidoSpinner').show(); $('#pedidoIcon').hide();
+
+    if (_pedidoPendente.vagaData) {
+      // Fluxo da nova vaga: salvar + fazer pedido
+      salvarVagaComDados(_pedidoPendente.vagaData, true);
+      _pedidoPendente = null;
+    } else if (_pedidoPendente.vagaId) {
+      // Fluxo de vaga existente: só fazer pedido
+      var itens = [];
+      if (_pedidoPendente.qtdNb > 0) itens.push({ tipo: 'NOTEBOOK', qtd: _pedidoPendente.qtdNb });
+      if (_pedidoPendente.qtdCel > 0) itens.push({ tipo: 'CELULAR', qtd: _pedidoPendente.qtdCel });
+      $.ajax({
+        url: '/api/estoque/pedido', method: 'POST', contentType: 'application/json',
+        data: JSON.stringify({
+          id_vaga: _pedidoPendente.vagaId, itens: itens,
+          funcao: _pedidoPendente.funcao, setor: _pedidoPendente.setor,
+          prazo: _pedidoPendente.prazo, solicitante: _pedidoPendente.solicitante
+        }),
+        success: function() { _pedidoPendente = null; location.reload(); },
+        error: function(xhr) {
+          alert(xhr.responseJSON?.error || 'Erro ao enviar pedido.');
+          $('#btnConfirmarPedido').prop('disabled', false);
+          $('#pedidoSpinner').hide(); $('#pedidoIcon').show();
+        }
+      });
+    }
+  });
+
+  // Botão "Fazer Pedido" nas vagas existentes sem estoque
+  $(document).on('click', '.btn-fazer-pedido', function() {
+    var btn = $(this);
+    var qtdNb = parseInt(btn.data('qtd-notebook')) || 0;
+    var qtdCel = parseInt(btn.data('qtd-celular')) || 0;
+
+    _pedidoPendente = {
+      vagaId: btn.data('id'),
+      funcao: btn.data('funcao'),
+      setor: btn.data('setor'),
+      prazo: btn.data('prazo'),
+      solicitante: btn.data('solicitante'),
+      qtdNb: qtdNb,
+      qtdCel: qtdCel,
+    };
+
+    var html = '<ul style="margin:0;">';
+    if (qtdNb > 0) html += '<li><i class="fas fa-laptop me-1"></i><strong>Notebook:</strong> ' + qtdNb + ' unidade(s)</li>';
+    if (qtdCel > 0) html += '<li><i class="fas fa-mobile-alt me-1"></i><strong>Celular:</strong> ' + qtdCel + ' unidade(s)</li>';
+    html += '</ul>';
+    $('#pedidoItensResumo').html(html);
+    $('#btnConfirmarPedido').prop('disabled', false);
+    $('#pedidoSpinner').hide(); $('#pedidoIcon').show();
+    $('#modalPedidoCompra').modal('show');
   });
 
   $(document).on('click', '.btn-fechar-vaga', function() {
@@ -637,6 +850,14 @@ $(document).ready(function () {
       $('#tblCandidatosVaga').DataTable().destroy();
     }
     $('#tblCandidatosVaga tbody').empty();
+  });
+
+  $(document).on('click', '.cand-apresentacao', function() {
+    var full = $(this).data('fulltext') || $(this).text();
+    if (full && full.trim() !== '-') {
+      $('#modalCellFullContent').text(full.trim());
+      $('#modalCellFull').modal('show');
+    }
   });
   <% } %>
 

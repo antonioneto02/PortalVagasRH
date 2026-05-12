@@ -321,4 +321,33 @@ async function abrirCurriculoCandidatura(req, res) {
   }
 }
 
-module.exports = { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi, abrirCurriculoCandidatura };
+async function listarCandidaturasPorFuncaoApi(req, res) {
+  const funcao = String(req.query.funcao || '').trim();
+  if (!funcao) return res.json([]);
+
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request()
+      .input('FUNCAO', sql.VarChar(200), funcao)
+      .query(`
+        SELECT
+          c.ID, c.ID_VAGA, c.NOME, c.CELULAR, c.EMAIL, c.LINKEDIN,
+          c.APRESENTACAO, c.LINK_ADICIONAL, c.CURRICULO_PATH,
+          CONVERT(VARCHAR, c.DTINCLUSAO, 103) + ' ' + CONVERT(VARCHAR(5), c.DTINCLUSAO, 108) AS DTINCLUSAO,
+          ISNULL(v.FUNCAO, '-') AS NOME_VAGA
+        FROM RH_CANDIDATURAS c
+        INNER JOIN RH_VAGAS v ON v.ID = c.ID_VAGA
+        WHERE UPPER(RTRIM(LTRIM(v.FUNCAO))) = UPPER(RTRIM(LTRIM(@FUNCAO)))
+        ORDER BY c.ID DESC
+      `);
+    return res.json(result.recordset || []);
+  } catch (err) {
+    console.error('Erro ao listar candidaturas por funcao:', err);
+    return res.status(500).json({ error: 'Erro ao buscar candidatos.' });
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
+module.exports = { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi, listarCandidaturasPorFuncaoApi, abrirCurriculoCandidatura };

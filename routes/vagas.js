@@ -9,7 +9,7 @@ const {
   renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
   fecharVaga,
 } = require('../controllers/vagasController');
-const { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi, abrirCurriculoCandidatura } = require('../controllers/candidaturasController');
+const { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi, listarCandidaturasPorFuncaoApi, abrirCurriculoCandidatura } = require('../controllers/candidaturasController');
 const {
   renderUsuarios,
   atualizarAdmUsuario,
@@ -17,6 +17,10 @@ const {
   buscarUsuariosProtheus,
   incluirUsuarioProtheus,
 } = require('../controllers/usuariosController');
+const {
+  renderEstoque, listarEstoque, cadastrarItem, editarItem, excluirItem,
+  verificarDisponibilidade, criarPedidoCompra, listarPedidos, atualizarStatusPedido,
+} = require('../controllers/estoqueController');
 
 router.get('/vagas', requireAuth, listarVagas);
 router.post('/vagas', requireAuth, cadastrarVaga);
@@ -28,6 +32,7 @@ router.get('/api/funcoes', requireAuth, getFuncoes);
 router.get('/api/pessoas', requireAuth, getPessoas);
 router.get('/api/empresas', requireAuth, getEmpresas);
 router.get('/api/matriculas', requireAuth, getMatriculas);
+router.get('/api/candidaturas/por-funcao', requireAuth, requireAdmin, listarCandidaturasPorFuncaoApi);
 router.get('/api/vagas/:id/candidaturas', requireAuth, requireAdmin, listarCandidaturasPorVagaApi);
 router.get('/api/candidaturas/:id/curriculo', requireAuth, requireAdmin, abrirCurriculoCandidatura);
 router.get('/api/sla/by-funcao', requireAuth, slaByFuncao);
@@ -44,4 +49,16 @@ router.put('/api/usuarios/:id/adm', requireAuth, requireAdmin, atualizarAdmUsuar
 router.get('/api/protheus/usuarios', requireAuth, requireAdmin, buscarUsuariosProtheus);
 router.post('/api/usuarios/protheus', requireAuth, requireAdmin, incluirUsuarioProtheus);
 router.post('/api/candidatura', salvarCandidatura);
+
+// Estoque TI (apenas ADM)
+router.get('/estoque', requireAuth, requireAdmin, renderEstoque);
+router.get('/api/estoque', requireAuth, requireAdmin, listarEstoque);
+router.post('/api/estoque', requireAuth, requireAdmin, cadastrarItem);
+router.put('/api/estoque/:id', requireAuth, requireAdmin, editarItem);
+router.delete('/api/estoque/:id', requireAuth, requireAdmin, excluirItem);
+router.get('/api/estoque/verificar', requireAuth, requireAdmin, verificarDisponibilidade);
+router.post('/api/estoque/pedido', requireAuth, requireAdmin, criarPedidoCompra);
+router.get('/api/estoque/pedidos', requireAuth, requireAdmin, listarPedidos);
+router.put('/api/estoque/pedidos/:id/status', requireAuth, requireAdmin, atualizarStatusPedido);
+
 module.exports = router;
