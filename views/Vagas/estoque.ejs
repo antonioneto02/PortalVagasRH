@@ -68,6 +68,7 @@
                   <thead>
                     <tr>
                       <th>ID</th><th>Tipo</th><th>Descrição</th><th>Modelo</th><th class="text-center">Qtd.</th>
+                      <th class="text-center" title="Quantidade requisitada via pedidos de compra pendentes">Qtd Req</th>
                       <th>Cadastrado</th><th>Ações</th>
                     </tr>
                   </thead>
@@ -83,6 +84,18 @@
                         <td><%= item.DESCRICAO || '-' %></td>
                         <td><%= item.MODELO || '-' %></td>
                         <td class="text-center"><strong style="font-size:1rem;color:<%= (item.QUANTIDADE||1) > 0 ? '#27ae60' : '#e74c3c' %>"><%= item.QUANTIDADE || 1 %></strong></td>
+                        <%
+                          let qtdReq = 0;
+                          pedidos.filter(p => p.STATUS === 'PENDENTE').forEach(function(p) {
+                            let itensP = [];
+                            try { itensP = JSON.parse(p.ITENS_JSON || '[]'); } catch(e) {}
+                            itensP.forEach(function(i) {
+                              if (i.tipo === item.TIPO_PRODUTO) qtdReq += (i.qtd || 1);
+                            });
+                          });
+                          const qtdReqVal = qtdReq > 0 ? -qtdReq : 0;
+                        %>
+                        <td class="text-center"><% if (qtdReqVal < 0) { %><strong style="font-size:1rem;color:#e74c3c;"><%= qtdReqVal %></strong><% } else { %><span class="text-muted">—</span><% } %></td>
                         <td><%= item.DTINCLUSAO || '-' %></td>
                         <td>
                           <div class="d-flex flex-wrap" style="gap:.25rem;">
@@ -240,7 +253,7 @@ $(document).ready(function () {
     dom: 'Bfrtip',
     buttons: [{ extend:'excelHtml5', text:'<i class="fas fa-file-excel"></i> Excel', className:'btn btn-success btn-sm', title:'Estoque TI' }],
     pageLength: 25, order: [[0,'desc']],
-    columnDefs: [{ targets: [6], orderable: false }],
+    columnDefs: [{ targets: [7], orderable: false }, { targets: [5], orderable: false }],
     initComplete: function() {
       dtBuildFilters(this.api(), 'tblEstoque_filter', [
         { idx: 1, label: 'Tipo...', w: '120px' },
