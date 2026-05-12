@@ -27,7 +27,71 @@
       <a class="nav-item <%= currentPath === '/estoque' ? 'active' : '' %>" href="/estoque">
         <i class="bi bi-laptop"></i> <span class="nav-text">Estoque TI</span>
       </a>
+      <a class="nav-item" href="#" id="btnAbrirLimparDados" style="color:#e74c3c;">
+        <i class="bi bi-trash3"></i> <span class="nav-text">Limpar Dados</span>
+      </a>
       <% } %>
     </div>
   </nav>
 </aside>
+
+<!-- Modal Limpar Dados -->
+<div class="modal fade" id="modalLimparDados" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" style="background:linear-gradient(135deg,#c0392b,#7b241c);">
+        <h5 class="modal-title" style="color:white;"><i class="bi bi-exclamation-triangle-fill me-2"></i>Limpar Todos os Dados</h5>
+        <button type="button" class="close" data-dismiss="modal" style="color:white;opacity:1;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger mb-3" style="font-size:.9rem;">
+          <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Atenção!</strong>
+          Esta ação irá excluir <strong>permanentemente</strong> todos os dados de vagas, candidaturas, estoque, pedidos de compra, SLA e mercado sul.<br>
+          <span class="text-muted" style="font-size:.82rem;">Usuários cadastrados não serão removidos.</span>
+        </div>
+        <div id="limparDadosErro" class="alert alert-danger" style="display:none;font-size:.88rem;"></div>
+        <p class="mb-1" style="font-size:.93rem;">Para confirmar, digite <strong>CONFIRMAR</strong> abaixo:</p>
+        <input type="text" id="limparConfirmInput" class="form-control" placeholder="Digite CONFIRMAR" autocomplete="off">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmarLimpar">
+          <i class="bi bi-trash3 me-1"></i>Excluir Tudo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $('#btnAbrirLimparDados').on('click', function(e) {
+    e.preventDefault();
+    $('#limparConfirmInput').val('');
+    $('#limparDadosErro').hide().text('');
+    $('#btnConfirmarLimpar').prop('disabled', false).html('<i class="bi bi-trash3 me-1"></i>Excluir Tudo');
+    $('#modalLimparDados').modal('show');
+  });
+
+  $('#btnConfirmarLimpar').on('click', function() {
+    if ($('#limparConfirmInput').val().trim() !== 'CONFIRMAR') {
+      $('#limparDadosErro').text('Digite exatamente CONFIRMAR para prosseguir.').show();
+      $('#limparConfirmInput').focus();
+      return;
+    }
+    var btn = $(this);
+    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Excluindo...');
+    $('#limparDadosErro').hide();
+    $.ajax({
+      url: '/api/admin/limpar-dados',
+      method: 'DELETE',
+      success: function() {
+        $('#modalLimparDados').modal('hide');
+        location.reload();
+      },
+      error: function(xhr) {
+        $('#limparDadosErro').text(xhr.responseJSON?.error || 'Erro ao limpar dados.').show();
+        btn.prop('disabled', false).html('<i class="bi bi-trash3 me-1"></i>Excluir Tudo');
+      }
+    });
+  });
+</script>

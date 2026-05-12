@@ -284,10 +284,15 @@ async function fecharVaga(req, res) {
 
     const { SETOR: setor, FUNCAO: funcao, NOTEBOOK: notebook, CELULAR: celular } = vagaInfo.recordset[0] || {};
 
+    if (!matricula) return res.status(400).json({ error: 'Matrícula é obrigatória para fechar a vaga.' });
+    if (entrevistas === undefined || entrevistas === null || entrevistas === '') {
+      return res.status(400).json({ error: 'Número de entrevistas é obrigatório para fechar a vaga.' });
+    }
+
     await pool.request()
       .input('ID', sql.Int, parseInt(id))
-      .input('MATRICULA', sql.VarChar(50), matricula || null)
-      .input('ENTREVISTAS', sql.Int, entrevistas ? parseInt(entrevistas) : null)
+      .input('MATRICULA', sql.VarChar(50), matricula)
+      .input('ENTREVISTAS', sql.Int, parseInt(entrevistas))
       .input('DT_CONTRATACAO', sql.Date, dt_contratacao ? new Date(dt_contratacao) : null)
       .query(`UPDATE RH_VAGAS SET MATRICULA=@MATRICULA, ENTREVISTAS=@ENTREVISTAS, DT_CONTRATACAO=@DT_CONTRATACAO, STATUS='FECHADA' WHERE ID=@ID`);
     try {
@@ -581,11 +586,41 @@ async function deletarMercadoSul(req, res) {
   }
 }
 
+async function limparDados(req, res) {
+  if (!podeCadastrarFn(req.session)) return res.status(403).json({ error: 'Acesso negado.' });
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const tabelas = [
+      'RH_ESTOQUE_ITENS',
+      'RH_CANDIDATURAS',
+      'RH_PEDIDOS_COMPRA_TI',
+      'RH_ESTOQUE_TI',
+      'RH_VAGAS',
+      'RH_SLA_CONFIG',
+      'RH_MERCADO_SUL',
+    ];
+    for (const tabela of tabelas) {
+      const existe = await pool.request()
+        .query(`SELECT OBJECT_ID('dbo.${tabela}', 'U') AS ID`);
+      if (existe.recordset[0]?.ID) {
+        await pool.request().query(`DELETE FROM dbo.${tabela}`);
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao limpar dados:', err);
+    res.status(500).json({ error: 'Erro ao limpar dados: ' + err.message });
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
 module.exports = {
   listarVagas, cadastrarVaga,
   getFuncoes, getPessoas,
   renderCadSla, listarSlaApi, slaByFuncao,
   salvarSla, atualizarSla, deletarSla,
   renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
-  getEmpresas, getMatriculas, fecharVaga,
+  getEmpresas, getMatriculas, fecharVaga, limparDados,
 };

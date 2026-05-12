@@ -378,8 +378,9 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="fecharVagaId">
-        <div class="mb-3"><label>Matrícula</label><select id="fecharMatricula" name="fecharMatricula" class="form-control"></select></div>
-        <div class="mb-3"><label>Entrevistas</label><input type="number" id="fecharEntrevistas" class="form-control" min="0" placeholder="Ex: 3"></div>
+        <div id="fecharVagaErro" class="alert alert-danger" style="display:none;font-size:.88rem;"></div>
+        <div class="mb-3"><label>Matrícula <span class="text-danger">*</span></label><select id="fecharMatricula" name="fecharMatricula" class="form-control"></select></div>
+        <div class="mb-3"><label>Entrevistas <span class="text-danger">*</span></label><input type="number" id="fecharEntrevistas" class="form-control" min="0" placeholder="Ex: 3"></div>
         <div class="mb-3"><label>Data Contratação</label><input type="date" id="fecharDtContratacao" class="form-control"></div>
       </div>
       <div class="modal-footer">
@@ -536,10 +537,6 @@ $(document).ready(function () {
   }
 
   function initTabelaCandidatos() {
-    if ($.fn.DataTable.isDataTable('#tblCandidatosVaga')) {
-      $('#tblCandidatosVaga').DataTable().destroy();
-    }
-
     $('#tblCandidatosVaga').DataTable({
       language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
       pageLength: 10,
@@ -556,8 +553,14 @@ $(document).ready(function () {
 
   function carregarCandidatosDaVaga(idVaga, funcaoVaga) {
     $('#candidatosVagaTitulo').text('Candidatos - ' + (funcaoVaga || 'Vaga #' + idVaga));
+
+    // Destruir DataTable ANTES de mexer no tbody para não corromper referências internas
+    if ($.fn.DataTable.isDataTable('#tblCandidatosVaga')) {
+      $('#tblCandidatosVaga').DataTable().destroy();
+    }
+    $('#tblCandidatosVaga tbody').empty();
+
     $('#candidatosLoading').show();
-    $('#tblCandidatosVaga tbody').html('');
     $('#modalCandidatosVaga').modal('show');
 
     $.ajax({
@@ -901,18 +904,34 @@ $(document).ready(function () {
     $('#fecharMatricula').val(null).trigger('change');
     $('#fecharEntrevistas').val('');
     $('#fecharDtContratacao').val(today);
+    $('#fecharVagaErro').hide().text('');
     $('#modalFecharVaga').modal('show');
   });
 
   $('#btnFecharVaga').on('click', function() {
     const id = $('#fecharVagaId').val();
-    if (!id) return alert('ID da vaga não encontrado.');
+    if (!id) {
+      $('#fecharVagaErro').text('ID da vaga não encontrado.').show();
+      return;
+    }
 
-    const data = {
-      matricula: $('#fecharMatricula').val(),
-      entrevistas: $('#fecharEntrevistas').val(),
-      dt_contratacao: $('#fecharDtContratacao').val()
-    };
+    const matricula = $('#fecharMatricula').val();
+    const entrevistas = $('#fecharEntrevistas').val();
+    const dt_contratacao = $('#fecharDtContratacao').val();
+
+    if (!matricula || !matricula.trim()) {
+      $('#fecharVagaErro').text('Preencha a Matrícula antes de fechar a vaga.').show();
+      $('#fecharMatricula').focus();
+      return;
+    }
+    if (entrevistas === '' || entrevistas === null || entrevistas === undefined) {
+      $('#fecharVagaErro').text('Preencha o número de Entrevistas antes de fechar a vaga.').show();
+      $('#fecharEntrevistas').focus();
+      return;
+    }
+
+    $('#fecharVagaErro').hide();
+    const data = { matricula, entrevistas, dt_contratacao };
 
     $.ajax({
       url:'/vagas/fechar/' + id,
@@ -920,7 +939,9 @@ $(document).ready(function () {
       contentType:'application/json',
       data: JSON.stringify(data),
       success: function() { $('#modalFecharVaga').modal('hide'); location.reload(); },
-      error: function(xhr) { alert(xhr.responseJSON?.error || 'Erro ao fechar vaga.'); }
+      error: function(xhr) {
+        $('#fecharVagaErro').text(xhr.responseJSON?.error || 'Erro ao fechar vaga.').show();
+      }
     });
   });
 

@@ -7,7 +7,7 @@ const {
   renderCadSla, listarSlaApi, slaByFuncao,
   salvarSla, atualizarSla, deletarSla,
   renderMercadoSul, salvarMercadoSul, atualizarMercadoSul, deletarMercadoSul,
-  fecharVaga,
+  fecharVaga, limparDados,
 } = require('../controllers/vagasController');
 const { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi, listarCandidaturasPorFuncaoApi, abrirCurriculoCandidatura } = require('../controllers/candidaturasController');
 const {
@@ -61,5 +61,6 @@ router.get('/api/estoque/verificar', requireAuth, requireAdmin, verificarDisponi
 router.post('/api/estoque/pedido', requireAuth, requireAdmin, criarPedidoCompra);
 router.get('/api/estoque/pedidos', requireAuth, requireAdmin, listarPedidos);
 router.put('/api/estoque/pedidos/:id/status', requireAuth, requireAdmin, atualizarStatusPedido);
+router.delete('/api/admin/limpar-dados', requireAuth, requireAdmin, limparDados);
 
 module.exports = router;
