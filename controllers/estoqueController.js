@@ -369,7 +369,32 @@ async function listarItens(req, res) {
         WHERE a.ID_ESTOQUE = @ID_ESTOQUE
         ORDER BY a.DTALOCACAO DESC
       `);
-    res.json(result.recordset || []);
+
+    let rows = result.recordset || [];
+
+    // Enriquecer com nome do usuário via DW
+    try {
+      const matriculas = [...new Set(rows.map(r => r.USUARIO).filter(Boolean))];
+      if (matriculas.length) {
+        const poolDw = await new sql.ConnectionPool(dbConfigDw).connect();
+        try {
+          const mList = matriculas.map(m => `'${m.replace(/'/g, "''")}'`).join(',');
+          const nomeResult = await poolDw.request().query(
+            `SELECT RTRIM(LTRIM(MATRICULA)) AS MATRICULA, RTRIM(LTRIM(NOME)) AS NOME
+             FROM V_RECURSOS_HUMANOS WHERE MATRICULA IN (${mList})`
+          );
+          const nomeMap = {};
+          (nomeResult.recordset || []).forEach(r => { nomeMap[r.MATRICULA] = r.NOME; });
+          rows = rows.map(r => ({ ...r, NOME_USUARIO: nomeMap[r.USUARIO] || null }));
+        } finally {
+          try { await poolDw.close(); } catch {}
+        }
+      }
+    } catch (dwErr) {
+      console.warn('Aviso: não foi possível buscar nome do usuário no DW:', dwErr.message);
+    }
+
+    res.json(rows);
   } catch (err) {
     // Erro 208 = invalid object name (tabela ainda não existe)
     if (err.number === 208 || (err.message && err.message.includes('RH_ESTOQUE_ITENS'))) {
