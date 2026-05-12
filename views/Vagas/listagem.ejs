@@ -682,8 +682,15 @@ $(document).ready(function () {
         }
 
         if (!r.disponivel) {
-          html += '<span style="font-size:.80rem;color:#6c757d;margin-left:.25rem;">' +
-            '<i class="fas fa-info-circle me-1 text-warning"></i>Ao salvar, você poderá solicitar o pedido de compra ao TI.</span>';
+          var btnLabel = _fazerPedidoNoSave
+            ? '<i class="fas fa-check me-1"></i>Pedido será enviado ao salvar'
+            : '<i class="fas fa-shopping-cart me-1"></i>Solicitar Pedido de Compra';
+          var btnStyle = _fazerPedidoNoSave
+            ? 'background:#27ae60;border-color:#27ae60;color:white;'
+            : '';
+          html += '<button type="button" id="btnTogglePedidoNoSave" class="btn btn-sm btn-outline-warning" style="font-size:.82rem;' + btnStyle + '">' + btnLabel + '</button>';
+          html += '<span style="font-size:.78rem;color:#6c757d;display:block;margin-top:4px;width:100%;">' +
+            '<i class="fas fa-info-circle me-1"></i>Ao salvar sem solicitar, a vaga ficará marcada com aviso de <em>sem estoque</em> na tabela.</span>';
         }
 
         html += '</div>';
@@ -696,6 +703,7 @@ $(document).ready(function () {
   $('#notebookSelect, #celularSelect').on('change', verificarEstoqueModal);
 
   $('#modalNovaVaga').on('hidden.bs.modal', function() {
+    _fazerPedidoNoSave = false;
     $('#estoqueInfoModal').hide().html('');
   });
 
@@ -732,7 +740,8 @@ $(document).ready(function () {
     });
   });
 
-  var _pedidoPendente = null; // armazena contexto do pedido durante o fluxo
+  var _pedidoPendente = null; // contexto para pedido de vagas existentes
+  var _fazerPedidoNoSave = false; // flag do botão toggle no modal de nova vaga
 
   $('#btnNovaVaga').on('click', function() {
     $('#formNovaVaga')[0].reset();
@@ -744,8 +753,21 @@ $(document).ready(function () {
     $('[name="tipo_vaga"]').val('EXTERNA');
     $('#notebookSelect').val('NAO');
     $('#celularSelect').val('NAO');
+    _fazerPedidoNoSave = false;
     $('#estoqueInfoModal').hide().html('');
     $('#modalNovaVaga').modal('show');
+  });
+
+  $(document).on('click', '#btnTogglePedidoNoSave', function() {
+    _fazerPedidoNoSave = !_fazerPedidoNoSave;
+    if (_fazerPedidoNoSave) {
+      $(this).css({ background: '#27ae60', borderColor: '#27ae60', color: 'white' });
+      $(this).html('<i class="fas fa-check me-1"></i>Pedido será enviado ao salvar');
+    } else {
+      $(this).css({ background: '', borderColor: '', color: '' });
+      $(this).removeClass('btn-success').addClass('btn-outline-warning');
+      $(this).html('<i class="fas fa-shopping-cart me-1"></i>Solicitar Pedido de Compra');
+    }
   });
 
   function salvarVagaComDados(data, fazerPedido) {
@@ -792,33 +814,9 @@ $(document).ready(function () {
 
     const data = {};
     $(form).serializeArray().forEach(function(f) { data[f.name] = f.value; });
-    const needsNb = data.notebook === 'SIM' ? 1 : 0;
-    const needsCel = data.celular === 'SIM' ? 1 : 0;
 
-    if (needsNb > 0 || needsCel > 0) {
-      $.ajax({
-        url: '/api/estoque/verificar', method: 'GET', data: { notebook: needsNb, celular: needsCel },
-        success: function(result) {
-          if (result.disponivel) {
-            salvarVagaComDados(data, false);
-          } else {
-            _pedidoPendente = { vagaData: data, estoqueResult: result };
-            var html = '<ul style="margin:0;">';
-            if (result.faltaNb > 0) html += '<li><i class="fas fa-laptop me-1"></i><strong>Notebook:</strong> disponível ' + result.dispNb + ', falta <strong>1</strong></li>';
-            if (result.faltaCel > 0) html += '<li><i class="fas fa-mobile-alt me-1"></i><strong>Celular:</strong> disponível ' + result.dispCel + ', falta <strong>1</strong></li>';
-            html += '</ul>';
-            $('#pedidoItensResumo').html(html);
-            $('#btnConfirmarPedido').prop('disabled', false);
-            $('#pedidoSpinner').hide(); $('#pedidoIcon').show();
-            $('#modalNovaVaga').modal('hide');
-            $('#modalPedidoCompra').modal('show');
-          }
-        },
-        error: function() { salvarVagaComDados(data, false); }
-      });
-    } else {
-      salvarVagaComDados(data, false);
-    }
+    // A decisão do pedido já foi tomada dentro do modal via _fazerPedidoNoSave
+    salvarVagaComDados(data, _fazerPedidoNoSave);
   });
 
   $('#btnSkipPedido').on('click', function() {
