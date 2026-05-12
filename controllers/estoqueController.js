@@ -2,6 +2,7 @@
 
 const sql = require('mssql');
 const dbConfig = require('../database/dbConfig');
+const dbConfigDw = require('../database/dbConfigDw');
 const notificacaoModel = require('../models/notificacaoModel');
 
 // Destinatários do pedido de compra (para teste, todos o mesmo email)
@@ -56,7 +57,6 @@ async function renderEstoque(req, res) {
       pool.request().query(`
         SELECT e.ID, e.TIPO_PRODUTO, e.DESCRICAO, e.MODELO,
                ISNULL(e.QUANTIDADE, 1) AS QUANTIDADE,
-               e.STATUS,
                CONVERT(VARCHAR, e.DTINCLUSAO, 103) AS DTINCLUSAO,
                (SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = e.ID) AS TOTAL_ALOCACOES
         FROM RH_ESTOQUE_TI e
@@ -74,9 +74,38 @@ async function renderEstoque(req, res) {
       `)
     ]);
 
+    // Enriquecer pedidos com nome do solicitante via DW (silencia falha se DW offline)
+    let pedidos = pedidosResult.recordset;
+    try {
+      const matriculas = [...new Set(pedidos.map(p => p.USUARIO_PEDIDO).filter(Boolean))];
+      if (matriculas.length) {
+        const poolDw = await new sql.ConnectionPool(dbConfigDw).connect();
+        try {
+          const mList = matriculas.map(m => `'${m.replace(/'/g, "''")}'`).join(',');
+          const nomeResult = await poolDw.request().query(
+            `SELECT RTRIM(LTRIM(MATRICULA)) AS MATRICULA, RTRIM(LTRIM(NOME)) AS NOME
+             FROM V_RECURSOS_HUMANOS
+             WHERE MATRICULA IN (${mList})`
+          );
+          const nomeMap = {};
+          (nomeResult.recordset || []).forEach(r => { nomeMap[r.MATRICULA] = r.NOME; });
+          pedidos = pedidos.map(p => ({
+            ...p,
+            NOME_SOLICITANTE: p.USUARIO_PEDIDO && nomeMap[p.USUARIO_PEDIDO]
+              ? nomeMap[p.USUARIO_PEDIDO]
+              : null,
+          }));
+        } finally {
+          try { await poolDw.close(); } catch {}
+        }
+      }
+    } catch (dwErr) {
+      console.warn('Aviso: não foi possível buscar nomes do DW:', dwErr.message);
+    }
+
     res.render('Vagas/estoque', {
       itens: itensResult.recordset,
-      pedidos: pedidosResult.recordset,
+      pedidos,
       username: req.session.username,
       isAdmin: req.session.isAdmin === true,
       isProtheus: req.session.isProtheus,
@@ -99,7 +128,6 @@ async function listarEstoque(req, res) {
     const result = await pool.request().query(`
       SELECT e.ID, e.TIPO_PRODUTO, e.DESCRICAO, e.MODELO,
              ISNULL(e.QUANTIDADE, 1) AS QUANTIDADE,
-             e.STATUS,
              CONVERT(VARCHAR, e.DTINCLUSAO, 103) AS DTINCLUSAO,
              (SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = e.ID) AS TOTAL_ALOCACOES
       FROM RH_ESTOQUE_TI e
@@ -115,12 +143,10 @@ async function listarEstoque(req, res) {
 }
 
 async function cadastrarItem(req, res) {
-  const { tipo_produto, descricao, modelo, status, quantidade } = req.body;
+  const { tipo_produto, descricao, modelo, quantidade } = req.body;
 
   if (!tipo_produto) return res.status(400).json({ error: 'Tipo de produto é obrigatório.' });
 
-  const statusValido = ['DISPONIVEL', 'RESERVADO', 'EM_USO', 'MANUTENCAO'].includes(status)
-    ? status : 'DISPONIVEL';
   const qtd = Math.max(1, parseInt(quantidade) || 1);
 
   let pool = null;
@@ -130,10 +156,9 @@ async function cadastrarItem(req, res) {
       .input('TIPO', sql.VarChar(50), tipo_produto)
       .input('DESC', sql.VarChar(200), descricao || null)
       .input('MODELO', sql.VarChar(200), modelo || null)
-      .input('STATUS', sql.VarChar(20), statusValido)
       .input('QTD', sql.Int, qtd)
-      .query(`INSERT INTO RH_ESTOQUE_TI (TIPO_PRODUTO, DESCRICAO, MODELO, STATUS, QUANTIDADE)
-              VALUES (@TIPO, @DESC, @MODELO, @STATUS, @QTD)`);
+      .query(`INSERT INTO RH_ESTOQUE_TI (TIPO_PRODUTO, DESCRICAO, MODELO, QUANTIDADE)
+              VALUES (@TIPO, @DESC, @MODELO, @QTD)`);
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao cadastrar item:', err);
@@ -145,12 +170,10 @@ async function cadastrarItem(req, res) {
 
 async function editarItem(req, res) {
   const { id } = req.params;
-  const { tipo_produto, descricao, modelo, status, quantidade } = req.body;
+  const { tipo_produto, descricao, modelo, quantidade } = req.body;
 
   if (!tipo_produto) return res.status(400).json({ error: 'Tipo de produto é obrigatório.' });
 
-  const statusValido = ['DISPONIVEL', 'RESERVADO', 'EM_USO', 'MANUTENCAO'].includes(status)
-    ? status : 'DISPONIVEL';
   const qtd = Math.max(0, parseInt(quantidade) || 1);
 
   let pool = null;
@@ -161,10 +184,9 @@ async function editarItem(req, res) {
       .input('TIPO', sql.VarChar(50), tipo_produto)
       .input('DESC', sql.VarChar(200), descricao || null)
       .input('MODELO', sql.VarChar(200), modelo || null)
-      .input('STATUS', sql.VarChar(20), statusValido)
       .input('QTD', sql.Int, qtd)
       .query(`UPDATE RH_ESTOQUE_TI SET TIPO_PRODUTO=@TIPO, DESCRICAO=@DESC, MODELO=@MODELO,
-              STATUS=@STATUS, QUANTIDADE=@QTD, DTALTERACAO=GETDATE() WHERE ID=@ID`);
+              QUANTIDADE=@QTD, DTALTERACAO=GETDATE() WHERE ID=@ID`);
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao editar item:', err);
@@ -182,11 +204,15 @@ async function excluirItem(req, res) {
 
     const check = await pool.request()
       .input('ID', sql.Int, parseInt(id))
-      .query(`SELECT STATUS FROM RH_ESTOQUE_TI WHERE ID = @ID`);
+      .query(`SELECT ISNULL(QUANTIDADE, 1) AS QUANTIDADE FROM RH_ESTOQUE_TI WHERE ID = @ID`);
 
     if (!check.recordset.length) return res.status(404).json({ error: 'Item não encontrado.' });
-    if (check.recordset[0].STATUS !== 'DISPONIVEL') {
-      return res.status(400).json({ error: 'Somente itens com status DISPONIVEL podem ser excluídos.' });
+
+    const activeCheck = await pool.request()
+      .input('ID', sql.Int, parseInt(id))
+      .query(`SELECT COUNT(*) AS TOTAL FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = @ID AND STATUS != 'DISPONIVEL'`);
+    if (activeCheck.recordset[0].TOTAL > 0) {
+      return res.status(400).json({ error: 'Existem itens alocados ativos. Não é possível excluir.' });
     }
 
     await pool.request()
@@ -213,7 +239,7 @@ async function verificarDisponibilidade(req, res) {
     const result = await pool.request().query(`
       SELECT TIPO_PRODUTO, SUM(ISNULL(QUANTIDADE, 1)) AS QTDE
       FROM RH_ESTOQUE_TI
-      WHERE STATUS = 'DISPONIVEL' AND TIPO_PRODUTO IN ('NOTEBOOK','CELULAR')
+      WHERE TIPO_PRODUTO IN ('NOTEBOOK','CELULAR')
       GROUP BY TIPO_PRODUTO
     `);
 
@@ -335,7 +361,7 @@ async function listarItens(req, res) {
     const result = await pool.request()
       .input('ID_ESTOQUE', sql.Int, parseInt(id))
       .query(`
-        SELECT a.ID, a.ID_VAGA, a.MATRICULA, a.AREA, a.USUARIO,
+        SELECT a.ID, a.ID_VAGA, a.MATRICULA, a.AREA, a.USUARIO, a.STATUS,
                CONVERT(VARCHAR, a.DTALOCACAO, 103) + ' ' + CONVERT(VARCHAR(5), a.DTALOCACAO, 108) AS DTALOCACAO,
                v.FUNCAO AS VAGA_FUNCAO, v.SETOR AS VAGA_SETOR
         FROM RH_ESTOQUE_ITENS a

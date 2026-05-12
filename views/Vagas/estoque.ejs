@@ -37,18 +37,14 @@
     <div class="content">
 
       <%
-        const countDisp = itens.filter(i => i.STATUS === 'DISPONIVEL').length;
-        const countRes  = itens.filter(i => i.STATUS === 'RESERVADO').length;
-        const countUso  = itens.filter(i => i.STATUS === 'EM_USO').length;
-        const countMan  = itens.filter(i => i.STATUS === 'MANUTENCAO').length;
+        const countTotal = itens.reduce((s, i) => s + (i.QUANTIDADE || 0), 0);
+        const countAlocados = itens.reduce((s, i) => s + (i.TOTAL_ALOCACOES || 0), 0);
         const countPedPend = pedidos.filter(p => p.STATUS === 'PENDENTE').length;
       %>
 
       <div class="indicators-bar">
-        <div class="indicator-card" style="background:#27ae60;"><div class="indicator-val"><%= countDisp %></div><div class="indicator-lbl">Disponível</div></div>
-        <div class="indicator-card" style="background:#2B286F;"><div class="indicator-val"><%= countRes %></div><div class="indicator-lbl">Reservado</div></div>
-        <div class="indicator-card" style="background:#17a2b8;"><div class="indicator-val"><%= countUso %></div><div class="indicator-lbl">Em Uso</div></div>
-        <div class="indicator-card" style="background:#e67e22;"><div class="indicator-val"><%= countMan %></div><div class="indicator-lbl">Manutenção</div></div>
+        <div class="indicator-card" style="background:#27ae60;"><div class="indicator-val"><%= countTotal %></div><div class="indicator-lbl">Disponíveis</div></div>
+        <div class="indicator-card" style="background:#17a2b8;"><div class="indicator-val"><%= countAlocados %></div><div class="indicator-lbl">Em Uso</div></div>
         <div class="indicator-card" style="background:#f39c12;"><div class="indicator-val"><%= countPedPend %></div><div class="indicator-lbl">Pedidos Pend.</div></div>
       </div>
 
@@ -72,21 +68,11 @@
                   <thead>
                     <tr>
                       <th>ID</th><th>Tipo</th><th>Descrição</th><th>Modelo</th><th class="text-center">Qtd.</th>
-                      <th>Status</th><th>Cadastrado</th><th>Ações</th>
+                      <th>Cadastrado</th><th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     <% itens.forEach(function(item) { %>
-                      <%
-                        const statusClass = {
-                          'DISPONIVEL':'disponivel','RESERVADO':'reservado',
-                          'EM_USO':'em_uso','MANUTENCAO':'manutencao'
-                        }[item.STATUS] || 'disponivel';
-                        const statusLabel = {
-                          'DISPONIVEL':'Disponível','RESERVADO':'Reservado',
-                          'EM_USO':'Em Uso','MANUTENCAO':'Manutenção'
-                        }[item.STATUS] || item.STATUS;
-                      %>
                       <tr>
                         <td><%= item.ID %></td>
                         <td>
@@ -97,14 +83,13 @@
                         <td><%= item.DESCRICAO || '-' %></td>
                         <td><%= item.MODELO || '-' %></td>
                         <td class="text-center"><strong style="font-size:1rem;color:<%= (item.QUANTIDADE||1) > 0 ? '#27ae60' : '#e74c3c' %>"><%= item.QUANTIDADE || 1 %></strong></td>
-                        <td><span class="status-badge badge-<%= statusClass %>"><%= statusLabel %></span></td>
                         <td><%= item.DTINCLUSAO || '-' %></td>
                         <td>
                           <div class="d-flex flex-wrap" style="gap:.25rem;">
                             <button class="btn btn-sm btn-outline-primary btn-editar-item" style="padding:2px 7px;"
                               data-id="<%= item.ID %>" data-tipo="<%= item.TIPO_PRODUTO %>"
                               data-desc="<%= item.DESCRICAO||'' %>" data-modelo="<%= item.MODELO||'' %>"
-                              data-quantidade="<%= item.QUANTIDADE||1 %>" data-status="<%= item.STATUS %>"
+                              data-quantidade="<%= item.QUANTIDADE||1 %>"
                               title="Editar"><i class="fas fa-edit"></i></button>
                             <button class="btn btn-sm btn-outline-info btn-ver-itens" style="padding:2px 7px;position:relative;"
                               data-id="<%= item.ID %>"
@@ -118,10 +103,8 @@
                                 <span style="position:absolute;bottom:-5px;right:-6px;background:#e67e22;color:white;border-radius:3px;font-size:.55rem;padding:0 3px;font-weight:700;">ESGOTADO</span>
                               <% } %>
                             </button>
-                            <% if (item.STATUS === 'DISPONIVEL') { %>
-                              <button class="btn btn-sm btn-outline-danger btn-excluir-item" style="padding:2px 7px;"
-                                data-id="<%= item.ID %>" title="Excluir"><i class="fas fa-trash"></i></button>
-                            <% } %>
+                            <button class="btn btn-sm btn-outline-danger btn-excluir-item" style="padding:2px 7px;"
+                              data-id="<%= item.ID %>" title="Excluir"><i class="fas fa-trash"></i></button>
                           </div>
                         </td>
                       </tr>
@@ -151,11 +134,11 @@
                       %>
                       <tr>
                         <td><%= p.ID %></td>
-                        <td><% if(p.ID_VAGA){ %><strong>#<%= p.ID_VAGA %></strong><br><small><%= p.VAGA_FUNCAO||'' %></small><% } else { %>-<% } %></td>
+                        <td><% if(p.ID_VAGA){ %><strong>#<%= p.ID_VAGA %></strong> — <small><%= p.VAGA_FUNCAO||'' %></small><% } else { %>-<% } %></td>
                         <td><%= p.VAGA_SETOR || '-' %></td>
                         <td><%= itensText || '-' %></td>
                         <td><span class="status-badge badge-<%= pedStatusClass %>"><%= p.STATUS %></span></td>
-                        <td><%= p.USUARIO_PEDIDO || '-' %></td>
+                        <td><%= p.USUARIO_PEDIDO || '-' %><% if(p.NOME_SOLICITANTE){ %><br><small class="text-muted"><%= p.NOME_SOLICITANTE %></small><% } %></td>
                         <td><%= p.DTPEDIDO || '-' %></td>
                         <td>
                           <% if (p.STATUS === 'PENDENTE') { %>
@@ -199,6 +182,7 @@
                 <th>Matrícula</th>
                 <th>Usuário</th>
                 <th>Área / Setor</th>
+                <th>Status</th>
                 <th>Data</th>
               </tr>
             </thead>
@@ -236,14 +220,6 @@
           <div class="col-8"><div class="form-group mb-3"><label>Modelo</label><input type="text" class="form-control" id="itemModelo" placeholder="Ex: Core i5 8ª Geração"></div></div>
           <div class="col-4"><div class="form-group mb-3"><label>Quantidade <span class="text-danger">*</span></label><input type="number" class="form-control" id="itemQuantidade" min="0" value="1"></div></div>
         </div>
-        <div class="form-group mb-3">
-          <label>Status</label>
-          <select class="form-control" id="itemStatus">
-            <option value="DISPONIVEL">Disponível</option>
-            <option value="MANUTENCAO">Manutenção</option>
-            <option value="EM_USO">Em Uso</option>
-          </select>
-        </div>
         <div id="itemError" class="alert alert-danger" style="display:none;"></div>
       </div>
       <div class="modal-footer">
@@ -264,12 +240,11 @@ $(document).ready(function () {
     dom: 'Bfrtip',
     buttons: [{ extend:'excelHtml5', text:'<i class="fas fa-file-excel"></i> Excel', className:'btn btn-success btn-sm', title:'Estoque TI' }],
     pageLength: 25, order: [[0,'desc']],
-    columnDefs: [{ targets: [7], orderable: false }],
+    columnDefs: [{ targets: [6], orderable: false }],
     initComplete: function() {
       dtBuildFilters(this.api(), 'tblEstoque_filter', [
         { idx: 1, label: 'Tipo...', w: '120px' },
-        { idx: 2, label: 'Descrição...', w: '160px' },
-        { idx: 5, label: 'Status...', w: '130px' }
+        { idx: 2, label: 'Descrição...', w: '160px' }
       ]);
     }
   });
@@ -288,7 +263,6 @@ $(document).ready(function () {
     $('#itemDesc').val('');
     $('#itemModelo').val('');
     $('#itemQuantidade').val(1);
-    $('#itemStatus').val('DISPONIVEL');
     $('#itemError').hide();
     $('#modalItemLabel').html('<i class="fas fa-plus-circle me-2"></i>Novo Item de Estoque TI');
     $('#modalItem').modal('show');
@@ -301,7 +275,6 @@ $(document).ready(function () {
     $('#itemDesc').val(btn.data('desc'));
     $('#itemModelo').val(btn.data('modelo'));
     $('#itemQuantidade').val(btn.data('quantidade') || 1);
-    $('#itemStatus').val(btn.data('status'));
     $('#itemError').hide();
     $('#modalItemLabel').html('<i class="fas fa-edit me-2"></i>Editar Item #' + btn.data('id'));
     $('#modalItem').modal('show');
@@ -316,8 +289,7 @@ $(document).ready(function () {
       tipo_produto: tipo,
       descricao: $('#itemDesc').val().trim(),
       modelo: $('#itemModelo').val().trim(),
-      quantidade: parseInt($('#itemQuantidade').val()) || 1,
-      status: $('#itemStatus').val()
+      quantidade: parseInt($('#itemQuantidade').val()) || 1
     };
 
     $.ajax({
@@ -344,25 +316,33 @@ $(document).ready(function () {
       success: function(rows) {
         $('#itensLoading').hide();
         if (!rows || !rows.length) {
-          $('#tblItensBody').html('<tr><td colspan="6" class="text-center text-muted py-3"><i class="fas fa-inbox me-2"></i>Nenhum item registrado.</td></tr>');
+          $('#tblItensBody').html('<tr><td colspan="7" class="text-center text-muted py-3"><i class="fas fa-inbox me-2"></i>Nenhum item registrado.</td></tr>');
           return;
         }
         var html = '';
-        rows.forEach(function(r) {
-          html += '<tr>' +
-            '<td>' + r.ID + '</td>' +
-            '<td><strong>#' + r.ID_VAGA + '</strong>' + (r.VAGA_FUNCAO ? ' — ' + r.VAGA_FUNCAO : '') + '</td>' +
-            '<td>' + (r.MATRICULA || '<span class="text-muted">—</span>') + '</td>' +
-            '<td>' + (r.USUARIO || '<span class="text-muted">—</span>') + '</td>' +
-            '<td>' + (r.AREA || '<span class="text-muted">—</span>') + '</td>' +
-            '<td>' + (r.DTALOCACAO || '—') + '</td>' +
-            '</tr>';
-        });
+          var statusMap = {
+            'EM_USO': {label:'Em Uso', bg:'#17a2b8'},
+            'RESERVADO': {label:'Reservado', bg:'#2B286F'},
+            'DISPONIVEL': {label:'Disponível', bg:'#27ae60'},
+            'MANUTENCAO': {label:'Manutenção', bg:'#e67e22'}
+          };
+          rows.forEach(function(r) {
+            var st = statusMap[r.STATUS] || {label: r.STATUS || '—', bg: '#6c757d'};
+            html += '<tr>' +
+              '<td>' + r.ID + '</td>' +
+              '<td><strong>#' + r.ID_VAGA + '</strong>' + (r.VAGA_FUNCAO ? ' — ' + r.VAGA_FUNCAO : '') + '</td>' +
+              '<td>' + (r.MATRICULA || '<span class="text-muted">—</span>') + '</td>' +
+              '<td>' + (r.USUARIO || '<span class="text-muted">—</span>') + '</td>' +
+              '<td>' + (r.AREA || '<span class="text-muted">—</span>') + '</td>' +
+              '<td><span class="status-badge" style="background:' + st.bg + ';display:inline-block;padding:2px 8px;border-radius:4px;font-size:.72rem;color:white;font-weight:600;">' + st.label + '</span></td>' +
+              '<td>' + (r.DTALOCACAO || '—') + '</td>' +
+              '</tr>';
+          });
         $('#tblItensBody').html(html);
       },
       error: function() {
         $('#itensLoading').hide();
-        $('#tblItensBody').html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar itens.</td></tr>');
+        $('#tblItensBody').html('<tr><td colspan="7" class="text-center text-danger">Erro ao carregar itens.</td></tr>');
       }
     });
   });

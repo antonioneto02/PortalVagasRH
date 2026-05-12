@@ -24,8 +24,8 @@ async function listarVagas(req, res) {
              v.MATRICULA, v.STATUS, v.EMPRESA, v.USUARIO_CADASTRO,
              CONVERT(VARCHAR, v.DTINCLUSAO, 103) AS DTINCLUSAO,
              (CASE
-                WHEN v.NOTEBOOK='SIM' AND NOT EXISTS (SELECT 1 FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO='NOTEBOOK' AND STATUS='DISPONIVEL' AND ISNULL(QUANTIDADE,0)>0) THEN 0
-                WHEN v.CELULAR='SIM'  AND NOT EXISTS (SELECT 1 FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO='CELULAR'  AND STATUS='DISPONIVEL' AND ISNULL(QUANTIDADE,0)>0) THEN 0
+                WHEN v.NOTEBOOK='SIM' AND NOT EXISTS (SELECT 1 FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO='NOTEBOOK' AND ISNULL(QUANTIDADE,0)>0) THEN 0
+                WHEN v.CELULAR='SIM'  AND NOT EXISTS (SELECT 1 FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO='CELULAR'  AND ISNULL(QUANTIDADE,0)>0) THEN 0
                 WHEN v.NOTEBOOK='SIM' OR v.CELULAR='SIM' THEN 1
                 ELSE 0
               END) AS ITENS_RESERVADOS,
@@ -147,32 +147,6 @@ async function cadastrarVaga(req, res) {
          @PRAZO_CONTRATACAO, @DT_CONTRATACAO, @MATRICULA, @STATUS, @EMPRESA, @USUARIO_CADASTRO)`);
 
     const newId = insertResult.recordset[0]?.ID;
-    if (newId && notebookFinal === 'SIM') {
-      try {
-        await pool.request()
-          .query(`
-            WITH CTE AS (SELECT TOP (1) ID FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO = 'NOTEBOOK' AND STATUS = 'DISPONIVEL' ORDER BY ID)
-            UPDATE RH_ESTOQUE_TI SET STATUS = 'RESERVADO', DTALTERACAO = GETDATE()
-            WHERE ID IN (SELECT ID FROM CTE)
-          `);
-      } catch (estoqueErr) {
-        console.error('Aviso: não foi possível reservar notebook:', estoqueErr.message);
-      }
-    }
-
-    if (newId && celularFinal === 'SIM') {
-      try {
-        await pool.request()
-          .query(`
-            WITH CTE AS (SELECT TOP (1) ID FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO = 'CELULAR' AND STATUS = 'DISPONIVEL' ORDER BY ID)
-            UPDATE RH_ESTOQUE_TI SET STATUS = 'RESERVADO', DTALTERACAO = GETDATE()
-            WHERE ID IN (SELECT ID FROM CTE)
-          `);
-      } catch (estoqueErr) {
-        console.error('Aviso: não foi possível reservar celular:', estoqueErr.message);
-      }
-    }
-
     return res.json({ success: true, id: newId });
   } catch (err) {
     console.error('Erro ao cadastrar vaga:', err);
@@ -310,7 +284,7 @@ async function fecharVaga(req, res) {
           .query(`UPDATE TOP (1) RH_ESTOQUE_TI
                   SET QUANTIDADE = QUANTIDADE - 1, DTALTERACAO = GETDATE()
                   OUTPUT INSERTED.ID
-                  WHERE TIPO_PRODUTO = @TIPO AND STATUS = 'DISPONIVEL' AND ISNULL(QUANTIDADE, 0) > 0`);
+                  WHERE TIPO_PRODUTO = @TIPO AND ISNULL(QUANTIDADE, 0) > 0`);
 
         const estoqueId = updResult.recordset[0]?.ID;
         if (estoqueId) {
@@ -320,8 +294,8 @@ async function fecharVaga(req, res) {
             .input('MATRICULA', sql.VarChar(50), matriculaUsada)
             .input('AREA', sql.VarChar(200), areaLabel)
             .input('USUARIO', sql.VarChar(50), usuarioFechamento)
-            .query(`INSERT INTO RH_ESTOQUE_ITENS (ID_ESTOQUE, ID_VAGA, MATRICULA, AREA, USUARIO)
-                    VALUES (@ID_ESTOQUE, @ID_VAGA, @MATRICULA, @AREA, @USUARIO)`);
+            .query(`INSERT INTO RH_ESTOQUE_ITENS (ID_ESTOQUE, ID_VAGA, MATRICULA, AREA, USUARIO, STATUS)
+                    VALUES (@ID_ESTOQUE, @ID_VAGA, @MATRICULA, @AREA, @USUARIO, 'EM_USO')`);
         }
       }
     } catch (estoqueErr) {
