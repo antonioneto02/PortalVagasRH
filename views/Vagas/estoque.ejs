@@ -93,7 +93,7 @@
                               if (i.tipo === item.TIPO_PRODUTO) qtdReq += (i.qtd || 1);
                             });
                           });
-                          const qtdReqVal = qtdReq > 0 ? -qtdReq : 0;
+                          const qtdReqVal = (item.QUANTIDADE || 0) - qtdReq;
                         %>
                         <td class="text-center"><% if (qtdReqVal < 0) { %><strong style="font-size:1rem;color:#e74c3c;"><%= qtdReqVal %></strong><% } else { %><span class="text-muted">—</span><% } %></td>
                         <td><%= item.DTINCLUSAO || '-' %></td>
