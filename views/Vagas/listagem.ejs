@@ -688,7 +688,7 @@ $(document).ready(function () {
           var btnStyle = _fazerPedidoNoSave
             ? 'background:#27ae60;border-color:#27ae60;color:white;'
             : '';
-          html += '<button type="button" id="btnTogglePedidoNoSave" class="btn btn-sm btn-outline-warning" style="font-size:.82rem;' + btnStyle + '">' + btnLabel + '</button>';
+          html += '<button type="button" id="btnTogglePedidoNoSave" class="btn btn-sm btn-warning" style="font-size:.82rem;' + btnStyle + '">' + btnLabel + '</button>';
           html += '<span style="font-size:.78rem;color:#6c757d;display:block;margin-top:4px;width:100%;">' +
             '<i class="fas fa-info-circle me-1"></i>Ao salvar sem solicitar, a vaga ficará marcada com aviso de <em>sem estoque</em> na tabela.</span>';
         }
@@ -765,7 +765,7 @@ $(document).ready(function () {
       $(this).html('<i class="fas fa-check me-1"></i>Pedido será enviado ao salvar');
     } else {
       $(this).css({ background: '', borderColor: '', color: '' });
-      $(this).removeClass('btn-success').addClass('btn-outline-warning');
+      $(this).removeClass('btn-success').addClass('btn-warning');
       $(this).html('<i class="fas fa-shopping-cart me-1"></i>Solicitar Pedido de Compra');
     }
   });
