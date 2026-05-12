@@ -222,7 +222,7 @@ $(document).ready(function () {
     dom: 'Bfrtip',
     buttons: [{ extend:'excelHtml5', text:'<i class="fas fa-file-excel"></i> Excel', className:'btn btn-success btn-sm', title:'Estoque TI' }],
     pageLength: 25, order: [[0,'desc']],
-    columnDefs: [{ targets: [9], orderable: false }],
+    columnDefs: [{ targets: [8], orderable: false }],
     initComplete: function() {
       dtBuildFilters(this.api(), 'tblEstoque_filter', [
         { idx: 1, label: 'Tipo...', w: '120px' },
