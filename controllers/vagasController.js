@@ -273,7 +273,7 @@ async function fecharVaga(req, res) {
       const areaLabel = [setor, funcao].filter(Boolean).join(' - ') || null;
       const vagaId = parseInt(id);
       const matriculaUsada = matricula || null;
-      const usuarioFechamento = req.session.protheusId || req.session.username || 'ADMIN';
+      const usuarioFechamento = req.session.username || req.session.protheusId || 'ADMIN';
 
       for (const tipo of ['NOTEBOOK', 'CELULAR']) {
         const precisaTipo = tipo === 'NOTEBOOK' ? notebook === 'SIM' : celular === 'SIM';
