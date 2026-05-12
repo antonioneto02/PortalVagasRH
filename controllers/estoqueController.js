@@ -55,6 +55,7 @@ async function renderEstoque(req, res) {
     const [itensResult, pedidosResult] = await Promise.all([
       pool.request().query(`
         SELECT e.ID, e.TIPO_PRODUTO, e.DESCRICAO, e.MODELO,
+               ISNULL(e.QUANTIDADE, 1) AS QUANTIDADE,
                e.STATUS, e.ID_VAGA, e.AREA,
                CONVERT(VARCHAR, e.DTINCLUSAO, 103) AS DTINCLUSAO,
                e.USUARIO_CADASTRO,
@@ -99,6 +100,7 @@ async function listarEstoque(req, res) {
     pool = await new sql.ConnectionPool(dbConfig).connect();
     const result = await pool.request().query(`
       SELECT e.ID, e.TIPO_PRODUTO, e.DESCRICAO, e.MODELO,
+             ISNULL(e.QUANTIDADE, 1) AS QUANTIDADE,
              e.STATUS, e.ID_VAGA, e.AREA,
              CONVERT(VARCHAR, e.DTINCLUSAO, 103) AS DTINCLUSAO,
              e.USUARIO_CADASTRO,
@@ -117,13 +119,14 @@ async function listarEstoque(req, res) {
 }
 
 async function cadastrarItem(req, res) {
-  const { tipo_produto, descricao, modelo, status } = req.body;
+  const { tipo_produto, descricao, modelo, status, quantidade } = req.body;
   const usuario = req.session.protheusId || req.session.username || 'ADMIN';
 
   if (!tipo_produto) return res.status(400).json({ error: 'Tipo de produto é obrigatório.' });
 
   const statusValido = ['DISPONIVEL', 'RESERVADO', 'EM_USO', 'MANUTENCAO'].includes(status)
     ? status : 'DISPONIVEL';
+  const qtd = Math.max(1, parseInt(quantidade) || 1);
 
   let pool = null;
   try {
@@ -133,9 +136,10 @@ async function cadastrarItem(req, res) {
       .input('DESC', sql.VarChar(200), descricao || null)
       .input('MODELO', sql.VarChar(200), modelo || null)
       .input('STATUS', sql.VarChar(20), statusValido)
+      .input('QTD', sql.Int, qtd)
       .input('USUARIO', sql.VarChar(50), usuario)
-      .query(`INSERT INTO RH_ESTOQUE_TI (TIPO_PRODUTO, DESCRICAO, MODELO, STATUS, USUARIO_CADASTRO)
-              VALUES (@TIPO, @DESC, @MODELO, @STATUS, @USUARIO)`);
+      .query(`INSERT INTO RH_ESTOQUE_TI (TIPO_PRODUTO, DESCRICAO, MODELO, STATUS, QUANTIDADE, USUARIO_CADASTRO)
+              VALUES (@TIPO, @DESC, @MODELO, @STATUS, @QTD, @USUARIO)`);
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao cadastrar item:', err);
@@ -147,12 +151,13 @@ async function cadastrarItem(req, res) {
 
 async function editarItem(req, res) {
   const { id } = req.params;
-  const { tipo_produto, descricao, modelo, status } = req.body;
+  const { tipo_produto, descricao, modelo, status, quantidade } = req.body;
 
   if (!tipo_produto) return res.status(400).json({ error: 'Tipo de produto é obrigatório.' });
 
   const statusValido = ['DISPONIVEL', 'RESERVADO', 'EM_USO', 'MANUTENCAO'].includes(status)
     ? status : 'DISPONIVEL';
+  const qtd = Math.max(0, parseInt(quantidade) || 1);
 
   let pool = null;
   try {
@@ -163,8 +168,9 @@ async function editarItem(req, res) {
       .input('DESC', sql.VarChar(200), descricao || null)
       .input('MODELO', sql.VarChar(200), modelo || null)
       .input('STATUS', sql.VarChar(20), statusValido)
+      .input('QTD', sql.Int, qtd)
       .query(`UPDATE RH_ESTOQUE_TI SET TIPO_PRODUTO=@TIPO, DESCRICAO=@DESC, MODELO=@MODELO,
-              STATUS=@STATUS, DTALTERACAO=GETDATE() WHERE ID=@ID`);
+              STATUS=@STATUS, QUANTIDADE=@QTD, DTALTERACAO=GETDATE() WHERE ID=@ID`);
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao editar item:', err);
@@ -211,7 +217,7 @@ async function verificarDisponibilidade(req, res) {
   try {
     pool = await new sql.ConnectionPool(dbConfig).connect();
     const result = await pool.request().query(`
-      SELECT TIPO_PRODUTO, COUNT(*) AS QTDE
+      SELECT TIPO_PRODUTO, SUM(ISNULL(QUANTIDADE, 1)) AS QTDE
       FROM RH_ESTOQUE_TI
       WHERE STATUS = 'DISPONIVEL' AND TIPO_PRODUTO IN ('NOTEBOOK','CELULAR')
       GROUP BY TIPO_PRODUTO

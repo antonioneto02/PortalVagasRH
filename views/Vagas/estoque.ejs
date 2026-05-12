@@ -71,7 +71,7 @@
                 <table id="tblEstoque" class="display table table-striped table-hover" style="width:100%">
                   <thead>
                     <tr>
-                      <th>ID</th><th>Tipo</th><th>Descrição</th><th>Modelo</th>
+                      <th>ID</th><th>Tipo</th><th>Descrição</th><th>Modelo</th><th class="text-center">Qtd.</th>
                       <th>Status</th><th>Vaga Vinculada</th><th>Área</th><th>Cadastrado</th><th>Ações</th>
                     </tr>
                   </thead>
@@ -96,6 +96,7 @@
                         </td>
                         <td><%= item.DESCRICAO || '-' %></td>
                         <td><%= item.MODELO || '-' %></td>
+                        <td class="text-center"><strong style="font-size:1rem;color:<%= (item.QUANTIDADE||1) > 0 ? '#27ae60' : '#e74c3c' %>"><%= item.QUANTIDADE || 1 %></strong></td>
                         <td><span class="status-badge badge-<%= statusClass %>"><%= statusLabel %></span></td>
                         <td>
                           <% if (item.ID_VAGA) { %>
@@ -109,7 +110,7 @@
                             <button class="btn btn-sm btn-outline-primary btn-editar-item" style="padding:2px 7px;"
                               data-id="<%= item.ID %>" data-tipo="<%= item.TIPO_PRODUTO %>"
                               data-desc="<%= item.DESCRICAO||'' %>" data-modelo="<%= item.MODELO||'' %>"
-                              data-status="<%= item.STATUS %>"
+                              data-quantidade="<%= item.QUANTIDADE||1 %>" data-status="<%= item.STATUS %>"
                               title="Editar"><i class="fas fa-edit"></i></button>
                             <% if (item.STATUS === 'DISPONIVEL') { %>
                               <button class="btn btn-sm btn-outline-danger btn-excluir-item" style="padding:2px 7px;"
@@ -193,7 +194,10 @@
           </select>
         </div>
         <div class="form-group mb-3"><label>Descrição</label><input type="text" class="form-control" id="itemDesc" placeholder="Ex: Dell Inspiron 15"></div>
-        <div class="form-group mb-3"><label>Modelo</label><input type="text" class="form-control" id="itemModelo" placeholder="Ex: Core i5 8ª Geração"></div>
+        <div class="row">
+          <div class="col-8"><div class="form-group mb-3"><label>Modelo</label><input type="text" class="form-control" id="itemModelo" placeholder="Ex: Core i5 8ª Geração"></div></div>
+          <div class="col-4"><div class="form-group mb-3"><label>Quantidade <span class="text-danger">*</span></label><input type="number" class="form-control" id="itemQuantidade" min="0" value="1"></div></div>
+        </div>
         <div class="form-group mb-3">
           <label>Status</label>
           <select class="form-control" id="itemStatus">
@@ -222,7 +226,7 @@ $(document).ready(function () {
     dom: 'Bfrtip',
     buttons: [{ extend:'excelHtml5', text:'<i class="fas fa-file-excel"></i> Excel', className:'btn btn-success btn-sm', title:'Estoque TI' }],
     pageLength: 25, order: [[0,'desc']],
-    columnDefs: [{ targets: [8], orderable: false }],
+    columnDefs: [{ targets: [9], orderable: false }],
     initComplete: function() {
       dtBuildFilters(this.api(), 'tblEstoque_filter', [
         { idx: 1, label: 'Tipo...', w: '120px' },
@@ -245,7 +249,7 @@ $(document).ready(function () {
     $('#itemTipo').val('');
     $('#itemDesc').val('');
     $('#itemModelo').val('');
-    $('#itemPatrimonio').val('');
+    $('#itemQuantidade').val(1);
     $('#itemStatus').val('DISPONIVEL');
     $('#itemError').hide();
     $('#modalItemLabel').html('<i class="fas fa-plus-circle me-2"></i>Novo Item de Estoque TI');
@@ -258,6 +262,7 @@ $(document).ready(function () {
     $('#itemTipo').val(btn.data('tipo'));
     $('#itemDesc').val(btn.data('desc'));
     $('#itemModelo').val(btn.data('modelo'));
+    $('#itemQuantidade').val(btn.data('quantidade') || 1);
     $('#itemStatus').val(btn.data('status'));
     $('#itemError').hide();
     $('#modalItemLabel').html('<i class="fas fa-edit me-2"></i>Editar Item #' + btn.data('id'));
@@ -273,6 +278,7 @@ $(document).ready(function () {
       tipo_produto: tipo,
       descricao: $('#itemDesc').val().trim(),
       modelo: $('#itemModelo').val().trim(),
+      quantidade: parseInt($('#itemQuantidade').val()) || 1,
       status: $('#itemStatus').val()
     };
 

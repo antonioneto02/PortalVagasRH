@@ -23,7 +23,12 @@ async function listarVagas(req, res) {
              CONVERT(VARCHAR, v.DT_CONTRATACAO, 103) AS DT_CONTRATACAO,
              v.MATRICULA, v.STATUS, v.EMPRESA, v.USUARIO_CADASTRO,
              CONVERT(VARCHAR, v.DTINCLUSAO, 103) AS DTINCLUSAO,
-             (SELECT COUNT(*) FROM RH_ESTOQUE_TI WHERE ID_VAGA = v.ID AND STATUS = 'RESERVADO') AS ITENS_RESERVADOS,
+             (CASE
+                WHEN v.NOTEBOOK='SIM' AND NOT EXISTS (SELECT 1 FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO='NOTEBOOK' AND STATUS='DISPONIVEL' AND ISNULL(QUANTIDADE,0)>0) THEN 0
+                WHEN v.CELULAR='SIM'  AND NOT EXISTS (SELECT 1 FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO='CELULAR'  AND STATUS='DISPONIVEL' AND ISNULL(QUANTIDADE,0)>0) THEN 0
+                WHEN v.NOTEBOOK='SIM' OR v.CELULAR='SIM' THEN 1
+                ELSE 0
+              END) AS ITENS_RESERVADOS,
              (SELECT COUNT(*) FROM RH_PEDIDOS_COMPRA_TI WHERE ID_VAGA = v.ID AND STATUS = 'PENDENTE') AS PEDIDOS_PENDENTES
       FROM RH_VAGAS v
       WHERE 1=1
@@ -277,10 +282,9 @@ async function fecharVaga(req, res) {
     pool = await new sql.ConnectionPool(dbConfig).connect();
     const vagaInfo = await pool.request()
       .input('ID', sql.Int, parseInt(id))
-      .query(`SELECT SETOR, FUNCAO FROM RH_VAGAS WHERE ID = @ID`);
+      .query(`SELECT SETOR, FUNCAO, NOTEBOOK, CELULAR FROM RH_VAGAS WHERE ID = @ID`);
 
-    const setor = vagaInfo.recordset[0]?.SETOR || null;
-    const funcao = vagaInfo.recordset[0]?.FUNCAO || null;
+    const { SETOR: setor, FUNCAO: funcao, NOTEBOOK: notebook, CELULAR: celular } = vagaInfo.recordset[0] || {};
 
     await pool.request()
       .input('ID', sql.Int, parseInt(id))
@@ -288,15 +292,26 @@ async function fecharVaga(req, res) {
       .input('ENTREVISTAS', sql.Int, entrevistas ? parseInt(entrevistas) : null)
       .input('DT_CONTRATACAO', sql.Date, dt_contratacao ? new Date(dt_contratacao) : null)
       .query(`UPDATE RH_VAGAS SET MATRICULA=@MATRICULA, ENTREVISTAS=@ENTREVISTAS, DT_CONTRATACAO=@DT_CONTRATACAO, STATUS='FECHADA' WHERE ID=@ID`);
+
+    // Decrementar QUANTIDADE do estoque para cada equipamento utilizado na vaga
     try {
-      const areaLabel = [setor, funcao].filter(Boolean).join(' - ');
-      await pool.request()
-        .input('ID_VAGA', sql.Int, parseInt(id))
-        .input('AREA', sql.VarChar(200), areaLabel || null)
-        .query(`UPDATE RH_ESTOQUE_TI SET STATUS = 'EM_USO', AREA = @AREA, DTALTERACAO = GETDATE()
-                WHERE ID_VAGA = @ID_VAGA AND STATUS = 'RESERVADO'`);
+      const areaLabel = [setor, funcao].filter(Boolean).join(' - ') || null;
+      if (notebook === 'SIM') {
+        await pool.request()
+          .input('AREA', sql.VarChar(200), areaLabel)
+          .query(`UPDATE TOP (1) RH_ESTOQUE_TI
+                  SET QUANTIDADE = QUANTIDADE - 1, AREA = @AREA, DTALTERACAO = GETDATE()
+                  WHERE TIPO_PRODUTO = 'NOTEBOOK' AND STATUS = 'DISPONIVEL' AND ISNULL(QUANTIDADE, 0) > 0`);
+      }
+      if (celular === 'SIM') {
+        await pool.request()
+          .input('AREA', sql.VarChar(200), areaLabel)
+          .query(`UPDATE TOP (1) RH_ESTOQUE_TI
+                  SET QUANTIDADE = QUANTIDADE - 1, AREA = @AREA, DTALTERACAO = GETDATE()
+                  WHERE TIPO_PRODUTO = 'CELULAR' AND STATUS = 'DISPONIVEL' AND ISNULL(QUANTIDADE, 0) > 0`);
+      }
     } catch (estoqueErr) {
-      console.error('Aviso: não foi possível liberar itens de estoque:', estoqueErr.message);
+      console.error('Aviso: não foi possível decrementar estoque:', estoqueErr.message);
     }
 
     res.json({ success: true });
