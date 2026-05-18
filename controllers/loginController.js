@@ -171,6 +171,21 @@ async function getLocalUser(username) {
   }
 }
 
+async function getLocalUserByEmail(email) {
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request()
+      .input('EMAIL', sql.VarChar(200), String(email || '').trim().toLowerCase())
+      .query(`SELECT TOP 1 ID, USERNAME, PASSWORD_HASH, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
+              FROM [portal_rh].[dbo].[RH_USUARIOS]
+              WHERE LOWER(EMAIL) = @EMAIL AND ATIVO = 1`);
+    return result.recordset.length > 0 ? result.recordset[0] : null;
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
 async function getParticipanteByCPF(cpf) {
   let pool = null;
   try {
@@ -310,6 +325,32 @@ async function validaLogin(req, res) {
       }
     } catch (cpfErr) {
       console.error('Erro ao buscar participante por CPF:', cpfErr);
+      return res.redirect('/login?error=invalid_credentials');
+    }
+  } else if (isValidEmail(rawInput)) {
+    // Login por e-mail — usuário local (RH_USUARIOS) apenas
+    try {
+      const localUser = await getLocalUserByEmail(rawInput);
+      if (!localUser) {
+        return res.redirect('/login?error=invalid_credentials');
+      }
+      const senhaOk = await bcrypt.compare(password, localUser.PASSWORD_HASH);
+      if (!senhaOk) {
+        return res.redirect('/login?error=invalid_credentials');
+      }
+      req.session.userId = 'LOCAL_' + localUser.ID;
+      req.session.username = localUser.NOME;
+      req.session.isProtheus = false;
+      req.session.localUserId = localUser.ID;
+      req.session.isAdmin = Number(localUser.ADM || 0) === 1;
+      req.session.lastActivity = Date.now();
+      delete req.session.returnTo;
+      return req.session.save(err => {
+        if (err) console.error('Session save error:', err);
+        return res.redirect(returnTo);
+      });
+    } catch (emailErr) {
+      console.error('Erro ao verificar usuário por e-mail:', emailErr);
       return res.redirect('/login?error=invalid_credentials');
     }
   } else if (!isValidUsername(rawInput)) {

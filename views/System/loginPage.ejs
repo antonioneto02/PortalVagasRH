@@ -12,7 +12,7 @@
               <img src="/css/logo-cini.png" alt="Cini" style="height: 40px; margin-right: 15px;">
               <h2 class="text-white mb-0">Portal Vagas RH</h2>
             </div>
-            <h6 class="text-white mb-0">Utilize suas credenciais do Protheus, seu cadastro externo ou seu CPF.</h6>
+            <h6 class="text-white mb-0">Utilize suas credenciais do Protheus, e-mail de cadastro ou CPF.</h6>
 
             <% if (timeout) { %>
               <div class="alert alert-warning mt-2" role="alert" style="border-left: 4px solid #ffc107;">
@@ -49,8 +49,8 @@
             <form id="loginForm" method="POST" action="/login">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <div class="form-group mb-3">
-                <label for="username">Usuário ou CPF:</label>
-                <input type="text" class="form-control" id="username" name="username" value="<%= username || '' %>" required autofocus autocomplete="username" placeholder="Ex: joao.silva ou 000.000.000-00">
+                <label for="username">Usuário, E-mail ou CPF:</label>
+                <input type="text" class="form-control" id="username" name="username" value="<%= username || '' %>" required autofocus autocomplete="username" placeholder="Ex: joao.silva, joao@email.com ou 000.000.000-00">
               </div>
               <div class="form-group mb-3">
                 <label for="password">Senha:</label>
