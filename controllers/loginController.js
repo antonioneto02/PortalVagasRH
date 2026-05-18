@@ -320,7 +320,7 @@ async function validaLogin(req, res) {
       if (!participante) {
         return res.redirect('/login?error=invalid_credentials');
       }
-      if (participante.BLOQUEADO) {
+      if (String(participante.BLOQUEADO) === '1') {
         return res.redirect('/login?error=invalid_credentials');
       }
       if (!participante.ACESSO_PORTAL) {
