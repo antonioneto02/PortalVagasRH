@@ -195,11 +195,11 @@ async function getParticipanteByCPF(cpf) {
       .query(`SELECT TOP 1
                 RTRIM(LTRIM(CODIGO_USUARIO)) AS CODIGO_USUARIO,
                 NOME_USUARIO,
-                BLOQUEADO,
                 ACESSO_PORTAL,
                 SENHA
               FROM [dw].[dbo].[V_PARTICIPANTES]
-              WHERE REPLACE(REPLACE(REPLACE(CPF, '.', ''), '-', ''), ' ', '') = @CPF`);
+              WHERE REPLACE(REPLACE(REPLACE(CPF, '.', ''), '-', ''), ' ', '') = @CPF
+                AND BLOQUEADO != '1'`);
     return result.recordset.length > 0 ? result.recordset[0] : null;
   } finally {
     if (pool) try { await pool.close(); } catch {}
