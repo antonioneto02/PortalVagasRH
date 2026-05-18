@@ -196,7 +196,8 @@ async function getParticipanteByCPF(cpf) {
                 RTRIM(LTRIM(CODIGO_USUARIO)) AS CODIGO_USUARIO,
                 NOME_USUARIO,
                 BLOQUEADO,
-                ACESSO_PORTAL
+                ACESSO_PORTAL,
+                SENHA
               FROM [dw].[dbo].[V_PARTICIPANTES]
               WHERE REPLACE(REPLACE(REPLACE(CPF, '.', ''), '-', ''), ' ', '') = @CPF`);
     return result.recordset.length > 0 ? result.recordset[0] : null;
@@ -316,13 +317,48 @@ async function validaLogin(req, res) {
     try {
       const cpf = normalizeCPF(rawInput);
       const participante = await getParticipanteByCPF(cpf);
-      if (!participante || participante.BLOQUEADO || !participante.ACESSO_PORTAL) {
+      if (!participante) {
         return res.redirect('/login?error=invalid_credentials');
       }
+      if (participante.BLOQUEADO) {
+        return res.redirect('/login?error=invalid_credentials');
+      }
+      if (!participante.ACESSO_PORTAL) {
+        return res.redirect('/login?error=invalid_credentials');
+      }
+
+      // Valida senha direto contra V_PARTICIPANTES
+      const senhaBD = String(participante.SENHA || '');
+      let senhaOk = false;
+      if (senhaBD.startsWith('$2')) {
+        senhaOk = await bcrypt.compare(password, senhaBD);
+      } else {
+        senhaOk = password === senhaBD;
+      }
+      if (!senhaOk) {
+        return res.redirect('/login?error=invalid_credentials');
+      }
+
       username = String(participante.CODIGO_USUARIO || '').trim();
       if (!username) {
         return res.redirect('/login?error=invalid_credentials');
       }
+
+      // Autentica sessão sem precisar de RH_USUARIOS
+      const vinculado = await getUserByProtheusId(username);
+      req.session.userId = 'CPF_' + cpf;
+      req.session.username = vinculado?.NOME || String(participante.NOME_USUARIO || username);
+      req.session.isProtheus = false;
+      req.session.protheusId = username;
+      req.session.isAdmin = Number(vinculado?.ADM || 0) === 1;
+      req.session.localUserId = vinculado?.ID || null;
+      req.session.lastActivity = Date.now();
+      delete req.session.returnTo;
+
+      return req.session.save(err => {
+        if (err) console.error('Session save error:', err);
+        return res.redirect(returnTo);
+      });
     } catch (cpfErr) {
       console.error('Erro ao buscar participante por CPF:', cpfErr);
       return res.redirect('/login?error=invalid_credentials');
@@ -392,22 +428,9 @@ async function validaLogin(req, res) {
     try {
       let localUser = null;
 
-      if (loginByCPF) {
-        // Para login por CPF, busca usuário local pelo ID_PROTHEUS (CODIGO_USUARIO)
-        localUser = await getUserByProtheusId(username);
-        if (!localUser) {
-          return res.redirect('/login?error=invalid_credentials');
-        }
-        // getUserByProtheusId não retorna PASSWORD_HASH; busca completa pelo USERNAME encontrado
-        localUser = await getLocalUser(localUser.USERNAME);
-        if (!localUser) {
-          return res.redirect('/login?error=invalid_credentials');
-        }
-      } else {
-        localUser = await getLocalUser(username);
-        if (!localUser) {
-          return res.redirect('/register?username=' + encodeURIComponent(username));
-        }
+      localUser = await getLocalUser(username);
+      if (!localUser) {
+        return res.redirect('/register?username=' + encodeURIComponent(username));
       }
 
       const senhaOk = await bcrypt.compare(password, localUser.PASSWORD_HASH);
