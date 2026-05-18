@@ -12,7 +12,7 @@
               <img src="/css/logo-cini.png" alt="Cini" style="height: 40px; margin-right: 15px;">
               <h2 class="text-white mb-0">Portal Vagas RH</h2>
             </div>
-            <h6 class="text-white mb-0">Utilize suas credenciais do Protheus, e-mail de cadastro ou CPF.</h6>
+            <h6 class="text-white mb-0">Funcionários: use o usuário Protheus. Candidatos externos: use o CPF do RH.</h6>
 
             <% if (timeout) { %>
               <div class="alert alert-warning mt-2" role="alert" style="border-left: 4px solid #ffc107;">
@@ -48,9 +48,22 @@
           <div class="card-body">
             <form id="loginForm" method="POST" action="/login">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" id="username" name="username">
+
               <div class="form-group mb-3">
-                <label for="username">Usuário, E-mail ou CPF:</label>
-                <input type="text" class="form-control" id="username" name="username" value="<%= username || '' %>" required autofocus autocomplete="username" placeholder="Ex: joao.silva, joao@email.com ou 000.000.000-00">
+                <label for="usernameProtheus">Usuário Protheus</label>
+                <input type="text" class="form-control" id="usernameProtheus" value="<%= (username && !/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(username)) ? username : '' %>" autofocus autocomplete="username" placeholder="Ex: joao.silva ou joao@email.com" inputmode="email">
+              </div>
+
+              <div class="d-flex align-items-center mb-3">
+                <hr style="flex:1; margin:0;">
+                <span class="text-muted mx-2" style="font-size:0.8rem; white-space:nowrap;">ou acesse pelo seu CPF</span>
+                <hr style="flex:1; margin:0;">
+              </div>
+
+              <div class="form-group mb-3">
+                <label for="cpfRH">CPF (RH)</label>
+                <input type="text" class="form-control" id="cpfRH" value="<%= (username && /^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(username)) ? username : '' %>" placeholder="000.000.000-00" inputmode="numeric" maxlength="14" autocomplete="off">
               </div>
               <div class="form-group mb-3">
                 <label for="password">Senha:</label>
@@ -122,25 +135,38 @@
     passwordField.addEventListener('keyup', checkCaps);
     passwordField.addEventListener('blur', () => capsWarning.style.display = 'none');
 
-    const usernameInput = document.getElementById('username');
-    usernameInput.addEventListener('input', function() {
-      const digits = this.value.replace(/\D/g, '');
-      if (/^\d+$/.test(this.value.replace(/[.\-]/g, '')) && digits.length <= 11) {
-        // Aplica máscara de CPF enquanto digita
-        if (digits.length <= 3) {
-          this.value = digits;
-        } else if (digits.length <= 6) {
-          this.value = digits.slice(0, 3) + '.' + digits.slice(3);
-        } else if (digits.length <= 9) {
-          this.value = digits.slice(0, 3) + '.' + digits.slice(3, 6) + '.' + digits.slice(6);
-        } else {
-          this.value = digits.slice(0, 3) + '.' + digits.slice(3, 6) + '.' + digits.slice(6, 9) + '-' + digits.slice(9, 11);
-        }
+    const cpfInput = document.getElementById('cpfRH');
+    cpfInput.addEventListener('input', function() {
+      const digits = this.value.replace(/\D/g, '').slice(0, 11);
+      if (digits.length <= 3) {
+        this.value = digits;
+      } else if (digits.length <= 6) {
+        this.value = digits.slice(0, 3) + '.' + digits.slice(3);
+      } else if (digits.length <= 9) {
+        this.value = digits.slice(0, 3) + '.' + digits.slice(3, 6) + '.' + digits.slice(6);
+      } else {
+        this.value = digits.slice(0, 3) + '.' + digits.slice(3, 6) + '.' + digits.slice(6, 9) + '-' + digits.slice(9, 11);
       }
+    });
+
+    // Limpa o outro campo quando um deles recebe entrada
+    document.getElementById('usernameProtheus').addEventListener('input', function() {
+      if (this.value.trim()) cpfInput.value = '';
+    });
+    cpfInput.addEventListener('input', function() {
+      if (this.value.trim()) document.getElementById('usernameProtheus').value = '';
     });
 
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
+      const protheusVal = document.getElementById('usernameProtheus').value.trim();
+      const cpfVal = cpfInput.value.trim();
+      const combined = cpfVal || protheusVal;
+      if (!combined) {
+        document.getElementById('usernameProtheus').focus();
+        return;
+      }
+      document.getElementById('username').value = combined;
       const pw = document.getElementById('password');
       document.getElementById('authData').value = btoa(unescape(encodeURIComponent(pw.value)));
       pw.value = '';
