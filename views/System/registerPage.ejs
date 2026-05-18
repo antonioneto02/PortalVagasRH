@@ -68,16 +68,13 @@
           <div class="card-body">
             <form method="POST" action="/register">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <div class="form-group mb-3">
-                <label for="username">Usuário <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="username" name="username"
-                       value="<%= username %>" required minlength="3" maxlength="100" autocomplete="username">
-                <div id="usernameFeedback" class="mt-1" style="font-size:0.85rem;"></div>
-              </div>
 
               <div class="form-group mb-3">
                 <label for="nome">Nome Completo <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="nome" name="nome" required>
+                <input type="text" class="form-control" id="nome" name="nome" required autocomplete="name">
+                <div id="usernamePreview" class="mt-1" style="font-size:0.85rem; display:none;">
+                  Seu usuário será: <strong id="usernamePreviewValue"></strong>
+                </div>
               </div>
 
               <div class="form-group mb-3">
@@ -142,8 +139,9 @@
     }
   </style>
   <script>
-    const usernameField = document.getElementById('username');
-    const usernameFeedback = document.getElementById('usernameFeedback');
+    const nomeField = document.getElementById('nome');
+    const usernamePreview = document.getElementById('usernamePreview');
+    const usernamePreviewValue = document.getElementById('usernamePreviewValue');
     const emailField = document.getElementById('email');
     const emailFeedback = document.getElementById('emailFeedback');
     const telefoneField = document.getElementById('telefone');
@@ -211,44 +209,31 @@
         .replace(/(\d{5})(\d)/, '$1-$2');
     }
 
-    function validateUsernameAvailability() {
-      const value = usernameField.value.trim();
-      if (value.length < 3) {
-        usernameFeedback.className = 'mt-1 text-danger';
-        usernameFeedback.textContent = 'O usuário deve ter ao menos 3 caracteres.';
-        usernameField.dataset.available = 'false';
-        return;
-      }
+    function generateUsernamePreview(nome) {
+      const parts = nome
+        .trim()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
 
-      if (!/^[A-Za-z0-9._-]{3,100}$/.test(value)) {
-        usernameFeedback.className = 'mt-1 text-danger';
-        usernameFeedback.textContent = 'Use apenas letras, números, ponto, hífen ou sublinhado.';
-        usernameField.dataset.available = 'false';
-        return;
-      }
-
-      usernameFeedback.className = 'mt-1 text-muted';
-      usernameFeedback.textContent = 'Verificando disponibilidade...';
-
-      fetch('/register/check-username?username=' + encodeURIComponent(value))
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.available) {
-            usernameFeedback.className = 'mt-1 text-success';
-            usernameFeedback.textContent = 'Usuário disponível.';
-            usernameField.dataset.available = 'true';
-          } else {
-            usernameFeedback.className = 'mt-1 text-danger';
-            usernameFeedback.textContent = 'Este nome de usuário já está em uso.';
-            usernameField.dataset.available = 'false';
-          }
-        })
-        .catch(() => {
-          usernameFeedback.className = 'mt-1 text-danger';
-          usernameFeedback.textContent = 'Não foi possível validar o usuário agora.';
-          usernameField.dataset.available = 'false';
-        });
+      if (parts.length === 0) return '';
+      if (parts.length === 1) return parts[0];
+      return `${parts[0]}.${parts[1]}`;
     }
+
+    nomeField.addEventListener('input', function() {
+      const preview = generateUsernamePreview(this.value);
+      if (preview.length >= 3) {
+        usernamePreviewValue.textContent = preview;
+        usernamePreview.style.display = 'block';
+      } else {
+        usernamePreview.style.display = 'none';
+      }
+    });
 
     passwordField.addEventListener('input', function() {
       const checks = getPasswordChecks(this.value);
@@ -273,29 +258,11 @@
       this.value = applyPhoneMask(this.value);
     });
 
-    let usernameTimer;
-    usernameField.addEventListener('input', function() {
-      usernameField.dataset.available = 'false';
-      clearTimeout(usernameTimer);
-      usernameTimer = setTimeout(validateUsernameAvailability, 300);
-    });
-
-    if (usernameField.value.trim().length >= 3) {
-      validateUsernameAvailability();
-    }
-
     document.querySelector('form').addEventListener('submit', function(e) {
       const pw = passwordField.value;
       const confirm = document.getElementById('confirmPassword').value;
-      const usernameAvailable = usernameField.dataset.available === 'true';
       const strongPw = isPasswordStrong(pw);
       const validEmail = validateEmailField();
-
-      if (!usernameAvailable) {
-        e.preventDefault();
-        window.location.href = '/login?error=already_registered&username=' + encodeURIComponent(usernameField.value.trim());
-        return;
-      }
 
       if (!strongPw) {
         e.preventDefault();

@@ -14,6 +14,7 @@ const PROTHEUS_ADMIN_FIXO_ID = '000460';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 const USERNAME_REGEX = /^[A-Za-z0-9._-]{3,100}$/;
+const CPF_REGEX = /^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/;
 const OTP_CODE_REGEX = /^\d{6}$/;
 const COOKIE_COMMON = {
   httpOnly: true,
@@ -39,6 +40,40 @@ function isValidEmail(email) {
 
 function isStrongPassword(password) {
   return PASSWORD_REGEX.test(String(password || ''));
+}
+
+function isCPF(value) {
+  return CPF_REGEX.test(String(value || '').trim());
+}
+
+function normalizeCPF(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function generateUsernameFromNome(nome) {
+  const parts = String(nome || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return null;
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]}.${parts[1]}`;
+}
+
+async function findAvailableUsername(baseUsername) {
+  if (!isValidUsername(baseUsername)) return null;
+  if (await isUsernameAvailable(baseUsername)) return baseUsername;
+  for (let i = 1; i <= 99; i++) {
+    const candidate = `${baseUsername}${i}`;
+    if (isValidUsername(candidate) && await isUsernameAvailable(candidate)) return candidate;
+  }
+  return null;
 }
 
 function normalizeTelefone(telefone) {
@@ -136,6 +171,25 @@ async function getLocalUser(username) {
   }
 }
 
+async function getParticipanteByCPF(cpf) {
+  let pool = null;
+  try {
+    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const result = await pool.request()
+      .input('CPF', sql.VarChar(20), cpf)
+      .query(`SELECT TOP 1
+                RTRIM(LTRIM(CODIGO_USUARIO)) AS CODIGO_USUARIO,
+                NOME_USUARIO,
+                BLOQUEADO,
+                ACESSO_PORTAL
+              FROM [dw].[dbo].[V_PARTICIPANTES]
+              WHERE REPLACE(REPLACE(REPLACE(CPF, '.', ''), '-', ''), ' ', '') = @CPF`);
+    return result.recordset.length > 0 ? result.recordset[0] : null;
+  } finally {
+    if (pool) try { await pool.close(); } catch {}
+  }
+}
+
 async function getUserByProtheusId(protheusId) {
   let pool = null;
   try {
@@ -217,10 +271,10 @@ async function requireAuth(req, res, next) {
 }
 
 async function validaLogin(req, res) {
-  const username = normalizeUsername(req.body.username);
+  const rawInput = String(req.body.username || '').trim();
   const { authData } = req.body;
 
-  if (!username || !authData || !isValidUsername(username)) {
+  if (!rawInput || !authData) {
     return res.redirect('/login?error=invalid_credentials');
   }
 
@@ -238,6 +292,29 @@ async function validaLogin(req, res) {
   const returnTo = req.session.returnTo && req.session.returnTo !== '/login'
     ? req.session.returnTo
     : '/vagas';
+
+  let username = rawInput;
+  let loginByCPF = false;
+
+  if (isCPF(rawInput)) {
+    loginByCPF = true;
+    try {
+      const cpf = normalizeCPF(rawInput);
+      const participante = await getParticipanteByCPF(cpf);
+      if (!participante || participante.BLOQUEADO || !participante.ACESSO_PORTAL) {
+        return res.redirect('/login?error=invalid_credentials');
+      }
+      username = String(participante.CODIGO_USUARIO || '').trim();
+      if (!username) {
+        return res.redirect('/login?error=invalid_credentials');
+      }
+    } catch (cpfErr) {
+      console.error('Erro ao buscar participante por CPF:', cpfErr);
+      return res.redirect('/login?error=invalid_credentials');
+    }
+  } else if (!isValidUsername(rawInput)) {
+    return res.redirect('/login?error=invalid_credentials');
+  }
 
   try {
     const protheusResp = await axios.post(
@@ -272,10 +349,24 @@ async function validaLogin(req, res) {
     });
   } catch {
     try {
-      const localUser = await getLocalUser(username);
+      let localUser = null;
 
-      if (!localUser) {
-        return res.redirect('/register?username=' + encodeURIComponent(username));
+      if (loginByCPF) {
+        // Para login por CPF, busca usuário local pelo ID_PROTHEUS (CODIGO_USUARIO)
+        localUser = await getUserByProtheusId(username);
+        if (!localUser) {
+          return res.redirect('/login?error=invalid_credentials');
+        }
+        // getUserByProtheusId não retorna PASSWORD_HASH; busca completa pelo USERNAME encontrado
+        localUser = await getLocalUser(localUser.USERNAME);
+        if (!localUser) {
+          return res.redirect('/login?error=invalid_credentials');
+        }
+      } else {
+        localUser = await getLocalUser(username);
+        if (!localUser) {
+          return res.redirect('/register?username=' + encodeURIComponent(username));
+        }
       }
 
       const senhaOk = await bcrypt.compare(password, localUser.PASSWORD_HASH);
@@ -303,18 +394,18 @@ async function validaLogin(req, res) {
 }
 
 async function cadastrarUsuario(req, res) {
-  const username = normalizeUsername(req.body.username);
   const password = String(req.body.password || '');
   const nome = String(req.body.nome || '').trim();
   const email = String(req.body.email || '').trim();
   const telefone = normalizeTelefone(req.body.telefone);
 
-  if (!username || !password || !nome) {
+  if (!password || !nome) {
     return res.redirect('/register?error=campos_obrigatorios');
   }
 
-  if (!isValidUsername(username)) {
-    return res.redirect('/register?error=usuario_invalido');
+  const baseUsername = generateUsernameFromNome(nome);
+  if (!baseUsername || !isValidUsername(baseUsername)) {
+    return res.redirect('/register?error=campos_obrigatorios');
   }
 
   if (!email) {
@@ -332,9 +423,9 @@ async function cadastrarUsuario(req, res) {
   try {
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const usernameLivre = await isUsernameAvailable(username);
-    if (!usernameLivre) {
-      return res.redirect('/login?error=already_registered&username=' + encodeURIComponent(username));
+    const username = await findAvailableUsername(baseUsername);
+    if (!username) {
+      return res.redirect('/register?error=campos_obrigatorios');
     }
 
     const otpCode = generateOtpCode();
