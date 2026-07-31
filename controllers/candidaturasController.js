@@ -1,11 +1,27 @@
-const sql = require('mssql');
+﻿'use strict';
+
+require('../database/sequelize'); // carrega associações entre models
 const multer = require('multer');
+
+function formatDate(dt) {
+  if (!dt) return null;
+  const d = new Date(dt);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function formatDateTime(dt) {
+  if (!dt) return null;
+  const d = new Date(dt);
+  return `${formatDate(dt)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 const path = require('path');
 const fs = require('fs');
-const dbConfig = require('../database/dbConfig');
+const Candidatura = require('../models/Candidatura');
+const Vaga = require('../models/Vaga');
 const notificacaoModel = require('../models/notificacaoModel');
 
 const CANDIDATURA_NOTIFY_EMAIL = process.env.CANDIDATURA_NOTIFY_EMAIL || 'ti02@cini.com.br';
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '..', 'public', 'curriculos');
@@ -22,56 +38,31 @@ const fileFilter = (req, file, cb) => {
   const allowed = ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg'];
   const ext = path.extname(file.originalname).toLowerCase();
   if (allowed.includes(ext)) cb(null, true);
-  else cb(new Error('Tipo de arquivo não permitido. Use PDF, DOC, DOCX ou imagem.'));
+  else cb(new Error('Tipo de arquivo nao permitido. Use PDF, DOC, DOCX ou imagem.'));
 };
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, 
-});
-
+const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
 const uploadMiddleware = upload.single('curriculo');
 
 function resolveCurriculoPath(curriculoPath) {
   const raw = String(curriculoPath || '').trim();
   if (!raw) return null;
-
-  if (path.isAbsolute(raw) && fs.existsSync(raw)) {
-    return raw;
-  }
-
+  if (path.isAbsolute(raw) && fs.existsSync(raw)) return raw;
   const normalized = raw.replace(/\\/g, '/').replace(/^\/+/, '');
   const inPublicFromPath = path.join(__dirname, '..', 'public', normalized);
-  if (fs.existsSync(inPublicFromPath)) {
-    return inPublicFromPath;
-  }
-
+  if (fs.existsSync(inPublicFromPath)) return inPublicFromPath;
   const fileName = path.basename(normalized);
   const inCurriculosByName = path.join(__dirname, '..', 'public', 'curriculos', fileName);
-  if (fs.existsSync(inCurriculosByName)) {
-    return inCurriculosByName;
-  }
-
+  if (fs.existsSync(inCurriculosByName)) return inCurriculosByName;
   return null;
 }
 
-async function enviarEmailCandidatura({
-  idVaga,
-  vaga,
-  nome,
-  celular,
-  email,
-  linkedin,
-  apresentacao,
-  linkAdicional,
-  curriculoFile,
-}) {
+async function enviarEmailCandidatura({ idVaga, vaga, nome, celular, email, linkedin, apresentacao, linkAdicional, curriculoFile }) {
   const assunto = `Nova candidatura - Vaga ${idVaga}${vaga?.FUNCAO ? ` - ${vaga.FUNCAO}` : ''}`;
   const text = [
     'Nova candidatura recebida no Portal Vagas RH',
     `ID da vaga: ${idVaga}`,
-    `Função: ${vaga?.FUNCAO || '-'}`,
+    `Funcao: ${vaga?.FUNCAO || '-'}`,
     `Tipo da vaga: ${vaga?.TIPO_VAGA || '-'}`,
     `Nome: ${nome}`,
     `Celular: ${celular}`,
@@ -79,17 +70,17 @@ async function enviarEmailCandidatura({
     `LinkedIn: ${linkedin || '-'}`,
     `Link adicional: ${linkAdicional || '-'}`,
     '',
-    'Apresentação:',
+    'Apresentacao:',
     apresentacao,
     '',
-    curriculoFile ? 'Currículo anexado.' : 'Sem currículo anexado.',
+    curriculoFile ? 'Curriculo anexado.' : 'Sem curriculo anexado.',
   ].join('\n');
   const corpoHtml = [
     '<html><body>',
     '<p><strong>Nova candidatura recebida no Portal Vagas RH</strong></p>',
     '<ul>',
     `<li><strong>ID da vaga:</strong> ${idVaga}</li>`,
-    `<li><strong>Função:</strong> ${vaga?.FUNCAO || '-'}</li>`,
+    `<li><strong>Funcao:</strong> ${vaga?.FUNCAO || '-'}</li>`,
     `<li><strong>Tipo da vaga:</strong> ${vaga?.TIPO_VAGA || '-'}</li>`,
     `<li><strong>Nome:</strong> ${nome}</li>`,
     `<li><strong>Celular:</strong> ${celular}</li>`,
@@ -97,9 +88,9 @@ async function enviarEmailCandidatura({
     `<li><strong>LinkedIn:</strong> ${linkedin || '-'}</li>`,
     `<li><strong>Link adicional:</strong> ${linkAdicional || '-'}</li>`,
     '</ul>',
-    '<p><strong>Apresentação:</strong></p>',
+    '<p><strong>Apresentacao:</strong></p>',
     `<p>${String(apresentacao || '').replace(/\n/g, '<br>')}</p>`,
-    `<p><strong>${curriculoFile ? 'Currículo anexado.' : 'Sem currículo anexado.'}</strong></p>`,
+    `<p><strong>${curriculoFile ? 'Curriculo anexado.' : 'Sem curriculo anexado.'}</strong></p>`,
     '</body></html>',
   ].join('');
   const attachmentB64 = curriculoFile ? fs.readFileSync(curriculoFile.path).toString('base64') : null;
@@ -109,8 +100,7 @@ async function enviarEmailCandidatura({
     destinatario: CANDIDATURA_NOTIFY_EMAIL,
     mensagem: text,
     metadados: JSON.stringify({
-      assunto,
-      corpo: corpoHtml,
+      assunto, corpo: corpoHtml,
       sistema: 'portal-vagas-rh',
       fluxo: 'candidatura',
       destinatario: CANDIDATURA_NOTIFY_EMAIL,
@@ -132,50 +122,42 @@ async function salvarCandidatura(req, res) {
 
     if (!id_vaga || !nome || !celular || !email || !apresentacao) {
       if (req.file) fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'Campos obrigatórios: Nome, Celular, Email e Apresentação.' });
+      return res.status(400).json({ error: 'Campos obrigatorios: Nome, Celular, Email e Apresentacao.' });
     }
 
     if (!email.includes('@') || !email.includes('.')) {
       if (req.file) fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'E-mail inválido.' });
+      return res.status(400).json({ error: 'E-mail invalido.' });
     }
 
     const curriculoPath = req.file ? '/curriculos/' + req.file.filename : null;
+    const idVagaNum = parseInt(id_vaga);
 
-    let pool = null;
     try {
-      pool = await new sql.ConnectionPool(dbConfig).connect();
-      const idVagaNum = parseInt(id_vaga);
-      await pool.request()
-        .input('ID_VAGA', sql.Int, idVagaNum)
-        .input('NOME', sql.VarChar(200), nome)
-        .input('CELULAR', sql.VarChar(20), celular)
-        .input('EMAIL', sql.VarChar(200), email)
-        .input('LINKEDIN', sql.VarChar(300), linkedin || null)
-        .input('APRESENTACAO', sql.VarChar(sql.MAX), apresentacao)
-        .input('LINK_ADICIONAL', sql.VarChar(300), link_adicional || null)
-        .input('CURRICULO_PATH', sql.VarChar(500), curriculoPath)
-        .query(`INSERT INTO RH_CANDIDATURAS (ID_VAGA, NOME, CELULAR, EMAIL, LINKEDIN, APRESENTACAO, LINK_ADICIONAL, CURRICULO_PATH, DTINCLUSAO)
-                VALUES (@ID_VAGA, @NOME, @CELULAR, @EMAIL, @LINKEDIN, @APRESENTACAO, @LINK_ADICIONAL, @CURRICULO_PATH, GETDATE())`);
+      await Candidatura.create({
+        ID_VAGA: idVagaNum,
+        NOME: nome,
+        CELULAR: celular,
+        EMAIL: email,
+        LINKEDIN: linkedin || null,
+        APRESENTACAO: apresentacao,
+        LINK_ADICIONAL: link_adicional || null,
+        CURRICULO_PATH: curriculoPath,
+      });
 
-      await pool.request()
-        .input('ID_VAGA', sql.Int, idVagaNum)
-        .query(`UPDATE RH_VAGAS SET CANDIDATOS = (
-          SELECT COUNT(*) FROM RH_CANDIDATURAS WHERE ID_VAGA = @ID_VAGA
-        ) WHERE ID = @ID_VAGA`);
+      const count = await Candidatura.count({ where: { ID_VAGA: idVagaNum } });
+      await Vaga.update({ CANDIDATOS: count }, { where: { ID: idVagaNum } });
 
-      const vagaResult = await pool.request()
-        .input('ID_VAGA', sql.Int, idVagaNum)
-        .query(`SELECT TOP 1 ID, FUNCAO, TIPO_VAGA FROM RH_VAGAS WHERE ID = @ID_VAGA`);
+      const vagaRow = await Vaga.findOne({
+        where: { ID: idVagaNum },
+        attributes: ['ID', 'FUNCAO', 'TIPO_VAGA'],
+      });
 
       try {
         await enviarEmailCandidatura({
           idVaga: idVagaNum,
-          vaga: vagaResult.recordset?.[0] || null,
-          nome,
-          celular,
-          email,
-          linkedin,
+          vaga: vagaRow ? vagaRow.toJSON() : null,
+          nome, celular, email, linkedin,
           apresentacao,
           linkAdicional: link_adicional,
           curriculoFile: req.file || null,
@@ -183,7 +165,7 @@ async function salvarCandidatura(req, res) {
       } catch (mailErr) {
         console.error('Erro ao enviar e-mail da candidatura:', mailErr);
       }
-         
+
       if (req.session) {
         if (!Array.isArray(req.session.candidaturasFeitas)) req.session.candidaturasFeitas = [];
         if (!req.session.candidaturasFeitas.includes(idVagaNum)) {
@@ -192,40 +174,27 @@ async function salvarCandidatura(req, res) {
       }
 
       res.json({ success: true });
-    } catch (err) {
-      console.error('Erro ao salvar candidatura:', err);
+    } catch (dbErr) {
+      console.error('Erro ao salvar candidatura:', dbErr);
       if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
       res.status(500).json({ error: 'Erro interno ao salvar candidatura.' });
-    } finally {
-      if (pool) try { await pool.close(); } catch {}
     }
   });
 }
 
 async function renderCandidaturasAdmin(req, res) {
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request().query(`
-      SELECT
-        c.ID,
-        c.ID_VAGA,
-        c.NOME,
-        c.CELULAR,
-        c.EMAIL,
-        c.LINKEDIN,
-        c.APRESENTACAO,
-        c.LINK_ADICIONAL,
-        c.CURRICULO_PATH,
-        CONVERT(VARCHAR, c.DTINCLUSAO, 103) + ' ' + CONVERT(VARCHAR(5), c.DTINCLUSAO, 108) AS DTINCLUSAO,
-        ISNULL(v.FUNCAO, '-') AS NOME_VAGA
-      FROM RH_CANDIDATURAS c
-      LEFT JOIN RH_VAGAS v ON v.ID = c.ID_VAGA
-      ORDER BY c.ID DESC
-    `);
+    const rows = await Candidatura.findAll({
+      include: [{ model: Vaga, as: 'vaga', foreignKey: 'ID_VAGA', attributes: ['FUNCAO'], required: false }],
+      order: [['ID', 'DESC']],
+    });
+    const candidaturas = rows.map(c => {
+      const { vaga, DTINCLUSAO, ...rest } = c.toJSON();
+      return { ...rest, DTINCLUSAO: formatDateTime(DTINCLUSAO), NOME_VAGA: vaga?.FUNCAO || '-' };
+    });
 
     res.render('Vagas/candidaturas', {
-      candidaturas: result.recordset,
+      candidaturas,
       username: req.session.username,
       isProtheus: req.session.isProtheus,
       isAdmin: req.session.isAdmin === true,
@@ -235,72 +204,48 @@ async function renderCandidaturasAdmin(req, res) {
   } catch (err) {
     console.error('Erro ao carregar candidaturas:', err);
     res.status(500).send('Erro ao carregar candidaturas.');
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
 async function listarCandidaturasPorVagaApi(req, res) {
   const idVaga = parseInt(req.params.id, 10);
   if (!Number.isInteger(idVaga) || idVaga <= 0) {
-    return res.status(400).json({ error: 'ID da vaga inválido.' });
+    return res.status(400).json({ error: 'ID da vaga invalido.' });
   }
-
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request()
-      .input('ID_VAGA', sql.Int, idVaga)
-      .query(`
-        SELECT
-          c.ID,
-          c.ID_VAGA,
-          c.NOME,
-          c.CELULAR,
-          c.EMAIL,
-          c.LINKEDIN,
-          c.APRESENTACAO,
-          c.LINK_ADICIONAL,
-          c.CURRICULO_PATH,
-          CONVERT(VARCHAR, c.DTINCLUSAO, 103) + ' ' + CONVERT(VARCHAR(5), c.DTINCLUSAO, 108) AS DTINCLUSAO,
-          ISNULL(v.FUNCAO, '-') AS NOME_VAGA
-        FROM RH_CANDIDATURAS c
-        LEFT JOIN RH_VAGAS v ON v.ID = c.ID_VAGA
-        WHERE c.ID_VAGA = @ID_VAGA
-        ORDER BY c.ID DESC
-      `);
-
-    return res.json(result.recordset || []);
+    const rows = await Candidatura.findAll({
+      where: { ID_VAGA: idVaga },
+      include: [{ model: Vaga, as: 'vaga', foreignKey: 'ID_VAGA', attributes: ['FUNCAO'], required: false }],
+      order: [['ID', 'DESC']],
+    });
+    return res.json(rows.map(c => {
+      const { vaga, DTINCLUSAO, ...rest } = c.toJSON();
+      return { ...rest, DTINCLUSAO: formatDateTime(DTINCLUSAO), NOME_VAGA: vaga?.FUNCAO || '-' };
+    }));
   } catch (err) {
     console.error('Erro ao listar candidaturas por vaga:', err);
     return res.status(500).json({ error: 'Erro ao buscar candidatos da vaga.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
 async function abrirCurriculoCandidatura(req, res) {
   const candidaturaId = parseInt(req.params.id, 10);
   if (!Number.isInteger(candidaturaId) || candidaturaId <= 0) {
-    return res.status(400).send('ID da candidatura inválido.');
+    return res.status(400).send('ID da candidatura invalido.');
   }
-
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request()
-      .input('ID', sql.Int, candidaturaId)
-      .query(`SELECT TOP 1 CURRICULO_PATH FROM RH_CANDIDATURAS WHERE ID = @ID`);
+    const candidatura = await Candidatura.findOne({
+      where: { ID: candidaturaId },
+      attributes: ['CURRICULO_PATH'],
+    });
 
-    if (!result.recordset.length) {
-      return res.status(404).send('Candidatura não encontrada.');
+    if (!candidatura) {
+      return res.status(404).send('Candidatura nao encontrada.');
     }
 
-    const curriculoPath = result.recordset[0].CURRICULO_PATH;
-    const absoluteFilePath = resolveCurriculoPath(curriculoPath);
-
+    const absoluteFilePath = resolveCurriculoPath(candidatura.CURRICULO_PATH);
     if (!absoluteFilePath) {
-      return res.status(404).send('Currículo não encontrado no servidor.');
+      return res.status(404).send('Curriculo nao encontrado no servidor.');
     }
 
     const fileName = path.basename(absoluteFilePath);
@@ -311,43 +256,42 @@ async function abrirCurriculoCandidatura(req, res) {
     if (forceDownload || !inlineExtensions.has(ext)) {
       return res.download(absoluteFilePath, fileName);
     }
-
     return res.sendFile(absoluteFilePath);
   } catch (err) {
-    console.error('Erro ao abrir currículo da candidatura:', err);
-    return res.status(500).send('Erro ao abrir currículo.');
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
+    console.error('Erro ao abrir curriculo da candidatura:', err);
+    return res.status(500).send('Erro ao abrir curriculo.');
   }
 }
 
 async function listarCandidaturasPorFuncaoApi(req, res) {
   const funcao = String(req.query.funcao || '').trim();
   if (!funcao) return res.json([]);
-
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request()
-      .input('FUNCAO', sql.VarChar(200), funcao)
-      .query(`
-        SELECT
-          c.ID, c.ID_VAGA, c.NOME, c.CELULAR, c.EMAIL, c.LINKEDIN,
-          c.APRESENTACAO, c.LINK_ADICIONAL, c.CURRICULO_PATH,
-          CONVERT(VARCHAR, c.DTINCLUSAO, 103) + ' ' + CONVERT(VARCHAR(5), c.DTINCLUSAO, 108) AS DTINCLUSAO,
-          ISNULL(v.FUNCAO, '-') AS NOME_VAGA
-        FROM RH_CANDIDATURAS c
-        INNER JOIN RH_VAGAS v ON v.ID = c.ID_VAGA
-        WHERE UPPER(RTRIM(LTRIM(v.FUNCAO))) = UPPER(RTRIM(LTRIM(@FUNCAO)))
-        ORDER BY c.ID DESC
-      `);
-    return res.json(result.recordset || []);
+    const rows = await Candidatura.findAll({
+      include: [{
+        model: Vaga,
+        as: 'vaga',
+        foreignKey: 'ID_VAGA',
+        attributes: ['FUNCAO'],
+        required: true,
+        where: { FUNCAO: funcao.trim() },
+      }],
+      order: [['ID', 'DESC']],
+    });
+    return res.json(rows.map(c => {
+      const { vaga, DTINCLUSAO, ...rest } = c.toJSON();
+      return { ...rest, DTINCLUSAO: formatDateTime(DTINCLUSAO), NOME_VAGA: vaga?.FUNCAO || '-' };
+    }));
   } catch (err) {
     console.error('Erro ao listar candidaturas por funcao:', err);
     return res.status(500).json({ error: 'Erro ao buscar candidatos.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
-module.exports = { salvarCandidatura, renderCandidaturasAdmin, listarCandidaturasPorVagaApi, listarCandidaturasPorFuncaoApi, abrirCurriculoCandidatura };
+module.exports = {
+  salvarCandidatura,
+  renderCandidaturasAdmin,
+  listarCandidaturasPorVagaApi,
+  listarCandidaturasPorFuncaoApi,
+  abrirCurriculoCandidatura,
+};

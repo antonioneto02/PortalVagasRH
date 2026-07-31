@@ -1,17 +1,33 @@
-'use strict';
+﻿'use strict';
 
 const sql = require('mssql');
-const dbConfig = require('../database/dbConfig');
+const { Op } = require('sequelize');
+const sequelize = require('../database/sequelize');
+const Vaga = require('../models/Vaga');
+
+function formatDate(dt) {
+  if (!dt) return null;
+  const d = new Date(dt);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function formatDateTime(dt) {
+  if (!dt) return null;
+  const d = new Date(dt);
+  return `${formatDate(dt)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 const dbConfigDw = require('../database/dbConfigDw');
+const EstoqueTI = require('../models/EstoqueTI');
+const EstoqueItem = require('../models/EstoqueItem');
+const PedidoCompraTI = require('../models/PedidoCompraTI');
 const notificacaoModel = require('../models/notificacaoModel');
 
-// Destinatários do pedido de compra (para teste, todos o mesmo email)
 const DESTINATARIOS_PEDIDO = [
-  'antonioneto3260@gmail.com', // TI
-  'antonioneto3260@gmail.com', // Compras
-  'antonioneto3260@gmail.com', // Solicitante
-  'antonioneto3260@gmail.com', // RH
-  'antonioneto3260@gmail.com', // Gestor
+  'antonioneto3260@gmail.com',
+  'antonioneto3260@gmail.com',
+  'antonioneto3260@gmail.com',
+  'antonioneto3260@gmail.com',
+  'antonioneto3260@gmail.com',
 ];
 
 function buildEmailPedido({ id_vaga, itens, funcao, setor, prazo, solicitante }) {
@@ -30,9 +46,9 @@ function buildEmailPedido({ id_vaga, itens, funcao, setor, prazo, solicitante })
     <p style="margin:0 0 16px;color:#374151;">Foi solicitado um pedido de compra de equipamentos de TI para a seguinte vaga:</p>
     <table style="width:100%;border-collapse:collapse;margin-bottom:20px;background:#f9fafb;border-radius:6px;">
       <tr><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#6b7280;font-size:.85rem;">Vaga</td><td style="padding:8px 12px;border-bottom:1px solid #eee;"><strong>#${id_vaga} - ${funcao || '-'}</strong></td></tr>
-      <tr><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#6b7280;font-size:.85rem;">Área / Setor</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${setor || '-'}</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#6b7280;font-size:.85rem;">Area / Setor</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${setor || '-'}</td></tr>
       <tr><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#6b7280;font-size:.85rem;">Solicitante</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${solicitante || '-'}</td></tr>
-      <tr><td style="padding:8px 12px;color:#6b7280;font-size:.85rem;">Data Necessária</td><td style="padding:8px 12px;">${prazo || '-'}</td></tr>
+      <tr><td style="padding:8px 12px;color:#6b7280;font-size:.85rem;">Data Necessaria</td><td style="padding:8px 12px;">${prazo || '-'}</td></tr>
     </table>
     <p style="margin:0 0 10px;font-weight:600;color:#1f2937;">Itens Solicitados:</p>
     <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
@@ -42,40 +58,37 @@ function buildEmailPedido({ id_vaga, itens, funcao, setor, prazo, solicitante })
       </tr></thead>
       <tbody>${itensHtml}</tbody>
     </table>
-    <p style="margin:20px 0 0;font-size:.82rem;color:#9ca3af;">Este é um email automático gerado pelo Portal Vagas RH - Cini.</p>
+    <p style="margin:20px 0 0;font-size:.82rem;color:#9ca3af;">Este e um email automatico gerado pelo Portal Vagas RH - Cini.</p>
   </div>
 </div>
 </body></html>`;
 }
 
 async function renderEstoque(req, res) {
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-
-    const [itensResult, pedidosResult] = await Promise.all([
-      pool.request().query(`
-        SELECT e.ID, e.TIPO_PRODUTO, e.DESCRICAO, e.MODELO,
-               ISNULL(e.QUANTIDADE, 1) AS QUANTIDADE,
-               CONVERT(VARCHAR, e.DTINCLUSAO, 103) AS DTINCLUSAO,
-               (SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = e.ID) AS TOTAL_ALOCACOES
-        FROM RH_ESTOQUE_TI e
-        ORDER BY e.TIPO_PRODUTO, e.DTINCLUSAO DESC
-      `),
-      pool.request().query(`
-        SELECT p.ID, p.ID_VAGA, p.ITENS_JSON, p.STATUS, p.OBSERVACOES,
-               p.USUARIO_PEDIDO,
-               CONVERT(VARCHAR, p.DTPEDIDO, 103) AS DTPEDIDO,
-               v.FUNCAO AS VAGA_FUNCAO, v.SETOR AS VAGA_SETOR,
-               CONVERT(VARCHAR, v.PRAZO_CONTRATACAO, 103) AS VAGA_PRAZO
-        FROM RH_PEDIDOS_COMPRA_TI p
-        LEFT JOIN RH_VAGAS v ON v.ID = p.ID_VAGA
-        ORDER BY p.DTPEDIDO DESC
-      `)
+    const [itensRaw, pedidosOrm] = await Promise.all([
+      EstoqueTI.findAll({
+        attributes: [
+          'ID', 'TIPO_PRODUTO', 'DESCRICAO', 'MODELO',
+          [sequelize.fn('ISNULL', sequelize.col('QUANTIDADE'), 1), 'QUANTIDADE'],
+          'DTINCLUSAO',
+          [sequelize.literal('(SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = [EstoqueTI].[ID])'), 'TOTAL_ALOCACOES'],
+        ],
+        order: [['TIPO_PRODUTO', 'ASC'], ['DTINCLUSAO', 'DESC']],
+      }),
+      PedidoCompraTI.findAll({
+        include: [{ model: Vaga, as: 'vaga', attributes: ['FUNCAO', 'SETOR', 'PRAZO_CONTRATACAO'], required: false }],
+        order: [['DTPEDIDO', 'DESC']],
+      }),
     ]);
 
-    // Enriquecer pedidos com nome do solicitante via DW (silencia falha se DW offline)
-    let pedidos = pedidosResult.recordset;
+    const itens = itensRaw.map(e => { const o = e.toJSON(); return { ...o, DTINCLUSAO: formatDate(o.DTINCLUSAO) }; });
+    const pedidosRaw = pedidosOrm.map(p => {
+      const { vaga, DTPEDIDO, ...rest } = p.toJSON();
+      return { ...rest, DTPEDIDO: formatDate(DTPEDIDO), VAGA_FUNCAO: vaga?.FUNCAO || null, VAGA_SETOR: vaga?.SETOR || null, VAGA_PRAZO: formatDate(vaga?.PRAZO_CONTRATACAO) };
+    });
+
+    let pedidos = pedidosRaw;
     try {
       const matriculas = [...new Set(pedidos.map(p => p.USUARIO_PEDIDO).filter(Boolean))];
       if (matriculas.length) {
@@ -100,11 +113,11 @@ async function renderEstoque(req, res) {
         }
       }
     } catch (dwErr) {
-      console.warn('Aviso: não foi possível buscar nomes do DW:', dwErr.message);
+      console.warn('Aviso: nao foi possivel buscar nomes do DW:', dwErr.message);
     }
 
     res.render('Vagas/estoque', {
-      itens: itensResult.recordset,
+      itens,
       pedidos,
       username: req.session.username,
       isAdmin: req.session.isAdmin === true,
@@ -116,166 +129,126 @@ async function renderEstoque(req, res) {
   } catch (err) {
     console.error('Erro ao carregar estoque:', err);
     res.status(500).send('Erro ao carregar estoque.');
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
-async function listarEstoque(req, res) {
-  let pool = null;
+async function listarEstoque(_req, res) {
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request().query(`
-      SELECT e.ID, e.TIPO_PRODUTO, e.DESCRICAO, e.MODELO,
-             ISNULL(e.QUANTIDADE, 1) AS QUANTIDADE,
-             CONVERT(VARCHAR, e.DTINCLUSAO, 103) AS DTINCLUSAO,
-             (SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = e.ID) AS TOTAL_ALOCACOES
-      FROM RH_ESTOQUE_TI e
-      ORDER BY e.TIPO_PRODUTO, e.DTINCLUSAO DESC
-    `);
-    res.json(result.recordset);
+    const rows = await EstoqueTI.findAll({
+      attributes: [
+        'ID', 'TIPO_PRODUTO', 'DESCRICAO', 'MODELO',
+        [sequelize.fn('ISNULL', sequelize.col('QUANTIDADE'), 1), 'QUANTIDADE'],
+        'DTINCLUSAO',
+        [sequelize.literal('(SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = [EstoqueTI].[ID])'), 'TOTAL_ALOCACOES'],
+      ],
+      order: [['TIPO_PRODUTO', 'ASC'], ['DTINCLUSAO', 'DESC']],
+    });
+    res.json(rows.map(e => { const o = e.toJSON(); return { ...o, DTINCLUSAO: formatDate(o.DTINCLUSAO) }; }));
   } catch (err) {
     console.error('Erro ao listar estoque:', err);
     res.status(500).json({ error: 'Erro ao listar estoque.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
 async function cadastrarItem(req, res) {
   const { tipo_produto, descricao, modelo, quantidade } = req.body;
-
-  if (!tipo_produto) return res.status(400).json({ error: 'Tipo de produto é obrigatório.' });
-
+  if (!tipo_produto) return res.status(400).json({ error: 'Tipo de produto e obrigatorio.' });
   const qtd = Math.max(1, parseInt(quantidade) || 1);
-
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    await pool.request()
-      .input('TIPO', sql.VarChar(50), tipo_produto)
-      .input('DESC', sql.VarChar(200), descricao || null)
-      .input('MODELO', sql.VarChar(200), modelo || null)
-      .input('QTD', sql.Int, qtd)
-      .query(`INSERT INTO RH_ESTOQUE_TI (TIPO_PRODUTO, DESCRICAO, MODELO, QUANTIDADE)
-              VALUES (@TIPO, @DESC, @MODELO, @QTD)`);
+    await EstoqueTI.create({
+      TIPO_PRODUTO: tipo_produto,
+      DESCRICAO: descricao || null,
+      MODELO: modelo || null,
+      QUANTIDADE: qtd,
+    });
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao cadastrar item:', err);
     res.status(500).json({ error: 'Erro interno ao cadastrar item.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
 async function editarItem(req, res) {
   const { id } = req.params;
   const { tipo_produto, descricao, modelo, quantidade } = req.body;
-
-  if (!tipo_produto) return res.status(400).json({ error: 'Tipo de produto é obrigatório.' });
-
+  if (!tipo_produto) return res.status(400).json({ error: 'Tipo de produto e obrigatorio.' });
   const qtd = Math.max(0, parseInt(quantidade) || 1);
-
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    await pool.request()
-      .input('ID', sql.Int, parseInt(id))
-      .input('TIPO', sql.VarChar(50), tipo_produto)
-      .input('DESC', sql.VarChar(200), descricao || null)
-      .input('MODELO', sql.VarChar(200), modelo || null)
-      .input('QTD', sql.Int, qtd)
-      .query(`UPDATE RH_ESTOQUE_TI SET TIPO_PRODUTO=@TIPO, DESCRICAO=@DESC, MODELO=@MODELO,
-              QUANTIDADE=@QTD, DTALTERACAO=GETDATE() WHERE ID=@ID`);
+    await EstoqueTI.update(
+      { TIPO_PRODUTO: tipo_produto, DESCRICAO: descricao || null, MODELO: modelo || null, QUANTIDADE: qtd },
+      { where: { ID: parseInt(id) } }
+    );
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao editar item:', err);
     res.status(500).json({ error: 'Erro interno ao editar item.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
 async function excluirItem(req, res) {
   const { id } = req.params;
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
+    const item = await EstoqueTI.findOne({ where: { ID: parseInt(id) } });
+    if (!item) return res.status(404).json({ error: 'Item nao encontrado.' });
 
-    const check = await pool.request()
-      .input('ID', sql.Int, parseInt(id))
-      .query(`SELECT ISNULL(QUANTIDADE, 1) AS QUANTIDADE FROM RH_ESTOQUE_TI WHERE ID = @ID`);
-
-    if (!check.recordset.length) return res.status(404).json({ error: 'Item não encontrado.' });
-
-    const activeCheck = await pool.request()
-      .input('ID', sql.Int, parseInt(id))
-      .query(`SELECT COUNT(*) AS TOTAL FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = @ID AND STATUS != 'DISPONIVEL'`);
-    if (activeCheck.recordset[0].TOTAL > 0) {
-      return res.status(400).json({ error: 'Existem itens alocados ativos. Não é possível excluir.' });
+    const activeLinked = await EstoqueItem.count({
+      where: {
+        ID_ESTOQUE: parseInt(id),
+        STATUS: { [Op.ne]: 'DISPONIVEL' },
+      },
+    });
+    if (activeLinked > 0) {
+      return res.status(400).json({ error: 'Existem itens alocados ativos. Nao e possivel excluir.' });
     }
 
-    await pool.request()
-      .input('ID', sql.Int, parseInt(id))
-      .query(`DELETE FROM RH_ESTOQUE_TI WHERE ID = @ID`);
+    await EstoqueTI.destroy({ where: { ID: parseInt(id) } });
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao excluir item:', err);
     res.status(500).json({ error: 'Erro interno ao excluir item.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
 async function verificarDisponibilidade(req, res) {
   const qtdNb = Math.max(0, parseInt(req.query.notebook) || 0);
   const qtdCel = Math.max(0, parseInt(req.query.celular) || 0);
-
   if (qtdNb === 0 && qtdCel === 0) return res.json({ disponivel: true, faltaNb: 0, faltaCel: 0, dispNb: 0, dispCel: 0 });
 
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request().query(`
-      SELECT TIPO_PRODUTO, SUM(ISNULL(QUANTIDADE, 1)) AS QTDE
-      FROM RH_ESTOQUE_TI
-      WHERE TIPO_PRODUTO IN ('NOTEBOOK','CELULAR')
-      GROUP BY TIPO_PRODUTO
-    `);
-
+    const rows = await EstoqueTI.findAll({
+      where: { TIPO_PRODUTO: { [Op.in]: ['NOTEBOOK', 'CELULAR'] } },
+      attributes: [
+        'TIPO_PRODUTO',
+        [sequelize.fn('SUM', sequelize.fn('ISNULL', sequelize.col('QUANTIDADE'), 1)), 'QTDE'],
+      ],
+      group: ['TIPO_PRODUTO'],
+      raw: true,
+    });
     const disp = {};
-    (result.recordset || []).forEach(r => { disp[r.TIPO_PRODUTO] = r.QTDE; });
-
+    rows.forEach(r => { disp[r.TIPO_PRODUTO] = r.QTDE; });
     const dispNb = disp['NOTEBOOK'] || 0;
     const dispCel = disp['CELULAR'] || 0;
     const faltaNb = Math.max(0, qtdNb - dispNb);
     const faltaCel = Math.max(0, qtdCel - dispCel);
-
     res.json({ disponivel: faltaNb === 0 && faltaCel === 0, faltaNb, faltaCel, dispNb, dispCel });
   } catch (err) {
     console.error('Erro ao verificar disponibilidade:', err);
     res.status(500).json({ error: 'Erro ao verificar disponibilidade.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
 async function criarPedidoCompra(req, res) {
   const { id_vaga, itens, funcao, setor, prazo, solicitante } = req.body;
   const usuario = req.session.protheusId || req.session.username || 'ADMIN';
-
   if (!id_vaga || !itens || !itens.length) {
-    return res.status(400).json({ error: 'Dados inválidos para pedido de compra.' });
+    return res.status(400).json({ error: 'Dados invalidos para pedido de compra.' });
   }
-
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    await pool.request()
-      .input('ID_VAGA', sql.Int, parseInt(id_vaga))
-      .input('ITENS_JSON', sql.NVarChar(sql.MAX), JSON.stringify(itens))
-      .input('USUARIO', sql.VarChar(50), usuario)
-      .query(`INSERT INTO RH_PEDIDOS_COMPRA_TI (ID_VAGA, ITENS_JSON, USUARIO_PEDIDO) VALUES (@ID_VAGA, @ITENS_JSON, @USUARIO)`);
+    await PedidoCompraTI.create({
+      ID_VAGA: parseInt(id_vaga),
+      ITENS_JSON: JSON.stringify(itens),
+      USUARIO_PEDIDO: usuario,
+    });
 
     const itensTexto = itens.map(i => `${i.qtd}x ${i.tipo}`).join(', ');
     const assunto = `Pedido de Compra TI - Vaga #${id_vaga} - ${funcao || ''}`;
@@ -289,8 +262,7 @@ async function criarPedidoCompra(req, res) {
           destinatario: email,
           mensagem: `Pedido de compra TI - Vaga #${id_vaga}: ${itensTexto}`,
           metadados: JSON.stringify({
-            assunto,
-            corpo,
+            assunto, corpo,
             sistema: 'portal-vagas-rh',
             fluxo: 'pedido-compra-ti',
             destinatario: email,
@@ -305,29 +277,22 @@ async function criarPedidoCompra(req, res) {
   } catch (err) {
     console.error('Erro ao criar pedido de compra:', err);
     res.status(500).json({ error: 'Erro interno ao criar pedido.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
-async function listarPedidos(req, res) {
-  let pool = null;
+async function listarPedidos(_req, res) {
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request().query(`
-      SELECT p.ID, p.ID_VAGA, p.ITENS_JSON, p.STATUS, p.OBSERVACOES, p.USUARIO_PEDIDO,
-             CONVERT(VARCHAR, p.DTPEDIDO, 103) AS DTPEDIDO,
-             v.FUNCAO AS VAGA_FUNCAO, v.SETOR AS VAGA_SETOR
-      FROM RH_PEDIDOS_COMPRA_TI p
-      LEFT JOIN RH_VAGAS v ON v.ID = p.ID_VAGA
-      ORDER BY p.DTPEDIDO DESC
-    `);
-    res.json(result.recordset);
+    const rows = await PedidoCompraTI.findAll({
+      include: [{ model: Vaga, as: 'vaga', attributes: ['FUNCAO', 'SETOR'], required: false }],
+      order: [['DTPEDIDO', 'DESC']],
+    });
+    res.json(rows.map(p => {
+      const { vaga, DTPEDIDO, ...rest } = p.toJSON();
+      return { ...rest, DTPEDIDO: formatDate(DTPEDIDO), VAGA_FUNCAO: vaga?.FUNCAO || null, VAGA_SETOR: vaga?.SETOR || null };
+    }));
   } catch (err) {
     console.error('Erro ao listar pedidos:', err);
     res.status(500).json({ error: 'Erro ao listar pedidos.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
@@ -335,53 +300,38 @@ async function atualizarStatusPedido(req, res) {
   const { id } = req.params;
   const { status } = req.body;
   const statusValido = ['PENDENTE', 'ATENDIDO', 'CANCELADO'].includes(status) ? status : null;
-  if (!statusValido) return res.status(400).json({ error: 'Status inválido.' });
-
-  let pool = null;
+  if (!statusValido) return res.status(400).json({ error: 'Status invalido.' });
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    await pool.request()
-      .input('ID', sql.Int, parseInt(id))
-      .input('STATUS', sql.VarChar(20), statusValido)
-      .query(`UPDATE RH_PEDIDOS_COMPRA_TI SET STATUS=@STATUS, DTATUALIZACAO=GETDATE() WHERE ID=@ID`);
+    await PedidoCompraTI.update(
+      { STATUS: statusValido, DTATUALIZACAO: new Date() },
+      { where: { ID: parseInt(id) } }
+    );
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao atualizar pedido:', err);
     res.status(500).json({ error: 'Erro interno.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 
 async function listarItens(req, res) {
   const { id } = req.params;
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request()
-      .input('ID_ESTOQUE', sql.Int, parseInt(id))
-      .query(`
-        SELECT a.ID, a.ID_VAGA, a.MATRICULA, a.AREA, a.USUARIO, a.STATUS,
-               CONVERT(VARCHAR, a.DTALOCACAO, 103) + ' ' + CONVERT(VARCHAR(5), a.DTALOCACAO, 108) AS DTALOCACAO,
-               v.FUNCAO AS VAGA_FUNCAO, v.SETOR AS VAGA_SETOR
-        FROM RH_ESTOQUE_ITENS a
-        LEFT JOIN RH_VAGAS v ON v.ID = a.ID_VAGA
-        WHERE a.ID_ESTOQUE = @ID_ESTOQUE
-        ORDER BY a.DTALOCACAO DESC
-      `);
-
-    let rows = result.recordset || [];
-    res.json(rows);
+    const rows = await EstoqueItem.findAll({
+      where: { ID_ESTOQUE: parseInt(id) },
+      include: [{ model: Vaga, as: 'vaga', attributes: ['FUNCAO', 'SETOR'], required: false }],
+      order: [['DTALOCACAO', 'DESC']],
+    });
+    res.json(rows.map(a => {
+      const { vaga, DTALOCACAO, ...rest } = a.toJSON();
+      return { ...rest, DTALOCACAO: formatDateTime(DTALOCACAO), VAGA_FUNCAO: vaga?.FUNCAO || null, VAGA_SETOR: vaga?.SETOR || null };
+    }));
   } catch (err) {
-    // Erro 208 = invalid object name (tabela ainda não existe)
     if (err.number === 208 || (err.message && err.message.includes('RH_ESTOQUE_ITENS'))) {
-      console.warn('Aviso: tabela RH_ESTOQUE_ITENS não encontrada, retornando lista vazia.');
+      console.warn('Aviso: tabela RH_ESTOQUE_ITENS nao encontrada, retornando lista vazia.');
       return res.json([]);
     }
     console.error('Erro ao listar itens:', err);
     res.status(500).json({ error: 'Erro ao listar itens.' });
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 

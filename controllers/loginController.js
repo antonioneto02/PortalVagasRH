@@ -1,14 +1,18 @@
+'use strict';
+
 const axios = require('axios');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const sql = require('mssql');
 const dotenv = require('dotenv');
 const dbConfig = require('../database/dbConfig');
+const sequelize = require('../database/sequelize');
+const Usuario = require('../models/Usuario');
 const notificacaoModel = require('../models/notificacaoModel');
 
 dotenv.config();
 
-const PROTHEUS_SERVER = process.env.PROTHEUS_SERVER;
+const protheusAuthUrl = process.env.PROTHEUS_AUTH_URL || 'http://localhost:3032';
 const TIMEOUT_MS = 120 * 60 * 1000;
 const PROTHEUS_ADMIN_FIXO_ID = '000460';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -143,47 +147,29 @@ async function sendOtpByEmail(email, nome, otpCode) {
 async function isUsernameAvailable(username) {
   const normalized = normalizeUsername(username);
   if (!isValidUsername(normalized)) return false;
-
-  let pool = null;
-  try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request()
-      .input('USERNAME', sql.VarChar(100), normalized)
-      .query(`SELECT TOP 1 ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME`);
-    return result.recordset.length === 0;
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
-  }
+  const existing = await Usuario.findOne({ where: { USERNAME: normalized } });
+  return existing === null;
 }
 
 async function getLocalUser(username) {
-  let pool = null;
-  try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request()
-      .input('USERNAME', sql.VarChar(100), username)
-            .query(`SELECT ID, USERNAME, PASSWORD_HASH, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
-              FROM [portal_rh].[dbo].[RH_USUARIOS]
-              WHERE USERNAME = @USERNAME AND ATIVO = 1`);
-    return result.recordset.length > 0 ? result.recordset[0] : null;
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
-  }
+  const user = await Usuario.findOne({
+    where: { USERNAME: username, ATIVO: true },
+    attributes: ['ID', 'USERNAME', 'PASSWORD_HASH', 'NOME', 'EMAIL', 'ATIVO', 'ADM', 'ID_PROTHEUS'],
+  });
+  return user ? user.toJSON() : null;
 }
 
 async function getLocalUserByEmail(email) {
-  let pool = null;
-  try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request()
-      .input('EMAIL', sql.VarChar(200), String(email || '').trim().toLowerCase())
-      .query(`SELECT TOP 1 ID, USERNAME, PASSWORD_HASH, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
-              FROM [portal_rh].[dbo].[RH_USUARIOS]
-              WHERE LOWER(EMAIL) = @EMAIL AND ATIVO = 1`);
-    return result.recordset.length > 0 ? result.recordset[0] : null;
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
-  }
+  const user = await Usuario.findOne({
+    where: {
+      [require('sequelize').Op.and]: [
+        sequelize.where(sequelize.fn('LOWER', sequelize.col('EMAIL')), String(email || '').trim().toLowerCase()),
+        { ATIVO: true },
+      ],
+    },
+    attributes: ['ID', 'USERNAME', 'PASSWORD_HASH', 'NOME', 'EMAIL', 'ATIVO', 'ADM', 'ID_PROTHEUS'],
+  });
+  return user ? user.toJSON() : null;
 }
 
 async function getParticipanteByCPF(cpf) {
@@ -207,23 +193,16 @@ async function getParticipanteByCPF(cpf) {
 }
 
 async function getUserByProtheusId(protheusId) {
-  let pool = null;
-  try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-    const result = await pool.request()
-      .input('ID_PROTHEUS', sql.VarChar(50), String(protheusId || '').trim())
-            .query(`SELECT TOP 1 ID, USERNAME, NOME, EMAIL, ATIVO, ADM, ID_PROTHEUS
-              FROM [portal_rh].[dbo].[RH_USUARIOS]
-              WHERE ID_PROTHEUS = @ID_PROTHEUS AND ATIVO = 1`);
-    return result.recordset.length > 0 ? result.recordset[0] : null;
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
-  }
+  const user = await Usuario.findOne({
+    where: { ID_PROTHEUS: String(protheusId || '').trim(), ATIVO: true },
+    attributes: ['ID', 'USERNAME', 'NOME', 'EMAIL', 'ATIVO', 'ADM', 'ID_PROTHEUS'],
+  });
+  return user ? user.toJSON() : null;
 }
 
 async function _restoreSessionFromToken(token, req, _res) {
   const resp = await axios.get(
-    `http://${PROTHEUS_SERVER}:9001/rest/users/getuserid`,
+    `${protheusAuthUrl}/rest/users/getuserid`,
     { headers: { Authorization: `Bearer ${token}` }, timeout: 6000 }
   );
   const userID = resp.data.userID;
@@ -239,7 +218,7 @@ async function _restoreSessionFromToken(token, req, _res) {
 
 async function _tryRefreshToken(refreshToken, req, res) {
   const refreshResp = await axios.post(
-    `http://${PROTHEUS_SERVER}:9001/rest/api/oauth2/v1/token`,
+    `${protheusAuthUrl}/rest/api/oauth2/v1/token`,
     null,
     { params: { grant_type: 'refresh_token', refresh_token: refreshToken }, timeout: 6000 }
   );
@@ -395,14 +374,14 @@ async function validaLogin(req, res) {
 
   try {
     const protheusResp = await axios.post(
-      `http://${PROTHEUS_SERVER}:9001/rest/api/oauth2/v1/token`,
+      `${protheusAuthUrl}/rest/api/oauth2/v1/token`,
       null,
       { params: { grant_type: 'password', username, password }, timeout: 10000 }
     );
 
     const { access_token, refresh_token } = protheusResp.data;
     const userIDResp = await axios.get(
-      `http://${PROTHEUS_SERVER}:9001/rest/users/getuserid`,
+      `${protheusAuthUrl}/rest/users/getuserid`,
       { headers: { Authorization: `Bearer ${access_token}` }, timeout: 6000 }
     );
     const userID = userIDResp.data.userID;
@@ -567,35 +546,26 @@ async function verificarOtpCadastro(req, res) {
     return req.session.save(() => res.redirect('/register/verify?error=otp_invalido'));
   }
 
-  let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
-
-    const existing = await pool.request()
-      .input('USERNAME', sql.VarChar(100), pending.username)
-      .query(`SELECT ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME`);
-
-    if (existing.recordset.length > 0) {
+    const existing = await Usuario.findOne({ where: { USERNAME: pending.username } });
+    if (existing) {
       req.session.pendingRegistration = null;
       return req.session.save(() => res.redirect('/login?error=already_registered&username=' + encodeURIComponent(pending.username)));
     }
 
-    await pool.request()
-      .input('USERNAME', sql.VarChar(100), pending.username)
-      .input('PASSWORD_HASH', sql.VarChar(255), pending.passwordHash)
-      .input('NOME', sql.VarChar(200), pending.nome)
-      .input('EMAIL', sql.VarChar(200), pending.email || null)
-      .input('TELEFONE', sql.VarChar(20), pending.telefone || null)
-      .query(`INSERT INTO [portal_rh].[dbo].[RH_USUARIOS] (USERNAME, PASSWORD_HASH, NOME, EMAIL, TELEFONE, ADM, ATIVO)
-              VALUES (@USERNAME, @PASSWORD_HASH, @NOME, @EMAIL, @TELEFONE, 0, 1)`);
-
-    const newUser = await pool.request()
-      .input('USERNAME2', sql.VarChar(100), pending.username)
-      .query(`SELECT ID FROM [portal_rh].[dbo].[RH_USUARIOS] WHERE USERNAME = @USERNAME2`);
+    const novoUsuario = await Usuario.create({
+      USERNAME: pending.username,
+      PASSWORD_HASH: pending.passwordHash,
+      NOME: pending.nome,
+      EMAIL: pending.email || null,
+      TELEFONE: pending.telefone || null,
+      ADM: 0,
+      ATIVO: true,
+    });
 
     req.session.pendingRegistration = null;
-    req.session.userId = 'LOCAL_' + newUser.recordset[0].ID;
-    req.session.localUserId = newUser.recordset[0].ID;
+    req.session.userId = 'LOCAL_' + novoUsuario.ID;
+    req.session.localUserId = novoUsuario.ID;
     req.session.username = pending.nome;
     req.session.isProtheus = false;
     req.session.isAdmin = false;
@@ -608,8 +578,6 @@ async function verificarOtpCadastro(req, res) {
   } catch (err) {
     console.error('Erro ao validar OTP do cadastro:', err);
     return res.redirect('/register/verify?error=erro_interno_otp');
-  } finally {
-    if (pool) try { await pool.close(); } catch {}
   }
 }
 

@@ -35,9 +35,10 @@ if (!sessionSecret) {
 
 const effectiveSessionSecret = sessionSecret || crypto.randomBytes(48).toString('hex');
 
+const CERT_DIR = 'C:\\Projetos\\Certificados';
 const options = {
-  key: fs.readFileSync('cini.key'),
-  cert: fs.readFileSync('cini.crt'),
+  key: fs.readFileSync(path.join(CERT_DIR, 'cini.key')),
+  cert: fs.readFileSync(path.join(CERT_DIR, 'cini.crt')),
 };
 
 app.set('views', path.join(__dirname, 'views'));
