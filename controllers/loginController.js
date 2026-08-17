@@ -12,7 +12,7 @@ const notificacaoModel = require('../models/notificacaoModel');
 
 dotenv.config();
 
-const protheusAuthUrl = process.env.PROTHEUS_AUTH_URL || 'http://localhost:3032';
+const protheusAuthUrl = process.env.PROTHEUS_AUTH_URL || 'https://consultas.cini.com.br:3032';
 const TIMEOUT_MS = 120 * 60 * 1000;
 const PROTHEUS_ADMIN_FIXO_ID = '000460';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
