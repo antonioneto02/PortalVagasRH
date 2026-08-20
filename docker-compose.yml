@@ -1,0 +1,17 @@
+services:
+  portal-vagas-rh:
+    image: portal-vagas-rh:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: portal-vagas-rh
+    restart: unless-stopped
+    ports:
+      - "3020:3020"
+    env_file:
+      - .env
+    environment:
+      CERT_DIR: C:/certs
+    volumes:
+      - C:/Projetos/Certificados:C:/certs:ro
+      - C:/Projetos/PortalVagasRH/public/curriculos:C:/app/public/curriculos

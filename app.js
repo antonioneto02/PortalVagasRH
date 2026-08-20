@@ -35,7 +35,7 @@ if (!sessionSecret) {
 
 const effectiveSessionSecret = sessionSecret || crypto.randomBytes(48).toString('hex');
 
-const CERT_DIR = 'C:\\Projetos\\Certificados';
+const CERT_DIR = process.env.CERT_DIR || 'C:\\Projetos\\Certificados';
 const options = {
   key: fs.readFileSync(path.join(CERT_DIR, 'cini.key')),
   cert: fs.readFileSync(path.join(CERT_DIR, 'cini.crt')),
@@ -96,6 +96,10 @@ app.get('/', (req, res) => {
 
 app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
   res.status(404).json({ error: 'Not found' });
+});
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'portal-vagas-rh' });
 });
 
 https.createServer(options, app).listen(port, host || '0.0.0.0', () => {
