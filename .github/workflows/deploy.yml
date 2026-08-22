@@ -180,10 +180,13 @@ jobs:
           try {
             $projectName = (Split-Path -Leaf (Get-Location)).ToLower()
             $netName = "${projectName}_default"
-            $netLabel = docker network inspect $netName --format '{{index .Labels "com.docker.compose.network"}}' 2>$null
-            if ($LASTEXITCODE -eq 0 -and $netLabel -ne "default") {
-              Write-Output "Rede '$netName' orfa (sem label do compose) -- removendo antes do deploy."
-              docker network rm $netName 2>&1 | Out-Null
+            $netJson = docker network inspect $netName --format '{{json .Labels}}' 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              $netLabels = $netJson | ConvertFrom-Json
+              if ($netLabels.'com.docker.compose.network' -ne 'default') {
+                Write-Output "Rede '$netName' orfa (sem label do compose) -- removendo antes do deploy."
+                docker network rm $netName 2>&1 | Out-Null
+              }
             }
           } catch {}
 
@@ -204,9 +207,12 @@ jobs:
             try {
               $projectName = (Split-Path -Leaf (Get-Location)).ToLower()
               $netName = "${projectName}_default"
-              $netLabel = docker network inspect $netName --format '{{index .Labels "com.docker.compose.network"}}' 2>$null
-              if ($LASTEXITCODE -eq 0 -and $netLabel -ne "default") {
-                docker network rm $netName 2>&1 | Out-Null
+              $netJson = docker network inspect $netName --format '{{json .Labels}}' 2>$null
+              if ($LASTEXITCODE -eq 0) {
+                $netLabels = $netJson | ConvertFrom-Json
+                if ($netLabels.'com.docker.compose.network' -ne 'default') {
+                  docker network rm $netName 2>&1 | Out-Null
+                }
               }
             } catch {}
             
