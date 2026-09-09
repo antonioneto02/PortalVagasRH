@@ -376,7 +376,7 @@ async function validaLogin(req, res) {
     const protheusResp = await axios.post(
       `${protheusAuthUrl}/rest/api/oauth2/v1/token`,
       null,
-      { params: { grant_type: 'password', username, password }, timeout: 10000 }
+      { params: { grant_type: 'password', username, password }, headers: { 'X-Client-IP': req.ip }, timeout: 10000 }
     );
 
     const { access_token, refresh_token } = protheusResp.data;
