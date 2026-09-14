@@ -403,7 +403,11 @@ async function validaLogin(req, res) {
       if (err) console.error('Session save error:', err);
       return res.redirect(returnTo);
     });
-  } catch {
+  } catch (protheusErr) {
+    if (protheusErr.response?.data?.passwordLocked === true) {
+      return res.redirect('/login?error=password_locked&username=' + encodeURIComponent(username));
+    }
+
     try {
       let localUser = null;
 

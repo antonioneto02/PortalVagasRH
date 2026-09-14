@@ -11,6 +11,8 @@ const {
 } = require('../controllers/loginController');
 const { generateCsrfToken, verifyCsrfToken } = require('../middleware/csrf');
 
+const protheusAuthUrl = process.env.PROTHEUS_AUTH_URL || 'https://consultas.cini.com.br:3032';
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 8,
@@ -58,6 +60,7 @@ router.get('/login', (req, res) => {
     username: req.query.username || '',
     timeout: req.query.timeout === 'true',
     csrfToken,
+    protheusAuthUrl,
   });
 });
 

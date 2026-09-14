@@ -42,6 +42,21 @@
               <div id="errorAlert" class="alert alert-info mt-2" role="alert" style="border-left: 4px solid #17a2b8;">
                 <strong>Você já possui cadastro.</strong> Faça login para continuar.
               </div>
+            <% } else if (error === 'password_locked') { %>
+              <div id="passwordLockedAlert" class="alert alert-danger mt-2" role="alert" style="border-left: 4px solid #dc3545;">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-exclamation-triangle me-2" style="font-size: 1.2em;"></i>
+                  <div>
+                    <strong>Sua senha foi bloqueada por inatividade.</strong><br>
+                    <small>Solicite a redefinição da senha para continuar.</small>
+                  </div>
+                </div>
+                <div class="text-center mt-2">
+                  <a href="<%= protheusAuthUrl %>/reset-senha.html?username=<%= encodeURIComponent(username) %>" class="btn btn-danger btn-sm" target="_blank" rel="noopener noreferrer">
+                    Redefinir senha
+                  </a>
+                </div>
+              </div>
             <% } %>
           </div>
 
