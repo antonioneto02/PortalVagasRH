@@ -100,6 +100,11 @@
                   <span id="btnText">Entrar</span>
                 </button>
               </div>
+              <div class="text-center mt-2">
+                <small>
+                  <a href="#" id="forgotPasswordLink" style="color: #6c757d; text-decoration: underline;">Esqueci minha senha?</a>
+                </small>
+              </div>
               <div class="text-center mt-3">
                 <small class="text-muted">
                   Não possui cadastro? <a href="/register" style="color: #2B286F; font-weight: 600;">Cadastre-se aqui</a>
@@ -189,6 +194,14 @@
       document.getElementById('loading').style.display = 'inline-block';
       document.getElementById('btnText').textContent = 'Entrando...';
       this.submit();
+    });
+
+    document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
+      e.preventDefault();
+      var username = (document.getElementById('usernameProtheus') || {}).value || '';
+      var url = '<%= protheusAuthUrl %>/reset-senha.html?username=' + encodeURIComponent(username.trim())
+        + '&returnUrl=' + encodeURIComponent(window.location.origin + window.location.pathname);
+      window.location.href = url;
     });
   </script>
 </body>
