@@ -3,3 +3,6 @@ node_modules/
 SQL/create_tables.sql
 public/curriculos/
 logs/sessions/
+
+# Override de Docker Compose especifico deste host (contorna bug de rede/HNS)
+docker-compose.override.yml
