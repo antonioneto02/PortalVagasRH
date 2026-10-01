@@ -68,12 +68,12 @@ async function semPermissaoDeGravar(sequelize) {
   for (const nome of modelos.ORDEM) {
     const tabela = modelos[nome].tableName;
     const [p] = await sequelize.query(
-      `SELECT HAS_PERMS_BY_NAME('${tabela}', 'OBJECT', 'INSERT') AS i, HAS_PERMS_BY_NAME('${tabela}', 'OBJECT', 'UPDATE') AS u, HAS_PERMS_BY_NAME('${tabela}', 'OBJECT', 'DELETE') AS d`,
+      `SELECT HAS_PERMS_BY_NAME('${tabela}', 'OBJECT', 'INSERT') AS i, HAS_PERMS_BY_NAME('${tabela}', 'OBJECT', 'UPDATE') AS u, HAS_PERMS_BY_NAME('${tabela}', 'OBJECT', 'DELETE') AS d, HAS_PERMS_BY_NAME('${tabela}', 'OBJECT', 'ALTER') AS a`,
       { type: 'SELECT' }
     );
-    if (!p.i || !p.u || !p.d) faltando.push(tabela);
+    if (!p.i || !p.u || !p.d || !p.a) faltando.push(tabela);
   }
-  return faltando.length ? `usuário do .env sem INSERT/UPDATE/DELETE em ${faltando.join(', ')}` : null;
+  return faltando.length ? `usuário do .env sem INSERT/UPDATE/DELETE/ALTER (ALTER é necessário para devolver o IDENTITY) em ${faltando.join(', ')}` : null;
 }
 
 function respostaFalsa() {
