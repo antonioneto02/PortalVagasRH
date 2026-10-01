@@ -7,7 +7,8 @@ const Vaga = require('../models/Vaga');
 
 function formatDate(dt) {
   if (!dt) return null;
-  const d = new Date(dt);
+  const soData = typeof dt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dt);
+  const d = soData ? new Date(Number(dt.slice(0, 4)), Number(dt.slice(5, 7)) - 1, Number(dt.slice(8, 10))) : new Date(dt);
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
@@ -21,6 +22,15 @@ const EstoqueTI = require('../models/EstoqueTI');
 const EstoqueItem = require('../models/EstoqueItem');
 const PedidoCompraTI = require('../models/PedidoCompraTI');
 const notificacaoModel = require('../models/notificacaoModel');
+
+async function totaisAlocacao() {
+  const linhas = await EstoqueItem.findAll({
+    attributes: ['ID_ESTOQUE', [sequelize.fn('COUNT', sequelize.col('ID')), 'TOTAL']],
+    group: ['ID_ESTOQUE'],
+    raw: true,
+  });
+  return new Map(linhas.map(l => [l.ID_ESTOQUE, Number(l.TOTAL)]));
+}
 
 const DESTINATARIOS_PEDIDO = [
   'antonioneto3260@gmail.com',
@@ -66,13 +76,12 @@ function buildEmailPedido({ id_vaga, itens, funcao, setor, prazo, solicitante })
 
 async function renderEstoque(req, res) {
   try {
-    const [itensRaw, pedidosOrm] = await Promise.all([
+    const [itensRaw, pedidosOrm, alocacoes] = await Promise.all([
       EstoqueTI.findAll({
         attributes: [
           'ID', 'TIPO_PRODUTO', 'DESCRICAO', 'MODELO',
-          [sequelize.fn('ISNULL', sequelize.col('QUANTIDADE'), 1), 'QUANTIDADE'],
+          [sequelize.fn('COALESCE', sequelize.col('QUANTIDADE'), 1), 'QUANTIDADE'],
           'DTINCLUSAO',
-          [sequelize.literal('(SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = [EstoqueTI].[ID])'), 'TOTAL_ALOCACOES'],
         ],
         order: [['TIPO_PRODUTO', 'ASC'], ['DTINCLUSAO', 'DESC']],
       }),
@@ -80,9 +89,10 @@ async function renderEstoque(req, res) {
         include: [{ model: Vaga, as: 'vaga', attributes: ['FUNCAO', 'SETOR', 'PRAZO_CONTRATACAO'], required: false }],
         order: [['DTPEDIDO', 'DESC']],
       }),
+      totaisAlocacao(),
     ]);
 
-    const itens = itensRaw.map(e => { const o = e.toJSON(); return { ...o, DTINCLUSAO: formatDate(o.DTINCLUSAO) }; });
+    const itens = itensRaw.map(e => { const o = e.toJSON(); return { ...o, TOTAL_ALOCACOES: alocacoes.get(o.ID) || 0, DTINCLUSAO: formatDate(o.DTINCLUSAO) }; });
     const pedidosRaw = pedidosOrm.map(p => {
       const { vaga, DTPEDIDO, ...rest } = p.toJSON();
       return { ...rest, DTPEDIDO: formatDate(DTPEDIDO), VAGA_FUNCAO: vaga?.FUNCAO || null, VAGA_SETOR: vaga?.SETOR || null, VAGA_PRAZO: formatDate(vaga?.PRAZO_CONTRATACAO) };
@@ -134,16 +144,16 @@ async function renderEstoque(req, res) {
 
 async function listarEstoque(_req, res) {
   try {
+    const alocacoes = await totaisAlocacao();
     const rows = await EstoqueTI.findAll({
       attributes: [
         'ID', 'TIPO_PRODUTO', 'DESCRICAO', 'MODELO',
-        [sequelize.fn('ISNULL', sequelize.col('QUANTIDADE'), 1), 'QUANTIDADE'],
+        [sequelize.fn('COALESCE', sequelize.col('QUANTIDADE'), 1), 'QUANTIDADE'],
         'DTINCLUSAO',
-        [sequelize.literal('(SELECT COUNT(*) FROM RH_ESTOQUE_ITENS WHERE ID_ESTOQUE = [EstoqueTI].[ID])'), 'TOTAL_ALOCACOES'],
       ],
       order: [['TIPO_PRODUTO', 'ASC'], ['DTINCLUSAO', 'DESC']],
     });
-    res.json(rows.map(e => { const o = e.toJSON(); return { ...o, DTINCLUSAO: formatDate(o.DTINCLUSAO) }; }));
+    res.json(rows.map(e => { const o = e.toJSON(); return { ...o, TOTAL_ALOCACOES: alocacoes.get(o.ID) || 0, DTINCLUSAO: formatDate(o.DTINCLUSAO) }; }));
   } catch (err) {
     console.error('Erro ao listar estoque:', err);
     res.status(500).json({ error: 'Erro ao listar estoque.' });
@@ -219,7 +229,7 @@ async function verificarDisponibilidade(req, res) {
       where: { TIPO_PRODUTO: { [Op.in]: ['NOTEBOOK', 'CELULAR'] } },
       attributes: [
         'TIPO_PRODUTO',
-        [sequelize.fn('SUM', sequelize.fn('ISNULL', sequelize.col('QUANTIDADE'), 1)), 'QTDE'],
+        [sequelize.fn('SUM', sequelize.fn('COALESCE', sequelize.col('QUANTIDADE'), 1)), 'QTDE'],
       ],
       group: ['TIPO_PRODUTO'],
       raw: true,

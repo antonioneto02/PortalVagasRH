@@ -5,7 +5,8 @@ const multer = require('multer');
 
 function formatDate(dt) {
   if (!dt) return null;
-  const d = new Date(dt);
+  const soData = typeof dt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dt);
+  const d = soData ? new Date(Number(dt.slice(0, 4)), Number(dt.slice(5, 7)) - 1, Number(dt.slice(8, 10))) : new Date(dt);
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 

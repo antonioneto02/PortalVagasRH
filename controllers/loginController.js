@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const sql = require('mssql');
 const dotenv = require('dotenv');
-const dbConfig = require('../database/dbConfig');
+const dbConfigDw = require('../database/dbConfigDw');
 const sequelize = require('../database/sequelize');
 const Usuario = require('../models/Usuario');
 const notificacaoModel = require('../models/notificacaoModel');
@@ -175,7 +175,7 @@ async function getLocalUserByEmail(email) {
 async function getParticipanteByCPF(cpf) {
   let pool = null;
   try {
-    pool = await new sql.ConnectionPool(dbConfig).connect();
+    pool = await new sql.ConnectionPool(dbConfigDw).connect();
     const result = await pool.request()
       .input('CPF', sql.VarChar(20), cpf)
       .query(`SELECT TOP 1

@@ -1,7 +1,7 @@
 ﻿'use strict';
 
 const sql = require('mssql');
-const { QueryTypes, Op } = require('sequelize');
+const { Op } = require('sequelize');
 const sequelize = require('../database/sequelize');
 const dbConfigDw = require('../database/dbConfigDw');
 const Vaga = require('../models/Vaga');
@@ -14,7 +14,8 @@ const PedidoCompraTI = require('../models/PedidoCompraTI');
 
 function formatDateBR(dt) {
   if (!dt) return null;
-  const d = new Date(dt);
+  const soData = typeof dt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dt);
+  const d = soData ? new Date(Number(dt.slice(0, 4)), Number(dt.slice(5, 7)) - 1, Number(dt.slice(8, 10))) : new Date(dt);
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
@@ -36,19 +37,30 @@ async function listarVagas(req, res) {
         'NOTEBOOK', 'CELULAR', 'REQUISITOS_VAGA', 'SLA_DIAS', 'CLASSIFICACAO',
         'CANDIDATOS', 'ENTREVISTAS', 'PRAZO_CONTRATACAO', 'DT_CONTRATACAO',
         'MATRICULA', 'STATUS', 'EMPRESA', 'USUARIO_CADASTRO', 'DTINCLUSAO',
-        [sequelize.literal(`(CASE
-           WHEN NOTEBOOK='SIM' AND NOT EXISTS (SELECT 1 FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO='NOTEBOOK' AND ISNULL(QUANTIDADE,0)>0) THEN 0
-           WHEN CELULAR='SIM'  AND NOT EXISTS (SELECT 1 FROM RH_ESTOQUE_TI WHERE TIPO_PRODUTO='CELULAR'  AND ISNULL(QUANTIDADE,0)>0) THEN 0
-           WHEN NOTEBOOK='SIM' OR CELULAR='SIM' THEN 1
-           ELSE 0
-         END)`), 'ITENS_RESERVADOS'],
-        [sequelize.literal(`(SELECT COUNT(*) FROM RH_PEDIDOS_COMPRA_TI WHERE ID_VAGA = [Vaga].[ID] AND STATUS = 'PENDENTE')`), 'PEDIDOS_PENDENTES'],
       ],
       order: [['DTINCLUSAO', 'DESC']],
       raw: true,
     });
+    const [comNotebook, comCelular, pendentes] = await Promise.all([
+      EstoqueTI.count({ where: { TIPO_PRODUTO: 'NOTEBOOK', QUANTIDADE: { [Op.gt]: 0 } } }),
+      EstoqueTI.count({ where: { TIPO_PRODUTO: 'CELULAR', QUANTIDADE: { [Op.gt]: 0 } } }),
+      PedidoCompraTI.findAll({
+        attributes: ['ID_VAGA', [sequelize.fn('COUNT', sequelize.col('ID')), 'TOTAL']],
+        where: { STATUS: 'PENDENTE' },
+        group: ['ID_VAGA'],
+        raw: true,
+      }),
+    ]);
+    const pendentesPorVaga = new Map(pendentes.map(p => [p.ID_VAGA, Number(p.TOTAL)]));
+    const itensReservados = (v) => {
+      if (v.NOTEBOOK === 'SIM' && !comNotebook) return 0;
+      if (v.CELULAR === 'SIM' && !comCelular) return 0;
+      return v.NOTEBOOK === 'SIM' || v.CELULAR === 'SIM' ? 1 : 0;
+    };
     const rows = rawRows.map(v => ({
       ...v,
+      ITENS_RESERVADOS: itensReservados(v),
+      PEDIDOS_PENDENTES: pendentesPorVaga.get(v.ID) || 0,
       DATA_ABERTURA: formatDateBR(v.DATA_ABERTURA),
       PRAZO_CONTRATACAO: formatDateBR(v.PRAZO_CONTRATACAO),
       DT_CONTRATACAO: formatDateBR(v.DT_CONTRATACAO),
@@ -130,7 +142,7 @@ async function cadastrarVaga(req, res) {
 
     const novaVaga = await Vaga.create({
       FUNCAO: funcao,
-      DATA_ABERTURA: new Date(data_abertura),
+      DATA_ABERTURA: data_abertura,
       TIPO_VAGA: tipo_vaga,
       SOLICITANTE: solicitante || null,
       SETOR: setor || null,
@@ -141,8 +153,8 @@ async function cadastrarVaga(req, res) {
       CLASSIFICACAO: classificacao_final,
       CANDIDATOS: candidatos ? parseInt(candidatos) : 0,
       ENTREVISTAS: entrevistas ? parseInt(entrevistas) : 0,
-      PRAZO_CONTRATACAO: prazo_contratacao ? new Date(prazo_contratacao) : null,
-      DT_CONTRATACAO: dt_contratacao ? new Date(dt_contratacao) : null,
+      PRAZO_CONTRATACAO: prazo_contratacao || null,
+      DT_CONTRATACAO: dt_contratacao || null,
       MATRICULA: matricula || null,
       STATUS: status || 'ABERTA',
       EMPRESA: empresa || null,
@@ -238,6 +250,24 @@ async function getMatriculas(req, res) {
   }
 }
 
+async function baixarUmDoEstoque(tipo) {
+  for (let tentativa = 0; tentativa < 5; tentativa += 1) {
+    const item = await EstoqueTI.findOne({
+      attributes: ['ID'],
+      where: { TIPO_PRODUTO: tipo, QUANTIDADE: { [Op.gt]: 0 } },
+      order: [['ID', 'ASC']],
+      raw: true,
+    });
+    if (!item) return null;
+    const [alteradas] = await EstoqueTI.update(
+      { QUANTIDADE: sequelize.literal(sequelize.getQueryInterface().quoteIdentifier('QUANTIDADE') + ' - 1'), DTALTERACAO: new Date() },
+      { where: { ID: item.ID, QUANTIDADE: { [Op.gt]: 0 } } }
+    );
+    if (alteradas > 0) return item.ID;
+  }
+  return null;
+}
+
 async function fecharVaga(req, res) {
   if (!podeCadastrarFn(req.session)) return res.status(403).json({ error: 'Acesso negado.' });
   const id = parseInt(req.params.id, 10);
@@ -261,7 +291,7 @@ async function fecharVaga(req, res) {
       {
         MATRICULA: matricula,
         ENTREVISTAS: parseInt(entrevistas),
-        DT_CONTRATACAO: dt_contratacao ? new Date(dt_contratacao) : null,
+        DT_CONTRATACAO: dt_contratacao || null,
         STATUS: 'FECHADA',
       },
       { where: { ID: id } }
@@ -276,15 +306,7 @@ async function fecharVaga(req, res) {
         const precisaTipo = tipo === 'NOTEBOOK' ? notebook === 'SIM' : celular === 'SIM';
         if (!precisaTipo) continue;
 
-        const updResult = await sequelize.query(
-          `UPDATE TOP (1) RH_ESTOQUE_TI
-           SET QUANTIDADE = QUANTIDADE - 1, DTALTERACAO = GETDATE()
-           OUTPUT INSERTED.ID
-           WHERE TIPO_PRODUTO = :tipo AND ISNULL(QUANTIDADE, 0) > 0`,
-          { replacements: { tipo }, type: QueryTypes.SELECT }
-        );
-
-        const estoqueId = updResult[0]?.ID;
+        const estoqueId = await baixarUmDoEstoque(tipo);
         if (estoqueId) {
           await EstoqueItem.create({
             ID_ESTOQUE: estoqueId,
