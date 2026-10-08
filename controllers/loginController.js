@@ -200,17 +200,27 @@ async function getUserByProtheusId(protheusId) {
   return user ? user.toJSON() : null;
 }
 
+async function _usuarioDoToken(token) {
+  try {
+    const resp = await axios.get(`${protheusAuthUrl}/rest/users/me`, { headers: { Authorization: `Bearer ${token}` }, timeout: 6000 });
+    return { login: String(resp.data?.login || '').trim(), nome: String(resp.data?.nome || '').trim() };
+  } catch {
+    return { login: '', nome: '' };
+  }
+}
+
 async function _restoreSessionFromToken(token, req, _res) {
   const resp = await axios.get(
     `${protheusAuthUrl}/rest/users/getuserid`,
     { headers: { Authorization: `Bearer ${token}` }, timeout: 6000 }
   );
   const userID = resp.data.userID;
+  const doToken = await _usuarioDoToken(token);
   const vinculado = await getUserByProtheusId(userID);
   req.session.userId = userID;
   req.session.isProtheus = true;
   req.session.protheusId = userID;
-  req.session.username = vinculado?.NOME || req.cookies['username'] || 'Usuário';
+  req.session.username = vinculado?.NOME || doToken.nome || 'Usuário';
   req.session.isAdmin = Number(vinculado?.ADM || 0) === 1 || String(userID) === PROTHEUS_ADMIN_FIXO_ID;
   req.session.lastActivity = Date.now();
   return new Promise(resolve => req.session.save(() => resolve()));
