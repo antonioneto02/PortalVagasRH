@@ -117,7 +117,14 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           Set-Location "${{ env.DEPLOY_PATH }}"
-          $prevSha = git rev-parse HEAD
+          # O CINI Manager commita nesta pasta antes do push, entao o HEAD local ja e o
+          # commit novo. A base real (diff e rollback) e o ultimo commit implantado com sucesso.
+          $marca = "C:\actions-runner\deployed\${{ env.PM2_APP_NAME }}.sha"
+          $prevSha = if (Test-Path $marca) { (Get-Content $marca -Raw).Trim() } else { '' }
+          if (-not $prevSha) {
+            $prevSha = git rev-parse HEAD
+            Add-Content -Path $env:GITHUB_ENV -Value "BASE_DESCONHECIDA=1"
+          }
           Write-Output "Previous commit: $prevSha"
           Add-Content -Path $env:GITHUB_ENV -Value "PREV_SHA=$prevSha"
           git fetch origin main
@@ -144,6 +151,18 @@ jobs:
               break
             }
           }
+          if ($env:BASE_DESCONHECIDA -eq '1') { $needsRebuild = $true; Write-Output "Sem registro do ultimo deploy -- reconstruindo a imagem." }
+          # Sem bind mount da pasta do app, o codigo esta DENTRO da imagem (COPY . .):
+          # so reiniciar o processo manteria o codigo antigo.
+          $raiz = ("${{ env.DEPLOY_PATH }}" -replace '\\', '/').TrimEnd('/')
+          $montada = $false
+          $config = docker compose config --format json | ConvertFrom-Json
+          foreach ($svc in $config.services.PSObject.Properties) {
+            foreach ($vol in $svc.Value.volumes) {
+              if ($vol.type -eq 'bind' -and (($vol.source -replace '\\', '/').TrimEnd('/') -ieq $raiz)) { $montada = $true }
+            }
+          }
+          if (-not $montada) { $needsRebuild = $true; Write-Output "Pasta do app nao montada no container -- reconstruindo a imagem." }
           Write-Output "Precisa reconstruir imagem: $needsRebuild"
           Add-Content -Path $env:GITHUB_ENV -Value "NEEDS_REBUILD=$needsRebuild"
 
@@ -261,12 +280,16 @@ jobs:
           }
 
           Write-Output "Deploy successful. Now running: $(git rev-parse HEAD)"
+          New-Item -ItemType Directory -Force -Path "C:\actions-runner\deployed" | Out-Null
+          git rev-parse HEAD | Set-Content -Path "C:\actions-runner\deployed\${{ env.PM2_APP_NAME }}.sha"
 
       - name: Notificar sucesso
         if: success()
         shell: powershell
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $webhook = "${{ secrets.DEPLOY_WEBHOOK_URL }}"
+          if (-not $webhook) { Write-Output "Secret DEPLOY_WEBHOOK_URL nao configurado -- notificacao ignorada."; exit 0 }
           $check = [char]0x2705
           $bt = [char]96
           $sha = git -C "${{ env.DEPLOY_PATH }}" rev-parse --short HEAD
@@ -277,13 +300,15 @@ jobs:
           $text = "$check *portal-vagas-rh* - deploy concluido com sucesso`nCommit: $bt$sha$bt - $msg`nDisparado por: $actor`n<$runUrl|Ver execucao> | <$commitUrl|Ver commit>"
           $body = @{ text = $text } | ConvertTo-Json
           $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-          Invoke-RestMethod -Uri "${{ secrets.DEPLOY_WEBHOOK_URL }}" -Method Post -Body $bodyBytes -ContentType 'application/json; charset=utf-8'
+          Invoke-RestMethod -Uri $webhook -Method Post -Body $bodyBytes -ContentType 'application/json; charset=utf-8'
 
       - name: Notificar falha
         if: failure()
         shell: powershell
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $webhook = "${{ secrets.DEPLOY_WEBHOOK_URL }}"
+          if (-not $webhook) { Write-Output "Secret DEPLOY_WEBHOOK_URL nao configurado -- notificacao ignorada."; exit 0 }
           $cross = [char]0x274C
           $bt = [char]96
           $sha = git -C "${{ env.DEPLOY_PATH }}" rev-parse --short HEAD
@@ -294,7 +319,7 @@ jobs:
           $text = "$cross *portal-vagas-rh* - deploy FALHOU (rollback automatico executado)`nCommit tentado: $bt$sha$bt - $msg`nDisparado por: $actor`n<$runUrl|Ver execucao (logs)> | <$commitUrl|Ver commit>"
           $body = @{ text = $text } | ConvertTo-Json
           $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-          Invoke-RestMethod -Uri "${{ secrets.DEPLOY_WEBHOOK_URL }}" -Method Post -Body $bodyBytes -ContentType 'application/json; charset=utf-8'
+          Invoke-RestMethod -Uri $webhook -Method Post -Body $bodyBytes -ContentType 'application/json; charset=utf-8'
 
       - name: Liberar lock de deploy
         if: always()
